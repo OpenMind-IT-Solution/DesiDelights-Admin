@@ -33,7 +33,7 @@ const UserProfile = ({ tabContentList, data }: { tabContentList: { [key: string]
       {activeTab === undefined ? null : (
         <Grid size={{ xs: 12 }} className='flex flex-col gap-6'>
           <TabContext value={activeTab}>
-            <CustomTabList onChange={handleChange} variant='scrollable' pill='true'>
+            {/* <CustomTabList onChange={handleChange} variant='scrollable' pill='true'>
               <Tab
                 label={
                   <div className='flex items-center gap-1.5'>
@@ -70,7 +70,7 @@ const UserProfile = ({ tabContentList, data }: { tabContentList: { [key: string]
                 }
                 value='connections'
               />
-            </CustomTabList>
+            </CustomTabList> */}
 
             <TabPanel value={activeTab} className='p-0'>
               {tabContentList[activeTab]}

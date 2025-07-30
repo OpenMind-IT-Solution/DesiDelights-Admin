@@ -26,21 +26,21 @@ const renderList = (list: ProfileCommonType[]) => {
   )
 }
 
-const renderTeams = (teams: ProfileTeamsType[]) => {
-  return (
-    teams.length > 0 &&
-    teams.map((item, index) => {
-      return (
-        <div key={index} className='flex items-center flex-wrap gap-2'>
-          <Typography className='font-medium'>
-            {item.property.charAt(0).toUpperCase() + item.property.slice(1)}
-          </Typography>
-          <Typography>{item.value.charAt(0).toUpperCase() + item.value.slice(1)}</Typography>
-        </div>
-      )
-    })
-  )
-}
+// const renderTeams = (teams: ProfileTeamsType[]) => {
+//   return (
+//     teams.length > 0 &&
+//     teams.map((item, index) => {
+//       return (
+//         <div key={index} className='flex items-center flex-wrap gap-2'>
+//           <Typography className='font-medium'>
+//             {item.property.charAt(0).toUpperCase() + item.property.slice(1)}
+//           </Typography>
+//           <Typography>{item.value.charAt(0).toUpperCase() + item.value.slice(1)}</Typography>
+//         </div>
+//       )
+//     })
+//   )
+// }
 
 const AboutOverview = ({ data }: { data?: ProfileTabType }) => {
   return (
@@ -60,12 +60,12 @@ const AboutOverview = ({ data }: { data?: ProfileTabType }) => {
               </Typography>
               {data?.contacts && renderList(data?.contacts)}
             </div>
-            <div className='flex flex-col gap-4'>
+            {/* <div className='flex flex-col gap-4'>
               <Typography className='uppercase' variant='body2' color='text.disabled'>
                 Teams
               </Typography>
               {data?.teams && renderTeams(data?.teams)}
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </Grid>

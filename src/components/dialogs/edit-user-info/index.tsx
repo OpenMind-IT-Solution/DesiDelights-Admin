@@ -107,7 +107,7 @@ const EditUserInfo = ({ open, setOpen, data }: EditUserInfoProps) => {
                 onChange={e => setUserData({ ...userData, lastName: e.target.value })}
               />
             </Grid>
-            <Grid size={{ xs: 12 }}>
+            {/* <Grid size={{ xs: 12 }}>
               <CustomTextField
                 fullWidth
                 label='User Name'
@@ -115,7 +115,7 @@ const EditUserInfo = ({ open, setOpen, data }: EditUserInfoProps) => {
                 value={userData?.userName}
                 onChange={e => setUserData({ ...userData, userName: e.target.value })}
               />
-            </Grid>
+            </Grid> */}
             <Grid size={{ xs: 12, sm: 6 }}>
               <CustomTextField
                 fullWidth

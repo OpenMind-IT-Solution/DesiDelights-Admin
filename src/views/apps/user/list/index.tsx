@@ -10,14 +10,14 @@ import UserListCards from './UserListCards'
 
 const UserList = ({ userData }: { userData?: UsersType[] }) => {
   return (
-    <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
-        <UserListCards />
-      </Grid>
+    // <Grid container spacing={6}>
+    //   <Grid size={{ xs: 12 }}>
+    //     <UserListCards />
+    //   </Grid>
       <Grid size={{ xs: 12 }}>
         <UserListTable tableData={userData} />
       </Grid>
-    </Grid>
+    // </Grid>
   )
 }
 

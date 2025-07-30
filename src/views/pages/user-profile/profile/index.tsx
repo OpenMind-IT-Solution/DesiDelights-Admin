@@ -6,17 +6,33 @@ import type { ProfileTabType } from '@/types/pages/profileTypes'
 
 // Component Imports
 import AboutOverview from './AboutOverview'
-import ActivityTimeline from './ActivityTimeline'
-import ConnectionsTeams from './ConnectionsTeams'
-import ProjectsTable from './ProjectsTables'
+// import ActivityTimeline from './ActivityTimeline'
+// import ConnectionsTeams from './ConnectionsTeams'
+// import ProjectsTable from './ProjectsTables'
+import InvoiceListTable from './InvoiceListTable'
+import { getInvoiceData } from '@/app/server/actions'
 
-const ProfileTab = ({ data }: { data?: ProfileTabType }) => {
+const ProfileTab = async ({ data }: { data?: ProfileTabType }) => {
+  const invoiceData = await getInvoiceData()
+
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, md: 5, lg: 4 }}>
         <AboutOverview data={data} />
       </Grid>
       <Grid size={{ xs: 12, md: 7, lg: 8 }}>
+        <Grid container spacing={6}>
+          <Grid size={{ xs: 12 }}>
+            {/* <ActivityTimeline /> */}
+            <InvoiceListTable invoiceData={invoiceData} />
+          </Grid>
+          {/* <ConnectionsTeams connections={data?.connections} teamsTech={data?.teamsTech} /> */}
+          {/* <Grid size={{ xs: 12 }}>
+            <ProjectsTable projectTable={data?.projectTable} />
+          </Grid> */}
+        </Grid>
+      </Grid>
+      {/* <Grid size={{ xs: 12, md: 7, lg: 8 }}>
         <Grid container spacing={6}>
           <Grid size={{ xs: 12 }}>
             <ActivityTimeline />
@@ -26,7 +42,7 @@ const ProfileTab = ({ data }: { data?: ProfileTabType }) => {
             <ProjectsTable projectTable={data?.projectTable} />
           </Grid>
         </Grid>
-      </Grid>
+      </Grid> */}
     </Grid>
   )
 }

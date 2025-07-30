@@ -10,25 +10,31 @@ export const db: DB = {
   users: {
     profile: {
       about: [
-        { property: 'Full Name', value: 'John Doe', icon: 'tabler-user' },
-        { property: 'Status', value: 'active', icon: 'tabler-check' },
-        { property: 'Role', value: 'Developer', icon: 'tabler-crown' },
-        { property: 'Country', value: 'USA', icon: 'tabler-flag' },
-        { property: 'Language', value: 'English', icon: 'tabler-language' }
+        // { property: 'Name', value: 'Ramesh Patel', icon: 'tabler-user' },
+        { property: 'Birth Date', value: 'January 1, 1990', icon: 'tabler-cake' },
+        { property: 'Location', value: 'Brussels', icon: 'tabler-map' },
+        { property: 'Known Languages', value: 'English, Hindi, Gujarati', icon: 'tabler-language' },
+        { property: 'Special Skills', value: 'Continental, Indian Curry, South Indian', icon: 'tabler-star' },
+        { property: 'Experience', value: '5 years', icon: 'tabler-briefcase' },
+        // { property: 'Role', value: 'Manager', icon: 'tabler-crown' },
+        { property: 'Status', value: 'On Duty', icon: 'tabler-check' },
+        // { property: 'Joining Date', value: 'October 2025', icon: 'tabler-calendar' },
+        // { property: 'Availability', value: 'Full-time', icon: 'tabler-clock' },
+        { property: 'Shift Time', value: '9:00 AM - 6:00 PM (1h Break)', icon: 'tabler-clock' },
+        { property: 'Weekly Off', value: 'Sunday', icon: 'tabler-calendar' }
       ],
       contacts: [
         { property: 'Contact', value: '(123) 456-7890', icon: 'tabler-phone-call' },
-        { property: 'Skype', value: 'john.doe', icon: 'tabler-messages' },
-        { property: 'Email', value: 'john.doe@example.com', icon: 'tabler-mail' }
+        { property: 'Email', value: 'ramesh.patel@gmail.com', icon: 'tabler-mail' }
       ],
       teams: [
         { property: 'Backend Developer', value: '(126 Members)' },
         { property: 'React Developer', value: '(98 Members)' }
       ],
       overview: [
-        { property: 'Task Compiled', value: '13.5k', icon: 'tabler-check' },
-        { property: 'Connections', value: '897', icon: 'tabler-users' },
-        { property: 'Projects Compiled', value: '146', icon: 'tabler-layout-grid' }
+        { property: 'Order Delivered', value: '500', icon: 'tabler-check' },
+        { property: 'Orders In Progress', value: '10', icon: 'tabler-users' },
+        { property: 'Customer Satisfaction Score', value: '5', icon: 'tabler-layout-grid' }
       ],
       connections: [
         {
@@ -677,12 +683,12 @@ export const db: DB = {
     ]
   },
   profileHeader: {
-    fullName: 'John Doe',
-    location: 'Vatican City',
-    joiningDate: 'April 2021',
-    designation: 'UX Designer',
+    fullName: 'Ramesh Patel',
+    location: 'Brussels',
+    joiningDate: '20ᵗʰ October 2025',
+    designation: 'Manager',
     profileImg: '/images/avatars/1.png',
-    designationIcon: 'tabler-palette',
+    designationIcon: 'tabler-crown',
     coverImg: '/images/pages/profile-banner.png'
   }
 }

@@ -97,18 +97,18 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
           <MenuItem href={`/${locale}/dashboards/analytics`} icon={<i className='tabler-trending-up' />}>
             {dictionary['navigation'].analytics}
           </MenuItem>
-          <MenuItem href={`/${locale}/dashboards/ecommerce`} icon={<i className='tabler-shopping-cart' />}>
+          {/* <MenuItem href={`/${locale}/dashboards/ecommerce`} icon={<i className='tabler-shopping-cart' />}>
             {dictionary['navigation'].eCommerce}
-          </MenuItem>
-          <MenuItem href={`/${locale}/dashboards/academy`} icon={<i className='tabler-school' />}>
+          </MenuItem> */}
+          {/* <MenuItem href={`/${locale}/dashboards/academy`} icon={<i className='tabler-school' />}>
             {dictionary['navigation'].academy}
-          </MenuItem>
-          <MenuItem href={`/${locale}/dashboards/logistics`} icon={<i className='tabler-truck' />}>
+          </MenuItem> */}
+          {/* <MenuItem href={`/${locale}/dashboards/logistics`} icon={<i className='tabler-truck' />}>
             {dictionary['navigation'].logistics}
-          </MenuItem>
+          </MenuItem> */}
         </SubMenu>
         <SubMenu label={dictionary['navigation'].apps} icon={<i className='tabler-mail' />}>
-          <SubMenu label={dictionary['navigation'].eCommerce} icon={<i className='tabler-shopping-cart' />}>
+          {/* <SubMenu label={dictionary['navigation'].eCommerce} icon={<i className='tabler-shopping-cart' />}>
             <MenuItem href={`/${locale}/apps/ecommerce/dashboard`}>{dictionary['navigation'].dashboard}</MenuItem>
             <SubMenu label={dictionary['navigation'].products}>
               <MenuItem href={`/${locale}/apps/ecommerce/products/list`}>{dictionary['navigation'].list}</MenuItem>
@@ -142,35 +142,35 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
             </MenuItem>
             <MenuItem href={`/${locale}/apps/ecommerce/referrals`}>{dictionary['navigation'].referrals}</MenuItem>
             <MenuItem href={`/${locale}/apps/ecommerce/settings`}>{dictionary['navigation'].settings}</MenuItem>
-          </SubMenu>
-          <SubMenu label={dictionary['navigation'].academy} icon={<i className='tabler-school' />}>
+          </SubMenu> */}
+          {/* <SubMenu label={dictionary['navigation'].academy} icon={<i className='tabler-school' />}>
             <MenuItem href={`/${locale}/apps/academy/dashboard`}>{dictionary['navigation'].dashboard}</MenuItem>
             <MenuItem href={`/${locale}/apps/academy/my-courses`}>{dictionary['navigation'].myCourses}</MenuItem>
             <MenuItem href={`/${locale}/apps/academy/course-details`}>
               {dictionary['navigation'].courseDetails}
             </MenuItem>
-          </SubMenu>
+          </SubMenu> */}
           <SubMenu label={dictionary['navigation'].logistics} icon={<i className='tabler-truck' />}>
             <MenuItem href={`/${locale}/apps/logistics/dashboard`}>{dictionary['navigation'].dashboard}</MenuItem>
             <MenuItem href={`/${locale}/apps/logistics/fleet`}>{dictionary['navigation'].fleet}</MenuItem>
           </SubMenu>
-          <MenuItem
+          {/* <MenuItem
             href={`/${locale}/apps/email`}
             icon={<i className='tabler-mail' />}
             exactMatch={false}
             activeUrl='/apps/email'
           >
             {dictionary['navigation'].email}
-          </MenuItem>
-          <MenuItem href={`/${locale}/apps/chat`} icon={<i className='tabler-message-circle-2' />}>
+          </MenuItem> */}
+          {/* <MenuItem href={`/${locale}/apps/chat`} icon={<i className='tabler-message-circle-2' />}>
             {dictionary['navigation'].chat}
-          </MenuItem>
-          <MenuItem href={`/${locale}/apps/calendar`} icon={<i className='tabler-calendar' />}>
+          </MenuItem> */}
+          {/* <MenuItem href={`/${locale}/apps/calendar`} icon={<i className='tabler-calendar' />}>
             {dictionary['navigation'].calendar}
-          </MenuItem>
-          <MenuItem href={`/${locale}/apps/kanban`} icon={<i className='tabler-copy' />}>
+          </MenuItem> */}
+          {/* <MenuItem href={`/${locale}/apps/kanban`} icon={<i className='tabler-copy' />}>
             {dictionary['navigation'].kanban}
-          </MenuItem>
+          </MenuItem> */}
           <SubMenu label={dictionary['navigation'].invoice} icon={<i className='tabler-file-description' />}>
             <MenuItem href={`/${locale}/apps/invoice/list`}>{dictionary['navigation'].list}</MenuItem>
             <MenuItem
@@ -326,22 +326,22 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
           <MenuItem href={`/${locale}/react-table`} icon={<i className='tabler-table' />}>
             {dictionary['navigation'].reactTable}
           </MenuItem>
-          <MenuItem
+          {/* <MenuItem
             icon={<i className='tabler-checkbox' />}
             href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/form-elements`}
             suffix={<i className='tabler-external-link text-xl' />}
             target='_blank'
           >
             {dictionary['navigation'].formELements}
-          </MenuItem>
-          <MenuItem
+          </MenuItem> */}
+          {/* <MenuItem
             icon={<i className='tabler-layout-board-split' />}
             href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/mui-table`}
             suffix={<i className='tabler-external-link text-xl' />}
             target='_blank'
           >
             {dictionary['navigation'].muiTables}
-          </MenuItem>
+          </MenuItem> */}
         </SubMenu>
         <SubMenu label={dictionary['navigation'].charts} icon={<i className='tabler-chart-donut-2' />}>
           <MenuItem href={`/${locale}/charts/apex-charts`} icon={<i className='tabler-chart-ppf' />}>
@@ -351,7 +351,7 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
             {dictionary['navigation'].recharts}
           </MenuItem>
         </SubMenu>
-        <SubMenu label={dictionary['navigation'].others} icon={<i className='tabler-dots' />}>
+        {/* <SubMenu label={dictionary['navigation'].others} icon={<i className='tabler-dots' />}>
           <MenuItem
             icon={<i className='tabler-cards' />}
             href={`${process.env.NEXT_PUBLIC_DOCS_URL}/docs/user-interface/foundation`}
@@ -414,7 +414,7 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
             </SubMenu>
           </SubMenu>
           <MenuItem disabled>{dictionary['navigation'].disabledMenu}</MenuItem>
-        </SubMenu>
+        </SubMenu> */}
       </Menu>
       {/* <Menu
         rootStyles={menuRootStyles(theme)}

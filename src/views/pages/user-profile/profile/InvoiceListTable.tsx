@@ -1,7 +1,8 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
+import type { MouseEvent } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -9,16 +10,14 @@ import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
+import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import Checkbox from '@mui/material/Checkbox'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
 import TablePagination from '@mui/material/TablePagination'
-import type { TextFieldProps } from '@mui/material/TextField'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -46,15 +45,15 @@ import type { Locale } from '@configs/i18n'
 // Component Imports
 import OptionMenu from '@core/components/option-menu'
 import CustomAvatar from '@core/components/mui/Avatar'
-import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import TablePaginationComponent from '@components/TablePaginationComponent'
 
 // Util Imports
-import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
+import Checkbox from '@mui/material/Checkbox'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -89,35 +88,6 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   return itemRank.passed
 }
 
-const DebouncedInput = ({
-  value: initialValue,
-  onChange,
-  debounce = 500,
-  ...props
-}: {
-  value: string | number
-  onChange: (value: string | number) => void
-  debounce?: number
-} & Omit<TextFieldProps, 'onChange'>) => {
-  // States
-  const [value, setValue] = useState(initialValue)
-
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    return () => clearTimeout(timeout)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
-
-  return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
-}
-
 // Vars
 const invoiceStatusObj: InvoiceStatusObj = {
   Sent: { color: 'secondary', icon: 'tabler-send-2' },
@@ -133,28 +103,68 @@ const columnHelper = createColumnHelper<InvoiceTypeWithAction>()
 
 const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
   // States
-  const [status, setStatus] = useState<InvoiceType['invoiceStatus']>('')
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[invoiceData])
-  const [filteredData, setFilteredData] = useState(data)
+  const [data, setData] = useState<InvoiceType[]>(invoiceData ?? [])
   const [globalFilter, setGlobalFilter] = useState('')
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  // Vars
+  const open = Boolean(anchorEl)
 
   // Hooks
   const { lang: locale } = useParams()
+
+  // Export Selected Users Handler
+  const handleDownloadSelected = (selectedUsers: InvoiceTypeWithAction[], allUsers: InvoiceTypeWithAction[]) => {
+    // Fallback to all users if none are selected
+    const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
+
+    if (usersToExport.length === 0) return
+
+    const headers = Object.keys(usersToExport[0])
+
+    const escapeCSV = (value: unknown): string => {
+      if (value == null) return ''
+      const str = String(value)
+      return `"${str.replace(/"/g, '""')}"`
+    }
+
+    const rows = usersToExport.map(user =>
+      headers.map(header => escapeCSV(user[header as keyof InvoiceTypeWithAction]))
+    )
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'users-export.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   const columns = useMemo<ColumnDef<InvoiceTypeWithAction, any>[]>(
     () => [
       {
         id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
+        header: ({ table }) => {
+          const pageRows = table.getRowModel().rows
+          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
+          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
+
+          const toggleAllPageSelected = () => {
+            if (allPageSelected) {
+              pageRows.forEach(row => row.toggleSelected(false))
+            } else {
+              pageRows.forEach(row => row.toggleSelected(true))
+            }
+          }
+          return (
+            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
+          )
+        },
         cell: ({ row }) => (
           <Checkbox
             {...{
@@ -199,23 +209,9 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
             }
           >
             <CustomAvatar skin='light' color={invoiceStatusObj[row.original.invoiceStatus].color} size={28}>
-              <i className={classnames('bs-4 is-4', invoiceStatusObj[row.original.invoiceStatus].icon)} />
+              <i className={classnames('text-base', invoiceStatusObj[row.original.invoiceStatus].icon)} />
             </CustomAvatar>
           </Tooltip>
-        )
-      }),
-      columnHelper.accessor('name', {
-        header: 'Client',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            {getAvatar({ avatar: row.original.avatar, name: row.original.name })}
-            <div className='flex flex-col'>
-              <Typography className='font-medium' color='text.primary'>
-                {row.original.name}
-              </Typography>
-              <Typography variant='body2'>{row.original.companyEmail}</Typography>
-            </div>
-          </div>
         )
       }),
       columnHelper.accessor('total', {
@@ -226,22 +222,12 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         header: 'Issued Date',
         cell: ({ row }) => <Typography>{row.original.issuedDate}</Typography>
       }),
-      columnHelper.accessor('balance', {
-        header: 'Balance',
-        cell: ({ row }) => {
-          return row.original.balance === 0 ? (
-            <Chip label='Paid' color='success' size='small' variant='tonal' />
-          ) : (
-            <Typography color='text.primary'>{row.original.balance}</Typography>
-          )
-        }
-      }),
       columnHelper.accessor('action', {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => setData(data?.filter(invoice => invoice.id !== row.original.id))}>
-              <i className='tabler-trash text-textSecondary' />
+            <IconButton href={getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale as Locale)}>
+              <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton>
               <Link
@@ -251,41 +237,20 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-pencil',
-                  href: getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale as Locale),
-                  linkProps: {
-                    className: 'flex items-center is-full plb-2 pli-4 gap-2 text-textSecondary'
-                  }
-                },
-                {
-                  text: 'Duplicate',
-                  icon: 'tabler-copy',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                }
-              ]}
-            />
+            <IconButton onClick={() => setData(data?.filter(invoice => invoice.id !== row.original.id))}>
+              <i className='tabler-trash text-textSecondary' />
+            </IconButton>
           </div>
         ),
         enableSorting: false
       })
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filteredData]
+    []
   )
 
   const table = useReactTable({
-    data: filteredData as InvoiceType[],
+    data: data as InvoiceType[],
     columns,
     filterFns: {
       fuzzy: fuzzyFilter
@@ -313,91 +278,73 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const getAvatar = (params: Pick<InvoiceType, 'avatar' | 'name'>) => {
-    const { avatar, name } = params
-
-    if (avatar) {
-      return <CustomAvatar src={avatar} skin='light' size={34} />
-    } else {
-      return (
-        <CustomAvatar skin='light' size={34}>
-          {getInitials(name as string)}
-        </CustomAvatar>
-      )
-    }
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget)
   }
 
-  useEffect(() => {
-    const filteredData = data?.filter(invoice => {
-      if (status && invoice.invoiceStatus.toLowerCase().replace(/\s+/g, '-') !== status) return false
-
-      return true
-    })
-
-    setFilteredData(filteredData)
-  }, [status, data, setFilteredData])
+  const handleClose = () => {
+    setAnchorEl(null)
+  }
 
   return (
     <Card>
-      <CardContent className='flex justify-between flex-col items-start md:items-center md:flex-row gap-4'>
-        <div className='flex flex-col sm:flex-row items-center justify-between gap-4 is-full sm:is-auto'>
-          <div className='flex items-center gap-2 is-full sm:is-auto'>
-            <Typography className='hidden sm:block'>Show</Typography>
-            <CustomTextField
-              select
-              value={table.getState().pagination.pageSize}
-              onChange={e => table.setPageSize(Number(e.target.value))}
-              className='is-[70px] max-sm:is-full'
+      <CardHeader
+        title='Invoice List'
+        sx={{ '& .MuiCardHeader-action': { m: 0 } }}
+        className='flex items-center justify-between flex-wrap gap-4'
+        action={
+          <div className='flex items-center gap-4 flex-wrap'>
+            <div className='flex items-center gap-2'>
+              <Typography>Show</Typography>
+              <CustomTextField
+                select
+                value={table.getState().pagination.pageSize}
+                onChange={e => table.setPageSize(Number(e.target.value))}
+                className='is-[70px]'
+              >
+                <MenuItem value='10'>10</MenuItem>
+                <MenuItem value='25'>25</MenuItem>
+                <MenuItem value='50'>50</MenuItem>
+              </CustomTextField>
+            </div>
+            <Button
+              variant='tonal'
+              aria-haspopup='true'
+              // onClick={handleClick}
+              onClick={() => {
+                const selectedRows = table.getSelectedRowModel().rows
+                const selectedUsers = selectedRows.map(row => row.original)
+                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+                handleDownloadSelected(selectedUsers, allUsers)
+              }}
+              color='secondary'
+              aria-expanded={open ? 'true' : undefined}
+              endIcon={<i className='tabler-upload' />}
+              aria-controls={open ? 'user-view-overview-export' : undefined}
             >
-              <MenuItem value='10'>10</MenuItem>
-              <MenuItem value='25'>25</MenuItem>
-              <MenuItem value='50'>50</MenuItem>
-            </CustomTextField>
+              Export
+            </Button>
+            {/* <Menu open={open} anchorEl={anchorEl} onClose={handleClose} id='user-view-overview-export'>
+              <MenuItem onClick={handleClose} className='uppercase'>
+                pdf
+              </MenuItem>
+              <MenuItem onClick={handleClose} className='uppercase'>
+                xlsx
+              </MenuItem>
+              <MenuItem onClick={handleClose} className='uppercase'>
+                csv
+              </MenuItem>
+            </Menu> */}
           </div>
-          <Button
-            variant='contained'
-            component={Link}
-            startIcon={<i className='tabler-plus' />}
-            href={getLocalizedUrl('apps/invoice/add', locale as Locale)}
-            className='max-sm:is-full'
-          >
-            Create Invoice
-          </Button>
-        </div>
-        <div className='flex max-sm:flex-col max-sm:is-full sm:items-center gap-4'>
-          <DebouncedInput
-            value={globalFilter ?? ''}
-            onChange={value => setGlobalFilter(String(value))}
-            placeholder='Search Invoice'
-            className='max-sm:is-full sm:is-[250px]'
-          />
-          <CustomTextField
-            select
-            id='select-status'
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            className='max-sm:is-full sm:is-[160px]'
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>Invoice Status</MenuItem>
-            <MenuItem value='downloaded'>Downloaded</MenuItem>
-            <MenuItem value='draft'>Draft</MenuItem>
-            <MenuItem value='paid'>Paid</MenuItem>
-            <MenuItem value='partial-payment'>Partial Payment</MenuItem>
-            <MenuItem value='past-due'>Past Due</MenuItem>
-            <MenuItem value='sent'>Sent</MenuItem>
-          </CustomTextField>
-        </div>
-      </CardContent>
+        }
+      />
       <div className='overflow-x-auto'>
         <table className={tableStyles.table}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <th key={header.id}>
+                  <th key={header.id} {...(header.id === 'action' && { className: 'is-24' })}>
                     {header.isPlaceholder ? null : (
                       <>
                         <div
@@ -420,30 +367,22 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
               </tr>
             ))}
           </thead>
-          {table.getFilteredRowModel().rows.length === 0 ? (
-            <tbody>
-              <tr>
-                <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
-                  No data available
-                </td>
-              </tr>
-            </tbody>
-          ) : (
-            <tbody>
-              {table
-                .getRowModel()
-                .rows.slice(0, table.getState().pagination.pageSize)
-                .map(row => {
-                  return (
-                    <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                      {row.getVisibleCells().map(cell => (
-                        <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                      ))}
-                    </tr>
-                  )
-                })}
-            </tbody>
-          )}
+          <tbody>
+            {table
+              .getRowModel()
+              .rows.slice(0, table.getState().pagination.pageSize)
+              .map(row => {
+                return (
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} {...(cell.id.includes('action') && { className: 'is-24' })}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+          </tbody>
         </table>
       </div>
       <TablePagination
@@ -454,7 +393,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         onPageChange={(_, page) => {
           table.setPageIndex(page)
         }}
-        onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
       />
     </Card>
   )

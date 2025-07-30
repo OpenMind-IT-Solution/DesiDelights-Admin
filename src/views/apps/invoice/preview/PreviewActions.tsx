@@ -41,9 +41,9 @@ const PreviewActions = ({ id, onButtonClick }: { id: string; onButtonClick: () =
           >
             Send Invoice
           </Button>
-          <Button fullWidth color='secondary' variant='tonal' className='capitalize'>
+          {/* <Button fullWidth color='secondary' variant='tonal' className='capitalize'>
             Download
-          </Button>
+          </Button> */}
           <div className='flex items-center gap-4'>
             <Button fullWidth color='secondary' variant='tonal' className='capitalize' onClick={onButtonClick}>
               Print

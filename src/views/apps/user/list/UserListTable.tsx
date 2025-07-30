@@ -130,7 +130,7 @@ const userRoleObj: UserRoleType = {
   author: { icon: 'tabler-device-desktop', color: 'warning' },
   editor: { icon: 'tabler-edit', color: 'info' },
   maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  subscriber: { icon: 'tabler-user', color: 'primary' }
+  user: { icon: 'tabler-user', color: 'primary' }
 }
 
 const userStatusObj: UserStatusType = {
@@ -145,6 +145,8 @@ const columnHelper = createColumnHelper<UsersTypeWithAction>()
 const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   // States
   const [addUserOpen, setAddUserOpen] = useState(false)
+  const [editUserOpen, setEditUserOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState(...[tableData])
   const [filteredData, setFilteredData] = useState(data)
@@ -153,19 +155,58 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   // Hooks
   const { lang: locale } = useParams()
 
+  useEffect(() => {
+    setFilteredData(data)
+  }, [data])
+
+  // Export Selected Users Handler
+  const handleDownloadSelected = (selectedUsers: UsersTypeWithAction[], allUsers: UsersTypeWithAction[]) => {
+    const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
+
+    if (usersToExport.length === 0) return
+
+    const headers = Object.keys(usersToExport[0])
+
+    const escapeCSV = (value: unknown): string => {
+      if (value == null) return ''
+      const str = String(value)
+      return `"${str.replace(/"/g, '""')}"`
+    }
+
+    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'users-export.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const columns = useMemo<ColumnDef<UsersTypeWithAction, any>[]>(
     () => [
       {
         id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
+        header: ({ table }) => {
+          const pageRows = table.getRowModel().rows
+          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
+          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
+
+          const toggleAllPageSelected = () => {
+            if (allPageSelected) {
+              pageRows.forEach(row => row.toggleSelected(false))
+            } else {
+              pageRows.forEach(row => row.toggleSelected(true))
+            }
+          }
+          return (
+            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
+          )
+        },
         cell: ({ row }) => (
           <Checkbox
             {...{
@@ -181,12 +222,12 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
         header: 'User',
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
-            {getAvatar({ avatar: row.original.avatar, fullName: row.original.fullName })}
+            {/* {getAvatar({ avatar: row.original.avatar, fullName: row.original.fullName })} */}
             <div className='flex flex-col'>
               <Typography color='text.primary' className='font-medium'>
                 {row.original.fullName}
               </Typography>
-              <Typography variant='body2'>{row.original.username}</Typography>
+              {/* <Typography variant='body2'>{row.original.username}</Typography> */}
             </div>
           </div>
         )
@@ -205,17 +246,25 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
           </div>
         )
       }),
-      columnHelper.accessor('currentPlan', {
-        header: 'Plan',
-        cell: ({ row }) => (
-          <Typography className='capitalize' color='text.primary'>
-            {row.original.currentPlan}
-          </Typography>
-        )
+      // columnHelper.accessor('currentPlan', {
+      //   header: 'Plan',
+      //   cell: ({ row }) => (
+      //     <Typography className='capitalize' color='text.primary'>
+      //       {row.original.currentPlan}
+      //     </Typography>
+      //   )
+      // }),
+      // columnHelper.accessor('billing', {
+      //   header: 'Billing',
+      //   cell: ({ row }) => <Typography>{row.original.billing}</Typography>
+      // }),
+      columnHelper.accessor('email', {
+        header: 'Email',
+        cell: ({ row }) => <Typography>{row.original.email}</Typography>
       }),
-      columnHelper.accessor('billing', {
-        header: 'Billing',
-        cell: ({ row }) => <Typography>{row.original.billing}</Typography>
+      columnHelper.accessor('contact', {
+        header: 'Contact',
+        cell: ({ row }) => <Typography>{row.original.contact}</Typography>
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -235,30 +284,28 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => setData(data?.filter(product => product.id !== row.original.id))}>
-              <i className='tabler-trash text-textSecondary' />
+            <IconButton
+              onClick={() => {
+                setSelectedUser(row.original)
+                setEditUserOpen(true)
+              }}
+            >
+              <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton>
               <Link href={getLocalizedUrl('/apps/user/view', locale as Locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-edit',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                }
-              ]}
-            />
+            <IconButton
+              onClick={() => {
+                const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
+                setData(updatedData)
+                setFilteredData(updatedData)
+              }}
+            >
+              <i className='tabler-trash text-textSecondary' />
+            </IconButton>
           </div>
         ),
         enableSorting: false
@@ -310,8 +357,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   return (
     <>
       <Card>
-        <CardHeader title='Filters' className='pbe-4' />
-        <TableFilters setData={setFilteredData} tableData={data} />
+        {/* <CardHeader title='Filters' className='pbe-4' />
+        <TableFilters setData={setFilteredData} tableData={data} /> */}
         <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
           <CustomTextField
             select
@@ -330,11 +377,34 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
               placeholder='Search User'
               className='max-sm:is-full'
             />
+            <CustomTextField
+              select
+              value=''
+              slotProps={{
+                select: {
+                  displayEmpty: true,
+                  IconComponent: () => (
+                    <i
+                      className='tabler-filter text-textSecondary text-base'
+                      style={{ transform: 'none', transition: 'none' }}
+                    />
+                  )
+                }
+              }}
+            >
+              <TableFilters setData={setFilteredData} tableData={data} />
+            </CustomTextField>
             <Button
               color='secondary'
               variant='tonal'
               startIcon={<i className='tabler-upload' />}
               className='max-sm:is-full'
+              onClick={() => {
+                const selectedRows = table.getSelectedRowModel().rows
+                const selectedUsers = selectedRows.map(row => row.original)
+                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+                handleDownloadSelected(selectedUsers, allUsers)
+              }}
             >
               Export
             </Button>
@@ -414,10 +484,15 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
         />
       </Card>
       <AddUserDrawer
-        open={addUserOpen}
-        handleClose={() => setAddUserOpen(!addUserOpen)}
+        open={addUserOpen || editUserOpen}
+        handleClose={() => {
+          setAddUserOpen(false)
+          setEditUserOpen(false)
+          setSelectedUser(null)
+        }}
         userData={data}
         setData={setData}
+        userToEdit={selectedUser}
       />
     </>
   )

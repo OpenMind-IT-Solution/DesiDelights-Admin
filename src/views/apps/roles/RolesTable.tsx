@@ -127,7 +127,7 @@ const userRoleObj: UserRoleType = {
   author: { icon: 'tabler-device-desktop', color: 'error' },
   editor: { icon: 'tabler-edit', color: 'warning' },
   maintainer: { icon: 'tabler-chart-pie', color: 'info' },
-  subscriber: { icon: 'tabler-user', color: 'success' }
+  user: { icon: 'tabler-user', color: 'success' }
 }
 
 const userStatusObj: UserStatusType = {
@@ -356,7 +356,7 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
             <MenuItem value='author'>Author</MenuItem>
             <MenuItem value='editor'>Editor</MenuItem>
             <MenuItem value='maintainer'>Maintainer</MenuItem>
-            <MenuItem value='subscriber'>Subscriber</MenuItem>
+            <MenuItem value='user'>user</MenuItem>
           </CustomTextField>
         </div>
       </CardContent>
