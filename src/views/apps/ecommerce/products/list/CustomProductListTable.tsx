@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
@@ -11,14 +11,15 @@ import { useParams } from 'next/navigation'
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Checkbox from '@mui/material/Checkbox'
+import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
-import { styled } from '@mui/material/styles'
-import TablePagination from '@mui/material/TablePagination'
-import type { TextFieldProps } from '@mui/material/TextField'
+import Switch from '@mui/material/Switch'
 import MenuItem from '@mui/material/MenuItem'
+import TablePagination from '@mui/material/TablePagination'
+import Typography from '@mui/material/Typography'
+import type { TextFieldProps } from '@mui/material/TextField'
 
 // Third-party Imports
 import classnames from 'classnames'
@@ -40,19 +41,17 @@ import type { RankingInfo } from '@tanstack/match-sorter-utils'
 
 // Type Imports
 import type { ThemeColor } from '@core/types'
-import type { UsersType } from '@/types/apps/userTypes'
 import type { Locale } from '@configs/i18n'
+import type { ProductType } from '@/types/apps/ecommerceTypes'
 
 // Component Imports
 import TableFilters from './TableFilters'
-import AddUserDrawer from './AddUserDrawer'
+import CustomAvatar from '@core/components/mui/Avatar'
+import CustomTextField from '@core/components/mui/TextField'
 import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
-import CustomTextField from '@core/components/mui/TextField'
-import CustomAvatar from '@core/components/mui/Avatar'
 
 // Util Imports
-import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
@@ -67,20 +66,23 @@ declare module '@tanstack/table-core' {
   }
 }
 
-type UsersTypeWithAction = UsersType & {
-  action?: string
+type ProductWithActionsType = ProductType & {
+  actions?: string
 }
 
-type UserRoleType = {
-  [key: string]: { icon: string; color: string }
+type ProductCategoryType = {
+  [key: string]: {
+    icon: string
+    color: ThemeColor
+  }
 }
 
-type UserStatusType = {
-  [key: string]: ThemeColor
+type productStatusType = {
+  [key: string]: {
+    title: string
+    color: ThemeColor
+  }
 }
-
-// Styled Components
-const Icon = styled('i')({})
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   // Rank the item
@@ -125,30 +127,28 @@ const DebouncedInput = ({
 }
 
 // Vars
-const userRoleObj: UserRoleType = {
-  admin: { icon: 'tabler-crown', color: 'error' },
-  author: { icon: 'tabler-device-desktop', color: 'warning' },
-  editor: { icon: 'tabler-edit', color: 'info' },
-  maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  user: { icon: 'tabler-user', color: 'primary' }
+const productCategoryObj: ProductCategoryType = {
+  Accessories: { icon: 'tabler-headphones', color: 'error' },
+  'Home Decor': { icon: 'tabler-smart-home', color: 'info' },
+  Electronics: { icon: 'tabler-device-laptop', color: 'primary' },
+  Shoes: { icon: 'tabler-shoe', color: 'success' },
+  Office: { icon: 'tabler-briefcase', color: 'warning' },
+  Games: { icon: 'tabler-device-gamepad-2', color: 'secondary' }
 }
 
-const userStatusObj: UserStatusType = {
-  active: 'success',
-  pending: 'warning',
-  inactive: 'secondary'
+const productStatusObj: productStatusType = {
+  Medium: { title: 'Medium', color: 'warning' },
+  Low: { title: 'Low', color: 'success' },
+  High: { title: 'High', color: 'error' }
 }
 
 // Column Definitions
-const columnHelper = createColumnHelper<UsersTypeWithAction>()
+const columnHelper = createColumnHelper<ProductWithActionsType>()
 
-const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
+const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
   // States
-  const [addUserOpen, setAddUserOpen] = useState(false)
-  const [editUserOpen, setEditUserOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[tableData])
+  const [data, setData] = useState(...[productData])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
 
@@ -160,7 +160,7 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   }, [data])
 
   // Export Selected Users Handler
-  const handleDownloadSelected = (selectedUsers: UsersTypeWithAction[], allUsers: UsersTypeWithAction[]) => {
+  const handleDownloadSelected = (selectedUsers: ProductWithActionsType[], allUsers: ProductWithActionsType[]) => {
     const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
 
     if (usersToExport.length === 0) return
@@ -173,7 +173,7 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
       return `"${str.replace(/"/g, '""')}"`
     }
 
-    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
+    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof ProductWithActionsType])))
 
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
 
@@ -182,12 +182,12 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
 
     const link = document.createElement('a')
     link.href = url
-    link.download = 'users-export.csv'
+    link.download = 'products-export.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
 
-  const columns = useMemo<ColumnDef<UsersTypeWithAction, any>[]>(
+  const columns = useMemo<ColumnDef<ProductWithActionsType, any>[]>(
     () => [
       {
         id: 'select',
@@ -218,84 +218,69 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
           />
         )
       },
-      columnHelper.accessor('fullName', {
-        header: 'User',
+      columnHelper.accessor('productName', {
+        header: 'Product',
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
-            {/* {getAvatar({ avatar: row.original.avatar, fullName: row.original.fullName })} */}
+            {/* <img src={row.original.image} width={38} height={38} className='rounded bg-actionHover' /> */}
             <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.fullName}
+              <Typography className='font-medium' color='text.primary'>
+                {row.original.productName}
               </Typography>
-              {/* <Typography variant='body2'>{row.original.username}</Typography> */}
+              {/* <Typography variant='body2'>{row.original.StoreName}</Typography> */}
             </div>
           </div>
         )
       }),
-      columnHelper.accessor('role', {
-        header: 'Role',
+      columnHelper.accessor('category', {
+        header: 'Type',
         cell: ({ row }) => (
-          <div className='flex items-center gap-2'>
-            <Icon
-              className={userRoleObj[row.original.role].icon}
-              sx={{ color: `var(--mui-palette-${userRoleObj[row.original.role].color}-main)` }}
-            />
-            <Typography className='capitalize' color='text.primary'>
-              {row.original.role}
-            </Typography>
+          <div className='flex items-center gap-4'>
+            {/* <CustomAvatar skin='light' color={productCategoryObj[row.original.category].color} size={30}>
+              <i className={classnames(productCategoryObj[row.original.category].icon, 'text-lg')} />
+            </CustomAvatar> */}
+            <Typography color='text.primary'>{row.original.category}</Typography>
           </div>
         )
+      }),
+      columnHelper.accessor('StoreName', {
+        header: 'Store Name',
+        cell: ({ row }) => <Typography>{row.original.StoreName}</Typography>
+      }),
+      columnHelper.accessor('stock', {
+        header: 'Stock',
+        cell: ({ row }) => <Switch defaultChecked={row.original.stock} />,
+        enableSorting: false
       }),
       columnHelper.accessor('status', {
-        header: 'Status',
+        header: 'Priority',
         cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            <Chip
-              variant='tonal'
-              label={row.original.status}
-              size='small'
-              color={userStatusObj[row.original.status]}
-              className='capitalize'
-            />
-          </div>
+          <Chip
+            label={productStatusObj[row.original.status].title}
+            variant='tonal'
+            color={productStatusObj[row.original.status].color}
+            size='small'
+          />
         )
       }),
-      // columnHelper.accessor('currentPlan', {
-      //   header: 'Plan',
-      //   cell: ({ row }) => (
-      //     <Typography className='capitalize' color='text.primary'>
-      //       {row.original.currentPlan}
-      //     </Typography>
-      //   )
+      // columnHelper.accessor('sku', {
+      //   header: 'SKU',
+      //   cell: ({ row }) => <Typography>{row.original.sku}</Typography>
       // }),
-      // columnHelper.accessor('billing', {
-      //   header: 'Billing',
-      //   cell: ({ row }) => <Typography>{row.original.billing}</Typography>
-      // }),
-      columnHelper.accessor('email', {
-        header: 'Email',
-        cell: ({ row }) => <Typography>{row.original.email}</Typography>
+      columnHelper.accessor('qty', {
+        header: 'QTY',
+        cell: ({ row }) => <Typography>{row.original.qty}</Typography>
       }),
-      columnHelper.accessor('contact', {
-        header: 'Contact',
-        cell: ({ row }) => <Typography>{row.original.contact}</Typography>
+      columnHelper.accessor('price', {
+        header: 'Price',
+        cell: ({ row }) => <Typography>{row.original.price}</Typography>
       }),
-      columnHelper.accessor('action', {
-        header: 'Action',
+      columnHelper.accessor('actions', {
+        header: 'Actions',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton
-              onClick={() => {
-                setSelectedUser(row.original)
-                setEditUserOpen(true)
-              }}
-            >
-              <i className='tabler-edit text-textSecondary' />
-            </IconButton>
             <IconButton>
-              <Link href={getLocalizedUrl('/apps/user/view', locale as Locale)} className='flex'>
-                <i className='tabler-eye text-textSecondary' />
-              </Link>
+              <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton
               onClick={() => {
@@ -316,7 +301,7 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   )
 
   const table = useReactTable({
-    data: filteredData as UsersType[],
+    data: filteredData as ProductType[],
     columns,
     filterFns: {
       fuzzy: fuzzyFilter
@@ -344,39 +329,31 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  // const getAvatar = (params: Pick<UsersType, 'avatar' | 'fullName'>) => {
-  //   const { avatar, fullName } = params
-
-  //   if (avatar) {
-  //     return <CustomAvatar src={avatar} size={34} />
-  //   } else {
-  //     return <CustomAvatar size={34}>{getInitials(fullName as string)}</CustomAvatar>
-  //   }
-  // }
-
   return (
     <>
       <Card>
-        {/* <CardHeader title='Filters' className='pbe-4' />
-        <TableFilters setData={setFilteredData} tableData={data} /> */}
-        <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
-          <CustomTextField
-            select
-            value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
-            className='max-sm:is-full sm:is-[70px]'
-          >
-            <MenuItem value='10'>10</MenuItem>
-            <MenuItem value='25'>25</MenuItem>
-            <MenuItem value='50'>50</MenuItem>
-          </CustomTextField>
+        {/* <CardHeader title='Filters' />
+        <TableFilters setData={setFilteredData} productData={data} />
+        <Divider /> */}
+        <div className='flex flex-wrap justify-between gap-4 p-6'>
+            <CustomTextField
+              select
+              value={table.getState().pagination.pageSize}
+              onChange={e => table.setPageSize(Number(e.target.value))}
+              className='max-sm:is-full sm:is-[70px]'
+            >
+              <MenuItem value='10'>10</MenuItem>
+              <MenuItem value='25'>25</MenuItem>
+              <MenuItem value='50'>50</MenuItem>
+            </CustomTextField>
+          
           <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
             <DebouncedInput
-              value={globalFilter ?? ''}
-              onChange={value => setGlobalFilter(String(value))}
-              placeholder='Search User'
-              className='max-sm:is-full'
-            />
+            value={globalFilter ?? ''}
+            onChange={value => setGlobalFilter(String(value))}
+            placeholder='Search Product'
+            className='max-sm:is-full'
+          />
             <CustomTextField
               select
               value=''
@@ -392,7 +369,7 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
                 }
               }}
             >
-              <TableFilters setData={setFilteredData} tableData={data} />
+              <TableFilters setData={setFilteredData} productData={data} />
             </CustomTextField>
             <Button
               color='secondary'
@@ -410,11 +387,12 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
             </Button>
             <Button
               variant='contained'
+              component={Link}
+              className='max-sm:is-full is-auto'
+              href={getLocalizedUrl('/apps/ecommerce/products/add', locale as Locale)}
               startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddUserOpen(!addUserOpen)}
-              className='max-sm:is-full'
             >
-              Add New User
+              Add Product
             </Button>
           </div>
         </div>
@@ -483,19 +461,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
           }}
         />
       </Card>
-      <AddUserDrawer
-        open={addUserOpen || editUserOpen}
-        handleClose={() => {
-          setAddUserOpen(false)
-          setEditUserOpen(false)
-          setSelectedUser(null)
-        }}
-        userData={data}
-        setData={setData}
-        userToEdit={selectedUser}
-      />
     </>
   )
 }
 
-export default UserListTable
+export default ProductListTable

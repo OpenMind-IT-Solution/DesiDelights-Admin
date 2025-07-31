@@ -2,7 +2,7 @@
 import Grid from '@mui/material/Grid2'
 
 // Component Imports
-import ProductListTable from '@views/apps/ecommerce/products/list/ProductListTable'
+import CustomProductListTable from '@views/apps/ecommerce/products/list/CustomProductListTable'
 import ProductCard from '@views/apps/ecommerce/products/list/ProductCard'
 
 // Data Imports
@@ -32,11 +32,11 @@ const eCommerceProductsList = async () => {
 
   return (
     <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <ProductCard />
-      </Grid>
+      </Grid> */}
       <Grid size={{ xs: 12 }}>
-        <ProductListTable productData={data?.products} />
+        <CustomProductListTable productData={data?.products} />
       </Grid>
     </Grid>
   )
