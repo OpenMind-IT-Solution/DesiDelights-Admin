@@ -51,6 +51,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
+import { IconButton } from '@mui/material'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -234,7 +235,20 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
       columnHelper.accessor('actions', {
         header: 'Actions',
         cell: ({ row }) => (
-          <OptionMenu
+          <>
+          <IconButton>
+            <Link href={getLocalizedUrl('/apps/ecommerce/orders/details/5434', locale as Locale)} className='flex'>
+              <i className='tabler-eye text-textSecondary' />
+            </Link>
+          </IconButton>
+          <IconButton
+              onClick={() => {
+                setAllData(allData?.filter(review => review.id !== row.original.id))
+              }}
+            >
+              <i className='tabler-trash text-textSecondary' />
+            </IconButton>
+          {/* <OptionMenu
             iconButtonProps={{ size: 'medium' }}
             iconClassName='text-textSecondary'
             options={[
@@ -253,7 +267,8 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
                 }
               }
             ]}
-          />
+          /> */}
+          </>
         ),
         enableSorting: false
       })

@@ -32,12 +32,12 @@ const OverViewTab = async () => {
 
   return (
     <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <ProjectListTable />
       </Grid>
       <Grid size={{ xs: 12 }}>
         <UserActivityTimeLine />
-      </Grid>
+      </Grid> */}
       <Grid size={{ xs: 12 }}>
         <InvoiceListTable invoiceData={invoiceData} />
       </Grid>

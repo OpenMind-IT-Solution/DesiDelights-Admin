@@ -17,12 +17,14 @@ import type { UsersType } from '@/types/apps/userTypes'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import { useEffect } from 'react'
 
 type Props = {
   open: boolean
   handleClose: () => void
   userData?: UsersType[]
   setData: (data: UsersType[]) => void
+  userToEdit?: UsersType | null
 }
 
 type FormValidateType = {
@@ -49,7 +51,7 @@ const initialData = {
 
 const AddUserDrawer = (props: Props) => {
   // Props
-  const { open, handleClose, userData, setData } = props
+  const { open, handleClose, userData, setData, userToEdit } = props
 
   // States
   const [formData, setFormData] = useState<FormNonValidateType>(initialData)
@@ -62,19 +64,35 @@ const AddUserDrawer = (props: Props) => {
     formState: { errors }
   } = useForm<FormValidateType>({
     defaultValues: {
-      fullName: '',
-      username: '',
-      email: '',
-      role: '',
-      plan: '',
-      status: ''
+      fullName: userToEdit?.fullName || '',
+      username: userToEdit?.username || '',
+      email: userToEdit?.email || '',
+      role: userToEdit?.role || '',
+      plan: userToEdit?.currentPlan || '',
+      status: userToEdit?.status || ''
     }
   })
 
+  useEffect(() => {
+    resetForm({
+      fullName: userToEdit?.fullName || '',
+      username: userToEdit?.username || '',
+      email: userToEdit?.email || '',
+      role: userToEdit?.role || '',
+      plan: userToEdit?.currentPlan || '',
+      status: userToEdit?.status || ''
+    })
+    setFormData({
+      company: userToEdit?.company || '',
+      country: userToEdit?.country || '',
+      contact: userToEdit?.contact || ''
+    })
+  }, [userToEdit, resetForm, open])
+
   const onSubmit = (data: FormValidateType) => {
     const newUser: UsersType = {
-      id: (userData?.length && userData?.length + 1) || 1,
-      avatar: `/images/avatars/${Math.floor(Math.random() * 8) + 1}.png`,
+      id: userToEdit?.id ?? (userData?.length ? userData.length + 1 : 1),
+      avatar: userToEdit?.avatar ?? `/images/avatars/${Math.floor(Math.random() * 8) + 1}.png`,
       fullName: data.fullName,
       username: data.username,
       email: data.email,
@@ -84,13 +102,26 @@ const AddUserDrawer = (props: Props) => {
       company: formData.company,
       country: formData.country,
       contact: formData.contact,
-      billing: userData?.[Math.floor(Math.random() * 50) + 1].billing ?? 'Auto Debit'
+      billing: userToEdit?.billing ?? userData?.[Math.floor(Math.random() * userData.length)]?.billing ?? 'Auto Debit'
     }
 
-    setData([...(userData ?? []), newUser])
+    if (userToEdit) {
+      const updatedUsers = (userData ?? []).map(user => (user.id === userToEdit.id ? newUser : user))
+      setData(updatedUsers)
+    } else {
+      setData([newUser, ...(userData ?? [])])
+    }
+
     handleClose()
     setFormData(initialData)
-    resetForm({ fullName: '', username: '', email: '', role: '', plan: '', status: '' })
+    resetForm({
+      fullName: '',
+      username: '',
+      email: '',
+      role: '',
+      plan: '',
+      status: ''
+    })
   }
 
   const handleReset = () => {
@@ -108,7 +139,7 @@ const AddUserDrawer = (props: Props) => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>Add New User</Typography>
+        <Typography variant='h5'>{userToEdit ? 'Edit User' : 'Add New User'}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
@@ -130,7 +161,7 @@ const AddUserDrawer = (props: Props) => {
               />
             )}
           />
-          <Controller
+          {/* <Controller
             name='username'
             control={control}
             rules={{ required: true }}
@@ -143,7 +174,7 @@ const AddUserDrawer = (props: Props) => {
                 {...(errors.username && { error: true, helperText: 'This field is required.' })}
               />
             )}
-          />
+          /> */}
           <Controller
             name='email'
             control={control}
@@ -176,11 +207,11 @@ const AddUserDrawer = (props: Props) => {
                 <MenuItem value='author'>Author</MenuItem>
                 <MenuItem value='editor'>Editor</MenuItem>
                 <MenuItem value='maintainer'>Maintainer</MenuItem>
-                <MenuItem value='subscriber'>Subscriber</MenuItem>
+                <MenuItem value='user'>User</MenuItem>
               </CustomTextField>
             )}
           />
-          <Controller
+          {/* <Controller
             name='plan'
             control={control}
             rules={{ required: true }}
@@ -202,7 +233,7 @@ const AddUserDrawer = (props: Props) => {
                 <MenuItem value='team'>Team</MenuItem>
               </CustomTextField>
             )}
-          />
+          /> */}
           <Controller
             name='status'
             control={control}
@@ -222,14 +253,14 @@ const AddUserDrawer = (props: Props) => {
               </CustomTextField>
             )}
           />
-          <CustomTextField
+          {/* <CustomTextField
             label='Company'
             fullWidth
             placeholder='Company PVT LTD'
             value={formData.company}
             onChange={e => setFormData({ ...formData, company: e.target.value })}
-          />
-          <CustomTextField
+          /> */}
+          {/* <CustomTextField
             select
             fullWidth
             id='country'
@@ -244,10 +275,10 @@ const AddUserDrawer = (props: Props) => {
             <MenuItem value='USA'>USA</MenuItem>
             <MenuItem value='Australia'>Australia</MenuItem>
             <MenuItem value='Germany'>Germany</MenuItem>
-          </CustomTextField>
+          </CustomTextField> */}
           <CustomTextField
             label='Contact'
-            type='number'
+            type='tel'
             fullWidth
             placeholder='(397) 294-5153'
             value={formData.contact}

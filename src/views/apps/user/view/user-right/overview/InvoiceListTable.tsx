@@ -53,6 +53,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
+import Checkbox from '@mui/material/Checkbox'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -113,10 +114,93 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
   // Hooks
   const { lang: locale } = useParams()
 
+  // Download Handler
+  const handleDownload = (user: InvoiceTypeWithAction) => {
+    const headers = Object.keys(user)
+    const values = Object.values(user)
+
+    const escapeCSV = (value: unknown): string => {
+      if (value == null) return ''
+      const str = String(value)
+      return `"${str.replace(/"/g, '""')}"`
+    }
+
+    const csvContent = `${headers.join(',')}\n${values.map(escapeCSV).join(',')}`
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `user-${user.id}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  // Export Selected Users Handler
+  const handleDownloadSelected = (selectedUsers: InvoiceTypeWithAction[], allUsers: InvoiceTypeWithAction[]) => {
+    // Fallback to all users if none are selected
+    const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
+
+    if (usersToExport.length === 0) return
+
+    const headers = Object.keys(usersToExport[0])
+
+    const escapeCSV = (value: unknown): string => {
+      if (value == null) return ''
+      const str = String(value)
+      return `"${str.replace(/"/g, '""')}"`
+    }
+
+    const rows = usersToExport.map(user =>
+      headers.map(header => escapeCSV(user[header as keyof InvoiceTypeWithAction]))
+    )
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'users-export.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const columns = useMemo<ColumnDef<InvoiceTypeWithAction, any>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => {
+          const pageRows = table.getRowModel().rows
+          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
+          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
+
+          const toggleAllPageSelected = () => {
+            if (allPageSelected) {
+              pageRows.forEach(row => row.toggleSelected(false))
+            } else {
+              pageRows.forEach(row => row.toggleSelected(true))
+            }
+          }
+          return (
+            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
+          )
+        },
+        cell: ({ row }) => (
+          <Checkbox
+            {...{
+              checked: row.getIsSelected(),
+              disabled: !row.getCanSelect(),
+              indeterminate: row.getIsSomeSelected(),
+              onChange: row.getToggleSelectedHandler()
+            }}
+          />
+        )
+      },
       columnHelper.accessor('id', {
-        header: '#',
+        header: 'ID',
         cell: ({ row }) => (
           <Typography
             component={Link}
@@ -165,8 +249,8 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => setData(data?.filter(invoice => invoice.id !== row.original.id))}>
-              <i className='tabler-trash text-textSecondary' />
+            <IconButton href={getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale as Locale)}>
+              <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton>
               <Link
@@ -176,30 +260,9 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton>
-            <OptionMenu
-              iconButtonProps={{ size: 'medium' }}
-              iconClassName='text-textSecondary'
-              options={[
-                {
-                  text: 'Download',
-                  icon: 'tabler-download',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                },
-                {
-                  text: 'Edit',
-                  icon: 'tabler-edit',
-                  href: getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale as Locale),
-                  linkProps: {
-                    className: classnames('flex items-center bs-[40px] plb-2 pli-4 is-full gap-2 text-textSecondary')
-                  }
-                },
-                {
-                  text: 'Duplicate',
-                  icon: 'tabler-copy',
-                  menuItemProps: { className: 'flex items-center gap-2 text-textSecondary' }
-                }
-              ]}
-            />
+            <IconButton onClick={() => setData(data?.filter(invoice => invoice.id !== row.original.id))}>
+              <i className='tabler-trash text-textSecondary' />
+            </IconButton>
           </div>
         ),
         enableSorting: false
@@ -238,13 +301,13 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
+  // const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+  //   setAnchorEl(event.currentTarget)
+  // }
 
-  const handleClose = () => {
-    setAnchorEl(null)
-  }
+  // const handleClose = () => {
+  //   setAnchorEl(null)
+  // }
 
   return (
     <Card>
@@ -270,7 +333,13 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
             <Button
               variant='tonal'
               aria-haspopup='true'
-              onClick={handleClick}
+              // onClick={handleClick}
+              onClick={() => {
+                const selectedRows = table.getSelectedRowModel().rows
+                const selectedUsers = selectedRows.map(row => row.original)
+                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+                handleDownloadSelected(selectedUsers, allUsers)
+              }}
               color='secondary'
               aria-expanded={open ? 'true' : undefined}
               endIcon={<i className='tabler-upload' />}
@@ -278,7 +347,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
             >
               Export
             </Button>
-            <Menu open={open} anchorEl={anchorEl} onClose={handleClose} id='user-view-overview-export'>
+            {/* <Menu open={open} anchorEl={anchorEl} onClose={handleClose} id='user-view-overview-export'>
               <MenuItem onClick={handleClose} className='uppercase'>
                 pdf
               </MenuItem>
@@ -288,7 +357,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
               <MenuItem onClick={handleClose} className='uppercase'>
                 csv
               </MenuItem>
-            </Menu>
+            </Menu> */}
           </div>
         }
       />

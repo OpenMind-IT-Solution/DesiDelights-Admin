@@ -34,10 +34,10 @@ type Data = {
 
 // Vars
 const initialData: Data = {
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
-  organization: 'Pixinvent',
+  firstName: 'Ramesh',
+  lastName: 'Patel',
+  email: 'ramesh.patel@desidelights.com',
+  organization: 'Desi Delights',
   phoneNumber: '+1 (917) 543-9876',
   address: '123 Main St, New York, NY 10001',
   state: 'New York',
@@ -45,7 +45,7 @@ const initialData: Data = {
   country: 'usa',
   language: 'english',
   timezone: 'gmt-12',
-  currency: 'usd'
+  currency: 'euro'
 }
 
 const languageData = ['English', 'Arabic', 'French', 'German', 'Portuguese']

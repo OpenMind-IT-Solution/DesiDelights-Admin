@@ -49,7 +49,7 @@ export type ProductType = {
   qty: number
   status: string
   image: string
-  productBrand: string
+  StoreName: string
 }
 
 export type OrderType = {

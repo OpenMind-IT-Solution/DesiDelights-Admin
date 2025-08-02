@@ -32,8 +32,8 @@ const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => 
 
   return (
     <CardContent>
-      <Grid container spacing={6}>
-        <Grid size={{ xs: 12, sm: 4 }}>
+      <Grid container spacing={4} direction='column'>
+        <Grid size={{ xs: 12 }}>
           <CustomTextField
             select
             fullWidth
@@ -49,28 +49,10 @@ const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => 
             <MenuItem value='author'>Author</MenuItem>
             <MenuItem value='editor'>Editor</MenuItem>
             <MenuItem value='maintainer'>Maintainer</MenuItem>
-            <MenuItem value='subscriber'>Subscriber</MenuItem>
+            <MenuItem value='user'>User</MenuItem>
           </CustomTextField>
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <CustomTextField
-            select
-            fullWidth
-            id='select-plan'
-            value={plan}
-            onChange={e => setPlan(e.target.value)}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>Select Plan</MenuItem>
-            <MenuItem value='basic'>Basic</MenuItem>
-            <MenuItem value='company'>Company</MenuItem>
-            <MenuItem value='enterprise'>Enterprise</MenuItem>
-            <MenuItem value='team'>Team</MenuItem>
-          </CustomTextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12 }}>
           <CustomTextField
             select
             fullWidth

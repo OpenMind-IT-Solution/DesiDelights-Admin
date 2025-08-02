@@ -114,7 +114,7 @@ const Login = ({ mode }: { mode: SystemMode }) => {
   } = useForm<FormData>({
     resolver: valibotResolver(schema),
     defaultValues: {
-      email: 'admin@vuexy.com',
+      email: 'admin@desidelights.com',
       password: 'admin'
     }
   })
@@ -174,7 +174,7 @@ const Login = ({ mode }: { mode: SystemMode }) => {
           </div>
           <Alert icon={false} className='bg-[var(--mui-palette-primary-lightOpacity)]'>
             <Typography variant='body2' color='primary.main'>
-              Email: <span className='font-medium'>admin@vuexy.com</span> / Pass:{' '}
+              Email: <span className='font-medium'>admin@desidelights.com</span> / Pass:{' '}
               <span className='font-medium'>admin</span>
             </Typography>
           </Alert>

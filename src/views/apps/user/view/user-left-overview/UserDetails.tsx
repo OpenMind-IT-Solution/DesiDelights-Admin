@@ -18,16 +18,16 @@ import CustomAvatar from '@core/components/mui/Avatar'
 
 // Vars
 const userData = {
-  firstName: 'Seth',
-  lastName: 'Hallam',
+  firstName: 'Ramesh',
+  lastName: 'Patel',
   userName: '@shallamb',
   billingEmail: 'shallamb@gmail.com',
   status: 'active',
-  role: 'Subscriber',
+  role: 'Manager',
   taxId: 'Tax-8894',
   contact: '+1 (234) 464-0600',
   language: ['English'],
-  country: 'France',
+  country: 'Belgium',
   useAsBillingAddress: true
 }
 
@@ -49,7 +49,7 @@ const UserDetails = () => {
                 <CustomAvatar alt='user-profile' src='/images/avatars/1.png' variant='rounded' size={120} />
                 <Typography variant='h5'>{`${userData.firstName} ${userData.lastName}`}</Typography>
               </div>
-              <Chip label='Author' color='secondary' size='small' variant='tonal' />
+              <Chip label='Manager' color='secondary' size='small' variant='tonal' />
             </div>
             <div className='flex items-center justify-around flex-wrap gap-4'>
               <div className='flex items-center gap-4'>
@@ -57,17 +57,17 @@ const UserDetails = () => {
                   <i className='tabler-checkbox' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>1.23k</Typography>
-                  <Typography>Task Done</Typography>
+                  <Typography variant='h5'>500</Typography>
+                  <Typography>Order Delivered</Typography>
                 </div>
               </div>
-              <div className='flex items-center gap-4'>
+              <div className='flex items-center gap-2'>
                 <CustomAvatar variant='rounded' color='primary' skin='light'>
                   <i className='tabler-briefcase' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>568</Typography>
-                  <Typography>Project Done</Typography>
+                  <Typography variant='h5'>5</Typography>
+                  <Typography>Rating</Typography>
                 </div>
               </div>
             </div>

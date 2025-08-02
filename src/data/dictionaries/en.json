@@ -85,7 +85,7 @@
     "reactTable": "React Table",
     "formELements": "Form Elements",
     "muiTables": "MUI Tables",
-    "chartsMisc": "Charts & Misc",
+    "chartsMisc": "Charts",
     "charts": "Charts",
     "recharts": "Recharts",
     "apex": "Apex",
@@ -100,6 +100,21 @@
     "menuLevels": "Menu Levels",
     "menuLevel2": "Menu Level 2",
     "menuLevel3": "Menu Level 3",
-    "disabledMenu": "Disabled Menu"
+    "disabledMenu": "Disabled Menu",
+    "groceryList": "Grocery List",
+    "restaurantManagement": "Restaurant Management",
+    "userManagement": "User Management",
+    "groceryManagement": "Grocery Management",
+    "categoryManagement": "Category Management",
+    "menuManagement": "Menu Management",
+    "ordersManagement": "Orders Management",
+    "report": "Report",
+    "module": "Module",
+    "couponManagement": "Coupon Management",
+    "supportTickets": "Support Tickets",
+    "tvManagement": "TV Management",
+    "paymentGetway": "Payment Gateway",
+    "locationManagement": "Location Management",
+    "restaurantProfile": "Restaurant Profile"
   }
 }

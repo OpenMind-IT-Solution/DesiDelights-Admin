@@ -16,7 +16,7 @@
     "apps": "Apps",
     "dashboard": "Tableau de bord",
     "products": "Produits",
-    "list": "Liste",
+    "list": "Article d’épicerie",
     "add": "Ajouter",
     "category": "Catégorie",
     "orders": "Ordres",
@@ -100,6 +100,21 @@
     "menuLevels": "Niveaux de menus",
     "menuLevel2": "Niveau menu 2",
     "menuLevel3": "Niveau menu 3",
-    "disabledMenu": "Menu désactivé"
+    "disabledMenu": "Menu désactivé",
+    "groceryList": "Liste d'épicerie",
+    "restaurantManagement": "Gestion des restaurants",
+    "userManagement": "Gestion des utilisateurs",
+    "groceryManagement": "Gestion des épiceries",
+    "categoryManagement": "Gestion des catégories",
+    "menuManagement": "Gestion des menus",
+    "ordersManagement": "Gestion des commandes",
+    "report": "Rapport",
+    "module": "Module",
+    "couponManagement": "Gestion des coupons",
+    "supportTickets": "Tickets de support",
+    "tvManagement": "Gestion de la télévision",
+    "paymentGetway": "Passerelle de paiement",
+    "locationManagement": "Gestion de l'emplacement",
+    "restaurantProfile": "Profil du restaurant"
   }
 }
