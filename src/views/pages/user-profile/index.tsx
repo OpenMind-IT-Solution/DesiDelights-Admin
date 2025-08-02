@@ -1,28 +1,26 @@
 'use client'
 
-// React Imports
+import type { ReactElement, SyntheticEvent } from 'react' 
 import { useState } from 'react'
-import type { ReactElement, SyntheticEvent } from 'react'
 
 // MUI Imports
-import Grid from '@mui/material/Grid2'
-import Tab from '@mui/material/Tab'
 import TabContext from '@mui/lab/TabContext'
+import TabList from '@mui/lab/TabList' 
 import TabPanel from '@mui/lab/TabPanel'
+import Grid from '@mui/material/Grid2'
+import Tab from '@mui/material/Tab' 
 
 // Type Imports
 import type { Data } from '@/types/pages/profileTypes'
 
 // Component Imports
 import UserProfileHeader from './UserProfileHeader'
-import CustomTabList from '@core/components/mui/TabList'
 
 const UserProfile = ({ tabContentList, data }: { tabContentList: { [key: string]: ReactElement }; data?: Data }) => {
-  // States
   const [activeTab, setActiveTab] = useState('profile')
 
-  const handleChange = (event: SyntheticEvent, value: string) => {
-    setActiveTab(value)
+  const handleChange = (event: SyntheticEvent, newValue: string) => {
+    setActiveTab(newValue)
   }
 
   return (
@@ -33,44 +31,19 @@ const UserProfile = ({ tabContentList, data }: { tabContentList: { [key: string]
       {activeTab === undefined ? null : (
         <Grid size={{ xs: 12 }} className='flex flex-col gap-6'>
           <TabContext value={activeTab}>
-            {/* <CustomTabList onChange={handleChange} variant='scrollable' pill='true'>
-              <Tab
-                label={
-                  <div className='flex items-center gap-1.5'>
-                    <i className='tabler-user-check text-lg' />
-                    Profile
-                  </div>
-                }
-                value='profile'
-              />
-              <Tab
-                label={
-                  <div className='flex items-center gap-1.5'>
-                    <i className='tabler-users text-lg' />
-                    Teams
-                  </div>
-                }
-                value='teams'
-              />
-              <Tab
-                label={
-                  <div className='flex items-center gap-1.5'>
-                    <i className='tabler-layout-grid text-lg' />
-                    Projects
-                  </div>
-                }
-                value='projects'
-              />
-              <Tab
-                label={
-                  <div className='flex items-center gap-1.5'>
-                    <i className='tabler-link text-lg' />
-                    Connections
-                  </div>
-                }
-                value='connections'
-              />
-            </CustomTabList> */}
+            <TabList variant='scrollable' scrollButtons='auto' onChange={handleChange} aria-label='user profile tabs'>
+              {Object.keys(tabContentList).map(tab => (
+                <Tab
+                  key={tab}
+                  label={
+                    <span className='flex items-center gap-1.5 capitalize'>
+                      {tab}
+                    </span>
+                  }
+                  value={tab}
+                />
+              ))}
+            </TabList>
 
             <TabPanel value={activeTab} className='p-0'>
               {tabContentList[activeTab]}

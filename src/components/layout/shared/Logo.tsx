@@ -1,8 +1,8 @@
 'use client'
 
 // React Imports
-import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
+import { useEffect, useRef } from 'react'
 
 // Third-party Imports
 import styled from '@emotion/styled'
@@ -10,15 +10,12 @@ import styled from '@emotion/styled'
 // Type Imports
 import type { VerticalNavContextProps } from '@menu/contexts/verticalNavContext'
 
-// Component Imports
-import VuexyLogo from '@core/svg/Logo'
-
 // Config Imports
 import themeConfig from '@configs/themeConfig'
 
 // Hook Imports
-import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
+import useVerticalNav from '@menu/hooks/useVerticalNav'
 
 type LogoTextProps = {
   isHovered?: VerticalNavContextProps['isHovered']

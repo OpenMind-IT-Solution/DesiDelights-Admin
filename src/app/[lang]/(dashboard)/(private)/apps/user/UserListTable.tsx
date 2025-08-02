@@ -1,58 +1,59 @@
 'use client'
 
 // React Imports
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 // Next Imports
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
-import Checkbox from '@mui/material/Checkbox'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
+import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
+import MenuItem from '@mui/material/MenuItem'
 
 // Third-party Imports
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 import { rankItem } from '@tanstack/match-sorter-utils'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFacetedMinMaxValues,
+  useReactTable,
+  getFilteredRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
+  getSortedRowModel
 } from '@tanstack/react-table'
-import classnames from 'classnames'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 
 // Type Imports
+import type { ThemeColor } from '@core/types'
 import type { UsersType } from '@/types/apps/userTypes'
 import type { Locale } from '@configs/i18n'
-import type { ThemeColor } from '@core/types'
 
 // Component Imports
+import TableFilters from './TableFilters'
+import AddUserDrawer from './AddUserDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
-import AddUserDrawer from './AddUserDrawer'
-import TableFilters from './TableFilters'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -147,6 +148,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
   const [data, setData] = useState(...[tableData])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<UsersTypeWithAction | null>(null)
 
   // Hooks
   const { lang: locale } = useParams()
@@ -155,9 +158,7 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
     setFilteredData(data)
   }, [data])
 
-  const handleDownloadSelected = (selectedUsers: UsersTypeWithAction[], allUsers: UsersTypeWithAction[]) => {
-    const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
-
+  const handleDownloadSelected = (usersToExport: UsersTypeWithAction[]) => {
     if (usersToExport.length === 0) return
 
     const headers = Object.keys(usersToExport[0])
@@ -183,6 +184,18 @@ return `"${str.replace(/"/g, '""')}"`
     link.download = 'users-export.csv'
     link.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      const updatedData = data?.filter(user => user.id !== userToDelete.id) ?? []
+
+      setData(updatedData)
+      setFilteredData(updatedData)
+    }
+
+    setDeleteDialogOpen(false)
+    setUserToDelete(null)
   }
 
   const columns = useMemo<ColumnDef<UsersTypeWithAction, any>[]>(
@@ -260,6 +273,19 @@ return (
           </div>
         )
       }),
+
+      // columnHelper.accessor('currentPlan', {
+      //   header: 'Plan',
+      //   cell: ({ row }) => (
+      //     <Typography className='capitalize' color='text.primary'>
+      //       {row.original.currentPlan}
+      //     </Typography>
+      //   )
+      // }),
+      // columnHelper.accessor('billing', {
+      //   header: 'Billing',
+      //   cell: ({ row }) => <Typography>{row.original.billing}</Typography>
+      // }),
       columnHelper.accessor('email', {
         header: 'Email',
         cell: ({ row }) => <Typography>{row.original.email}</Typography>
@@ -287,10 +313,8 @@ return (
             </IconButton>
             <IconButton
               onClick={() => {
-                const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
-
-                setData(updatedData)
-                setFilteredData(updatedData)
+                setUserToDelete(row.original)
+                setDeleteDialogOpen(true)
               }}
             >
               <i className='tabler-trash text-textSecondary' />
@@ -319,7 +343,8 @@ return (
         pageSize: 10
       }
     },
-    enableRowSelection: true,
+    enableRowSelection: true, //enable row selection for all rows
+    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -332,10 +357,21 @@ return (
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
+  // const getAvatar = (params: Pick<UsersType, 'avatar' | 'fullName'>) => {
+  //   const { avatar, fullName } = params
+
+  //   if (avatar) {
+  //     return <CustomAvatar src={avatar} size={34} />
+  //   } else {
+  //     return <CustomAvatar size={34}>{getInitials(fullName as string)}</CustomAvatar>
+  //   }
+  // }
 
   return (
     <>
       <Card>
+        {/* <CardHeader title='Filters' className='pbe-4' />
+        <TableFilters setData={setFilteredData} tableData={data} /> */}
         <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
           <CustomTextField
             select
@@ -372,16 +408,15 @@ return (
               <TableFilters setData={setFilteredData} tableData={data} />
             </CustomTextField>
             <Button
+              disabled={table.getSelectedRowModel().rows.length === 0}
               color='secondary'
               variant='tonal'
               startIcon={<i className='tabler-upload' />}
               className='max-sm:is-full'
               onClick={() => {
-                const selectedRows = table.getSelectedRowModel().rows
-                const selectedUsers = selectedRows.map(row => row.original)
-                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+                const selectedUsers = table.getSelectedRowModel().rows.map(row => row.original)
 
-                handleDownloadSelected(selectedUsers, allUsers)
+                handleDownloadSelected(selectedUsers)
               }}
             >
               Export
@@ -471,6 +506,13 @@ return (
         userData={data}
         setData={setData}
         userToEdit={selectedUser}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        userName={userToDelete?.fullName}
       />
     </>
   )

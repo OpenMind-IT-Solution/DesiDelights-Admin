@@ -1,53 +1,50 @@
 // React Imports
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
 import Checkbox from '@mui/material/Checkbox'
-import IconButton from '@mui/material/IconButton'
 import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
-import MenuItem from '@mui/material/MenuItem'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import classnames from 'classnames'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
+  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 
 // Type Imports
-import type { ThemeColor } from '@core/types'
 import type { OrderType } from '@/types/apps/ecommerceTypes'
 import type { Locale } from '@configs/i18n'
+import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import CustomAvatar from '@core/components/mui/Avatar'
-import OptionMenu from '@core/components/option-menu'
-import CustomTextField from '@core/components/mui/TextField'
 import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
-import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
@@ -158,7 +155,9 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = usersToExport.map(user =>
@@ -171,15 +170,12 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'orders-export.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
-
-  // Vars
-  const paypal = '/images/apps/ecommerce/paypal.png'
-  const mastercard = '/images/apps/ecommerce/mastercard.png'
 
   const columns = useMemo<ColumnDef<ECommerceOrderTypeWithAction, any>[]>(
     () => [
@@ -197,7 +193,9 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
               pageRows.forEach(row => row.toggleSelected(true))
             }
           }
-          return (
+
+          
+return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
@@ -278,6 +276,7 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
         header: 'Amount',
         cell: ({ row }) => <Typography className='font-medium'>{`$${row.original.spent.toFixed(2)}`}</Typography>
       }),
+
       // columnHelper.accessor('method', {
       //   header: 'Method',
       //   cell: ({ row }) => (
@@ -309,6 +308,7 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
             <IconButton
               onClick={() => {
                 const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
+
                 setData(updatedData)
               }}
             >
@@ -372,20 +372,6 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const getAvatar = (params: Pick<OrderType, 'avatar' | 'customer'>) => {
-    const { avatar, customer } = params
-
-    if (avatar) {
-      return <CustomAvatar src={avatar} skin='light' size={34} />
-    } else {
-      return (
-        <CustomAvatar skin='light' size={34}>
-          {getInitials(customer as string)}
-        </CustomAvatar>
-      )
-    }
-  }
-
   return (
     <Card>
       <CardContent className='flex justify-between max-sm:flex-col sm:items-center gap-4'>
@@ -416,6 +402,7 @@ const OrderListTable = ({ orderData }: { orderData?: OrderType[] }) => {
               const selectedRows = table.getSelectedRowModel().rows
               const selectedUsers = selectedRows.map(row => row.original)
               const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+
               handleDownloadSelected(selectedUsers, allUsers)
             }}
           >

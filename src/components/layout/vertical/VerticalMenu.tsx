@@ -99,37 +99,16 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         >
           {dictionary['navigation'].dashboards}
         </MenuItem>
-        {/* <SubMenu label={dictionary['navigation'].frontPages} icon={<i className='tabler-files' />}>
-          <MenuItem href='/front-pages/landing-page' target='_blank'>
-            {dictionary['navigation'].landing}
-          </MenuItem>
-          <MenuItem href='/front-pages/pricing' target='_blank'>
-            {dictionary['navigation'].pricing}
-          </MenuItem>
-          <MenuItem href='/front-pages/payment' target='_blank'>
-            {dictionary['navigation'].payment}
-          </MenuItem>
-          <MenuItem href='/front-pages/checkout' target='_blank'>
-            {dictionary['navigation'].checkout}
-          </MenuItem>
-          <MenuItem href='/front-pages/help-center' target='_blank'>
-            {dictionary['navigation'].helpCenter}
-          </MenuItem>
-        </SubMenu> */}
-        {/* <MenuSection label={dictionary['navigation'].appsPages}> */}
-        {/* <SubMenu label={dictionary['navigation'].eCommerce} icon={<i className='tabler-shopping-cart' />}>
-            <MenuItem href={`/${locale}/apps/ecommerce/dashboard`}>{dictionary['navigation'].dashboard}</MenuItem>
-            <SubMenu label={dictionary['navigation'].products}> */}
-        <MenuItem href={`/${locale}/apps/ecommerce/products/list`} icon={<i className="tabler-building-store"></i>}>
+        <MenuItem href={`/${locale}/apps/restaurant`} icon={<i className="tabler-building-store"></i>}>
           {dictionary['navigation'].restaurantManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/user/list`} icon={<i className='tabler-user' />}>
+        <MenuItem href={`/${locale}/apps/user`} icon={<i className='tabler-user' />}>
           {dictionary['navigation'].userManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/user/list`} icon={<i className='tabler-category-2' />}>
+        <MenuItem href={`/${locale}/apps/category`} icon={<i className='tabler-category-2' />}>
           {dictionary['navigation'].categoryManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/user/list`} icon={<i className='tabler-menu-deep' />}>
+        <MenuItem href={`/${locale}/apps/menuManagement`} icon={<i className='tabler-menu-deep' />}>
           {dictionary['navigation'].menuManagement}
         </MenuItem>
         <MenuItem href={`/${locale}/apps/ecommerce/products/list`} icon={<i className='tabler-shopping-cart' />}>

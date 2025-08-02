@@ -3,7 +3,6 @@ import Grid from '@mui/material/Grid2'
 
 // Component Imports
 import CustomProductListTable from '@views/apps/ecommerce/products/list/CustomProductListTable'
-import ProductCard from '@views/apps/ecommerce/products/list/ProductCard'
 
 // Data Imports
 import { getEcommerceData } from '@/app/server/actions'

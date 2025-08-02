@@ -8,48 +8,44 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Card from '@mui/material/Card'
-import CardHeader from '@mui/material/CardHeader'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
-import Divider from '@mui/material/Divider'
+import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import Switch from '@mui/material/Switch'
 import MenuItem from '@mui/material/MenuItem'
+import Switch from '@mui/material/Switch'
 import TablePagination from '@mui/material/TablePagination'
-import Typography from '@mui/material/Typography'
 import type { TextFieldProps } from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import classnames from 'classnames'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
+  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 
 // Type Imports
-import type { ThemeColor } from '@core/types'
-import type { Locale } from '@configs/i18n'
 import type { ProductType } from '@/types/apps/ecommerceTypes'
+import type { Locale } from '@configs/i18n'
+import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import TableFilters from './TableFilters'
-import CustomAvatar from '@core/components/mui/Avatar'
-import CustomTextField from '@core/components/mui/TextField'
-import OptionMenu from '@core/components/option-menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
+import TableFilters from './TableFilters'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -68,13 +64,6 @@ declare module '@tanstack/table-core' {
 
 type ProductWithActionsType = ProductType & {
   actions?: string
-}
-
-type ProductCategoryType = {
-  [key: string]: {
-    icon: string
-    color: ThemeColor
-  }
 }
 
 type productStatusType = {
@@ -126,16 +115,6 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Vars
-const productCategoryObj: ProductCategoryType = {
-  Accessories: { icon: 'tabler-headphones', color: 'error' },
-  'Home Decor': { icon: 'tabler-smart-home', color: 'info' },
-  Electronics: { icon: 'tabler-device-laptop', color: 'primary' },
-  Shoes: { icon: 'tabler-shoe', color: 'success' },
-  Office: { icon: 'tabler-briefcase', color: 'warning' },
-  Games: { icon: 'tabler-device-gamepad-2', color: 'secondary' }
-}
-
 const productStatusObj: productStatusType = {
   Medium: { title: 'Medium', color: 'warning' },
   Low: { title: 'Low', color: 'success' },
@@ -170,7 +149,9 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof ProductWithActionsType])))
@@ -181,6 +162,7 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'products-export.csv'
     link.click()
@@ -203,7 +185,9 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
               pageRows.forEach(row => row.toggleSelected(true))
             }
           }
-          return (
+
+          
+return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
@@ -263,6 +247,7 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
           />
         )
       }),
+
       // columnHelper.accessor('sku', {
       //   header: 'SKU',
       //   cell: ({ row }) => <Typography>{row.original.sku}</Typography>
@@ -285,6 +270,7 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
             <IconButton
               onClick={() => {
                 const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
+
                 setData(updatedData)
                 setFilteredData(updatedData)
               }}
@@ -380,6 +366,7 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
                 const selectedRows = table.getSelectedRowModel().rows
                 const selectedUsers = selectedRows.map(row => row.original)
                 const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+
                 handleDownloadSelected(selectedUsers, allUsers)
               }}
             >

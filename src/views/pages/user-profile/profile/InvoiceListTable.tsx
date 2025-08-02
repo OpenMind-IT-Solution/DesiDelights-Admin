@@ -1,59 +1,57 @@
 'use client'
 
 // React Imports
-import { useState, useMemo } from 'react'
-import type { MouseEvent } from 'react'
+import { useMemo, useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
-import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
-import Tooltip from '@mui/material/Tooltip'
 import TablePagination from '@mui/material/TablePagination'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import classnames from 'classnames'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
+  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 
 // Type Imports
-import type { ThemeColor } from '@core/types'
+import Checkbox from '@mui/material/Checkbox'
+
 import type { InvoiceType } from '@/types/apps/invoiceTypes'
 import type { Locale } from '@configs/i18n'
+import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import OptionMenu from '@core/components/option-menu'
+import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomAvatar from '@core/components/mui/Avatar'
 import CustomTextField from '@core/components/mui/TextField'
-import TablePaginationComponent from '@components/TablePaginationComponent'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
-import Checkbox from '@mui/material/Checkbox'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -106,10 +104,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState<InvoiceType[]>(invoiceData ?? [])
   const [globalFilter, setGlobalFilter] = useState('')
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-
-  // Vars
-  const open = Boolean(anchorEl)
 
   // Hooks
   const { lang: locale } = useParams()
@@ -126,7 +120,9 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = usersToExport.map(user =>
@@ -139,6 +135,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'users-export.csv'
     link.click()
@@ -161,7 +158,9 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
               pageRows.forEach(row => row.toggleSelected(true))
             }
           }
-          return (
+
+          
+return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
@@ -278,14 +277,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleClose = () => {
-    setAnchorEl(null)
-  }
-
   return (
     <Card>
       <CardHeader
@@ -310,17 +301,19 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
             <Button
               variant='tonal'
               aria-haspopup='true'
+
               // onClick={handleClick}
               onClick={() => {
                 const selectedRows = table.getSelectedRowModel().rows
                 const selectedUsers = selectedRows.map(row => row.original)
                 const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
+
                 handleDownloadSelected(selectedUsers, allUsers)
               }}
               color='secondary'
-              aria-expanded={open ? 'true' : undefined}
+              
               endIcon={<i className='tabler-upload' />}
-              aria-controls={open ? 'user-view-overview-export' : undefined}
+              
             >
               Export
             </Button>

@@ -9,9 +9,8 @@ import type { getDictionary } from '@/utils/getDictionary'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
-import HorizontalNav, { Menu, SubMenu, MenuItem } from '@menu/horizontal-menu'
+import HorizontalNav, { Menu, MenuItem, SubMenu } from '@menu/horizontal-menu'
 import VerticalNavContent from './VerticalNavContent'
-import CustomChip from '@core/components/mui/Chip'
 
 // import { GenerateHorizontalMenu } from '@components/GenerateMenu'
 
@@ -25,9 +24,9 @@ import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNav
 // Style Imports
 import menuItemStyles from '@core/styles/horizontal/menuItemStyles'
 import menuRootStyles from '@core/styles/horizontal/menuRootStyles'
-import verticalNavigationCustomStyles from '@core/styles/vertical/navigationCustomStyles'
 import verticalMenuItemStyles from '@core/styles/vertical/menuItemStyles'
 import verticalMenuSectionStyles from '@core/styles/vertical/menuSectionStyles'
+import verticalNavigationCustomStyles from '@core/styles/vertical/navigationCustomStyles'
 
 // Menu Data Imports
 // import menuData from '@/data/navigation/horizontalMenuData'
