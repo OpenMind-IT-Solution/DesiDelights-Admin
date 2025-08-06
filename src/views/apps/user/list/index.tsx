@@ -13,9 +13,11 @@ import UserListTable from './UserListTable'
 //   </Grid>
 const UserList = ({ userData }: { userData?: UsersType[] }) => {
   return (
-    <Grid size={{ xs: 12 }}>
-      <UserListTable tableData={userData} />
-    </Grid>
+      <Grid size={{ xs: 12 }}>
+        <UserListTable tableData={userData} />
+      </Grid>
+
+    // </Grid>
   )
 }
 

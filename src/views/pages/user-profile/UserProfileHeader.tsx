@@ -1,4 +1,8 @@
 // MUI Imports
+import Link from 'next/link'
+
+import { useParams } from 'next/navigation'
+
 import Card from '@mui/material/Card'
 import CardMedia from '@mui/material/CardMedia'
 import CardContent from '@mui/material/CardContent'
@@ -8,9 +12,8 @@ import Button from '@mui/material/Button'
 // Type Imports
 import type { ProfileHeaderType } from '@/types/pages/profileTypes'
 import { getLocalizedUrl } from '@/utils/i18n'
-import Link from 'next/link'
 import type { Locale } from '@configs/i18n'
-import { useParams } from 'next/navigation'
+
 
 const UserProfileHeader = ({ data }: { data?: ProfileHeaderType }) => {
   const { lang: locale } = useParams()

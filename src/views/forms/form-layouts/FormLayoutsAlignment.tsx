@@ -4,16 +4,14 @@
 import { useState } from 'react'
 
 // MUI Imports
-import Card from '@mui/material/Card'
-import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import Checkbox from '@mui/material/Checkbox'
-import CardHeader from '@mui/material/CardHeader'
+import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import InputAdornment from '@mui/material/InputAdornment'
+import CardHeader from '@mui/material/CardHeader'
+import Grid from '@mui/material/Grid2'
 import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
+import Typography from '@mui/material/Typography'
 
 // Components Imports
 import CustomTextField from '@core/components/mui/TextField'
@@ -60,9 +58,6 @@ const FormLayoutsAlignment = () => {
                   }
                 }}
               />
-            </Grid>
-            <Grid size={{ xs: 12 }} className='pbs-2'>
-              <FormControlLabel control={<Checkbox />} label='Remember me' />
             </Grid>
             <Grid size={{ xs: 12 }} className='pbs-2'>
               <Button variant='contained' type='submit' fullWidth>

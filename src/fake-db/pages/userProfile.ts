@@ -16,8 +16,10 @@ export const db: DB = {
         { property: 'Known Languages', value: 'English, Hindi, Gujarati', icon: 'tabler-language' },
         { property: 'Special Skills', value: 'Continental, Indian Curry, South Indian', icon: 'tabler-star' },
         { property: 'Experience', value: '5 years', icon: 'tabler-briefcase' },
+
         // { property: 'Role', value: 'Manager', icon: 'tabler-crown' },
         { property: 'Status', value: 'On Duty', icon: 'tabler-check' },
+
         // { property: 'Joining Date', value: 'October 2025', icon: 'tabler-calendar' },
         // { property: 'Availability', value: 'Full-time', icon: 'tabler-clock' },
         { property: 'Shift Time', value: '9:00 AM - 6:00 PM (1h Break)', icon: 'tabler-clock' },

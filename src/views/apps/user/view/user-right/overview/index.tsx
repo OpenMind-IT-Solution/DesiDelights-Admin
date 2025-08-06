@@ -2,8 +2,6 @@
 import Grid from '@mui/material/Grid2'
 
 // Component Imports
-import ProjectListTable from './ProjectListTable'
-import UserActivityTimeLine from './UserActivityTimeline'
 import InvoiceListTable from './InvoiceListTable'
 
 // Data Imports

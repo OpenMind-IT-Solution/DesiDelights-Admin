@@ -1,11 +1,11 @@
 // MUI Imports
-import Grid from '@mui/material/Grid2'
 import Card from '@mui/material/Card'
-import Typography from '@mui/material/Typography'
 import CardContent from '@mui/material/CardContent'
+import Grid from '@mui/material/Grid2'
+import Typography from '@mui/material/Typography'
 
 // Type Imports
-import type { ProfileTeamsType, ProfileCommonType, ProfileTabType } from '@/types/pages/profileTypes'
+import type { ProfileCommonType, ProfileTabType } from '@/types/pages/profileTypes'
 
 const renderList = (list: ProfileCommonType[]) => {
   return (

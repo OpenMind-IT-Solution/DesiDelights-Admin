@@ -6,6 +6,7 @@ import type { ProfileTabType } from '@/types/pages/profileTypes'
 
 // Component Imports
 import AboutOverview from './AboutOverview'
+
 // import ActivityTimeline from './ActivityTimeline'
 // import ConnectionsTeams from './ConnectionsTeams'
 // import ProjectsTable from './ProjectsTables'

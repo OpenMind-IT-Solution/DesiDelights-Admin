@@ -1,6 +1,7 @@
 // React Imports
 import { useState,useEffect } from 'react'
 
+// MUI Imports
 import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
@@ -77,18 +78,20 @@ const AddUserDrawer = (props: Props) => {
       role: userToEdit?.role || '',
       status: userToEdit?.status || ''
     })
+    
   }, [userToEdit, resetForm, open])
 
   const onSubmit = (data: FormValidateType) => {
     const newUser: UsersType = {
       id: userToEdit?.id ?? (userData?.length ? userData.length + 1 : 1),
-     
+      
       fullName: data.fullName,
       username: data.username,
       email: data.email,
       role: data.role,
       status: data.status,
       contact: formData.contact,
+     
     }
 
     if (userToEdit) {

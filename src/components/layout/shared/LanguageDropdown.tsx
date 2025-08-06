@@ -46,6 +46,7 @@ const languageData: LanguageDataType[] = [
     langCode: 'fr',
     langName: 'French'
   },
+
   // {
   //   langCode: 'ar',
   //   langName: 'Arabic'
