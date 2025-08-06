@@ -26,7 +26,7 @@ type HorizontalLayoutProps = ChildrenType & {
 
 const HorizontalLayout = (props: HorizontalLayoutProps) => {
   // Props
-  const { header, footer, children } = props
+  const { header, children } = props
 
   return (
     <div className={classnames(horizontalLayoutClasses.root, 'flex flex-auto')}>

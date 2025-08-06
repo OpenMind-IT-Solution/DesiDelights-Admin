@@ -24,7 +24,7 @@ type VerticalLayoutProps = ChildrenType & {
 
 const VerticalLayout = (props: VerticalLayoutProps) => {
   // Props
-  const { navbar, footer, navigation, children } = props
+  const { navbar, navigation, children } = props
 
   return (
     <div className={classnames(verticalLayoutClasses.root, 'flex flex-auto')}>
