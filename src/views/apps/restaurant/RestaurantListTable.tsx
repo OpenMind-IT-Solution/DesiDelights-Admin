@@ -110,30 +110,12 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Vars
-// const userRoleObj: UserRoleType = {
-//   admin: { icon: 'tabler-crown', color: 'error' },
-//   author: { icon: 'tabler-device-desktop', color: 'warning' },
-//   editor: { icon: 'tabler-edit', color: 'info' },
-//   maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-//   user: { icon: 'tabler-user', color: 'primary' }
-// }
-
-// const userStatusObj: UserStatusType = {
-//   active: 'success',
-//   pending: 'warning',
-//   inactive: 'secondary'
-// }
-
 // Column Definitions
 const columnHelper = createColumnHelper<RestaurantTypeWithAction>()
 
 const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) => {
   // States
-  const [addUserOpen, setAddUserOpen] = useState(false)
-
-  // const [editUserOpen, setEditUserOpen] = useState(false)
-  // const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
+  const [addRestaurantOpen, setAddRestaurantOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState(...[tableData])
   const [filteredData, setFilteredData] = useState(data)
@@ -146,7 +128,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
     setFilteredData(data)
   }, [data])
 
-  // Export Selected Users Handler
+  // Export Selected Restaurants Handler
   const handleDownloadSelected = (selectedRestaurants: RestaurantTypeWithAction[], allRestaurants: RestaurantTypeWithAction[]) => {
     const restaurantsToExport = selectedRestaurants.length > 0 ? selectedRestaurants : allRestaurants
 
@@ -398,7 +380,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddUserOpen(!addUserOpen)}
+              onClick={() => setAddRestaurantOpen(!addRestaurantOpen)}
               className='max-sm:is-full'
             >
               Add New Restaurant
