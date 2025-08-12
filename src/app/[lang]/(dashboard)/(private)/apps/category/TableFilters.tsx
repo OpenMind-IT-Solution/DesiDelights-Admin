@@ -5,7 +5,7 @@ import Grid from '@mui/material/Grid2'
 import MenuItem from '@mui/material/MenuItem'
 
 import CustomTextField from '@core/components/mui/TextField'
-import { Category } from '@/types/apps/categoryTypes' 
+import type { Category } from '@/types/apps/categoryTypes' 
 
 const TableFilters = ({ setData, tableData }: { setData: (data: Category[]) => void; tableData?: Category[] }) => {
   const [status, setStatus] = useState<Category['status']>('')

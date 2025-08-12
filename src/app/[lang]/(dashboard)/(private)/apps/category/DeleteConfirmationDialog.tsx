@@ -10,16 +10,23 @@ import CardActions from '@mui/material/CardActions'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton' 
+import IconButton from '@mui/material/IconButton'
 
 interface DeleteConfirmationCardProps {
   open: boolean
   onClose: () => void
   onConfirm: () => void
-  userName?: string
+  itemName?: string 
+  itemType?: string 
 }
 
-const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm, userName }) => {
+const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({
+  open,
+  onClose,
+  onConfirm,
+  itemName,
+  itemType = 'item'
+}) => {
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby='delete-dialog-title'>
       <Card>
@@ -38,7 +45,9 @@ const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClo
         />
         <Divider />
         <CardContent>
-          <Typography>Are you sure you want to delete the Category &quot;{userName || 'this user'}&quot;?</Typography>
+          <Typography>
+            Are you sure you want to delete the {itemType} &quot;{itemName || `this ${itemType}`}&quot;?
+          </Typography>
           <Typography color='text.secondary' sx={{ mt: 2 }}>
             This action is permanent and cannot be undone.
           </Typography>

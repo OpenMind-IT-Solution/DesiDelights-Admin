@@ -1,7 +1,7 @@
 // Component Imports
 
 import type { ThemeColor } from "@/@core/types";
-import { RestaurantTypes } from "@/types/apps/restaurantTypes";
+import type { RestaurantTypes } from "@/types/apps/restaurantTypes";
 import RestaurantList from "@/views/apps/restaurant";
 
 // Data Imports

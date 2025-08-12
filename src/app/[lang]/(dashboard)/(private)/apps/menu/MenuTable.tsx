@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-// NEW: Import Next.js Image component for optimized image handling
 import Image from 'next/image'
 
 import Button from '@mui/material/Button'
@@ -44,8 +43,10 @@ type StatusType = { [key: string]: ThemeColor }
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = (
@@ -57,12 +58,16 @@ const DebouncedInput = (
 ) => {
   const { value: initialValue, onChange, debounce = 500, ...rest } = props
   const [value, setValue] = useState(initialValue)
+
   useEffect(() => setValue(initialValue), [initialValue])
   useEffect(() => {
     const timeout = setTimeout(() => onChange(value), debounce)
-    return () => clearTimeout(timeout)
+
+    
+return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
-  return <CustomTextField {...rest} value={value} onChange={e => setValue(e.target.value)} />
+  
+return <CustomTextField {...rest} value={value} onChange={e => setValue(e.target.value)} />
 }
 
 const statusObj: StatusType = {
@@ -88,6 +93,7 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
     if (itemToDelete) {
       setData(prev => prev.filter(item => item.id !== itemToDelete.id))
     }
+
     setDeleteDialogOpen(false)
     setItemToDelete(null)
   }
@@ -112,16 +118,14 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
           />
         )
       },
-      // NEW: Add the Image column
       columnHelper.accessor('menuImages', {
         header: 'Image',
-        // We disable sorting on this column as it's not meaningful for images
         enableSorting: false,
         cell: ({ row }) => {
-          // Get the first image URL from the array
           const imageUrl = row.original.menuImages?.[0]
 
-          return imageUrl ? (
+          
+return imageUrl ? (
             <Image
               src={imageUrl}
               alt={row.original.name}
@@ -130,7 +134,6 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
               style={{ borderRadius: '8px', objectFit: 'cover' }}
             />
           ) : (
-            // Render a placeholder if no image exists
             <div
               style={{
                 width: 50,
@@ -160,7 +163,47 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
       }),
       columnHelper.accessor('price', {
         header: 'Price',
-        cell: ({ row }) => <Typography>₹{row.original.price}</Typography>
+        cell: ({ row }) => {
+          const originalPrice = row.original.price
+          const offerPercentage = parseFloat(row.original.offer || '0')
+
+          // If there is no valid offer, just show the original price
+          if (offerPercentage <= 0) {
+            return <Typography>₹{originalPrice}</Typography>
+          }
+
+          // Calculate the discounted price
+          const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
+
+          return (
+            <div className='flex items-center gap-3'>
+              {/* Container for the original price and the cross line */}
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                {/* The original price text, with muted color */}
+                <Typography component='span' color='text.secondary'>
+                  ₹{originalPrice}
+                </Typography>
+
+                {/* The visual "cross line" element */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '-5%', 
+                    width: '110%', 
+                    height: '1.5px', 
+                    backgroundColor: 'red', 
+                    transform: 'rotate(-15deg)' 
+                  }}
+                />
+              </div>
+
+              <Typography component='span' color='text.primary' className='font-medium'>
+                ₹{finalPrice}
+              </Typography>
+            </div>
+          )
+        }
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -236,7 +279,6 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
   return (
     <>
       <Card>
-        {/* The Card Header section remains the same */}
         <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
           <CustomTextField
             select
@@ -267,7 +309,6 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
         </div>
         <div className='overflow-x-auto'>
           <table className={tableStyles.table}>
-            {/* Table Head and Body */}
             <thead>
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>

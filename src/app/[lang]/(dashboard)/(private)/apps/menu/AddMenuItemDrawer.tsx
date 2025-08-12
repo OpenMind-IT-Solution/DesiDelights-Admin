@@ -2,7 +2,9 @@
 
 // React and MUI Imports
 import { useEffect, useState } from 'react'
+
 import Image from 'next/image' // For displaying images
+
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -92,6 +94,7 @@ const AddMenuItemDrawer = (props: Props) => {
         offer: itemToEdit.offer || '0',
         status: itemToEdit.status ?? true
       })
+
       // Set existing images
       setFiles(itemToEdit.menuImages || [])
     } else {
@@ -145,10 +148,12 @@ const AddMenuItemDrawer = (props: Props) => {
 
     if (itemToEdit) {
       const updatedData = (menuData ?? []).map(item => (item.id === itemToEdit.id ? newItem : item))
+
       setData(updatedData)
     } else {
       setData([newItem, ...(menuData ?? [])])
     }
+
     handleClose()
   }
 

@@ -1,4 +1,4 @@
-import { CategoryTypes } from '@/types/apps/categoryTypes'
+import type { CategoryTypes } from '@/types/apps/categoryTypes'
 
 export const db: CategoryTypes = {
   categories: [

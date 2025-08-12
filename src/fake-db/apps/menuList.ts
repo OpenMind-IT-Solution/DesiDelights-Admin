@@ -1,4 +1,4 @@
-import { Menu } from '@/types/apps/menuTypes'
+import type { Menu } from '@/types/apps/menuTypes'
 
 export const db: Menu = {
   menuItems: [

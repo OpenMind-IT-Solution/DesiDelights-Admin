@@ -71,6 +71,7 @@ const AddCategoryDrawer = (props: Props) => {
 
     if (categoryToEdit) {
       const updatedCategories = (categoryData ?? []).map(cat => (cat.id === categoryToEdit.id ? newCategory : cat))
+
       setData(updatedCategories)
     } else {
       setData([newCategory, ...(categoryData ?? [])])
@@ -112,7 +113,7 @@ const AddCategoryDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 label='Category Name'
-                placeholder='Electronics'
+                placeholder='Category name'
                 {...(errors.name && { error: true, helperText: 'This field is required.' })}
               />
             )}

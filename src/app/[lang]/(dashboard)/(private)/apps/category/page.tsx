@@ -1,6 +1,6 @@
 
 import { getCategoryData } from '@/app/server/actions'
-import CategoryTable from './UserListTable'
+import CategoryTable from './CategoryListTable'
 
 const CategoryListApp = async () => {
   const data = await getCategoryData()
