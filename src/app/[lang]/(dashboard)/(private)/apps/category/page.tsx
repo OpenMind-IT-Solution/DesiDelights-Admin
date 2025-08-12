@@ -1,14 +1,11 @@
-// Component Imports
-import UserList from '@views/apps/user/list'
 
-// Data Imports
-import { getUserData } from '@/app/server/actions'
+import { getCategoryData } from '@/app/server/actions'
+import CategoryTable from './UserListTable'
 
-const UserListApp = async () => {
-  // Vars
-  const data = await getUserData()
+const CategoryListApp = async () => {
+  const data = await getCategoryData()
 
-  return <UserList userData={data} />
+  return <CategoryTable tableData={data.categories} />
 }
 
-export default UserListApp
+export default CategoryListApp

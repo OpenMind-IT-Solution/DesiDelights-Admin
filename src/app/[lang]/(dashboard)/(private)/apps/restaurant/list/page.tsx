@@ -1,7 +1,7 @@
 // Component Imports
 
 import type { ThemeColor } from "@/@core/types";
-import type { restaurantTypes } from "@/types/apps/restaurantTypes";
+import { RestaurantTypes } from "@/types/apps/restaurantTypes";
 import RestaurantList from "@/views/apps/restaurant";
 
 // Data Imports
@@ -14,7 +14,7 @@ import RestaurantList from "@/views/apps/restaurant";
   }
   return res.json()
 } */
-const data: restaurantTypes[] = [
+const data: RestaurantTypes[] = [
   {
     id: 1,
     name: 'Desi Delights',
