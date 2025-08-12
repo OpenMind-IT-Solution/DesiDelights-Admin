@@ -51,6 +51,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 // Style Imports
 import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 import tableStyles from '@core/styles/table.module.css'
+import AddRestaurantDrawer from './AddRestaurantDrawer'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -110,30 +111,14 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Vars
-// const userRoleObj: UserRoleType = {
-//   admin: { icon: 'tabler-crown', color: 'error' },
-//   author: { icon: 'tabler-device-desktop', color: 'warning' },
-//   editor: { icon: 'tabler-edit', color: 'info' },
-//   maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-//   user: { icon: 'tabler-user', color: 'primary' }
-// }
-
-// const userStatusObj: UserStatusType = {
-//   active: 'success',
-//   pending: 'warning',
-//   inactive: 'secondary'
-// }
-
 // Column Definitions
 const columnHelper = createColumnHelper<RestaurantTypeWithAction>()
 
 const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) => {
   // States
-  const [addUserOpen, setAddUserOpen] = useState(false)
-
-  // const [editUserOpen, setEditUserOpen] = useState(false)
-  // const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
+  const [addRestaurantOpen, setAddRestaurantOpen] = useState(false)
+  const [editRestaurantOpen, setEditRestaurantOpen] = useState(false)
+  const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantTypeWithAction | null>(null)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState(...[tableData])
   const [filteredData, setFilteredData] = useState(data)
@@ -146,7 +131,6 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
     setFilteredData(data)
   }, [data])
 
-  // Export Selected Users Handler
   const handleDownloadSelected = (selectedRestaurants: RestaurantTypeWithAction[], allRestaurants: RestaurantTypeWithAction[]) => {
     const restaurantsToExport = selectedRestaurants.length > 0 ? selectedRestaurants : allRestaurants
 
@@ -178,37 +162,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
 
   const columns = useMemo<ColumnDef<RestaurantTypeWithAction, any>[]>(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => {
-          const pageRows = table.getRowModel().rows
-          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
-          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
-
-          const toggleAllPageSelected = () => {
-            if (allPageSelected) {
-              pageRows.forEach(row => row.toggleSelected(false))
-            } else {
-              pageRows.forEach(row => row.toggleSelected(true))
-            }
-          }
-
-          return (
-            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
-          )
-        },
-        cell: ({ row }) => (
-          <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
-          />
-        )
-      },
-      columnHelper.accessor('name', {
+    columnHelper.accessor('name', {
         header: 'Restaurant Name',
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
@@ -238,25 +192,9 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             {row.original.status}
-            {/* <Chip
-              variant='tonal'
-              label={row.original.status}
-              size='small'
-              color={restaurantStatusObj[row.original.status]}
-              className='capitalize'
-            /> */}
           </div>
         )
       }),
-
-      // columnHelper.accessor('currentPlan', {
-      //   header: 'Plan',
-      //   cell: ({ row }) => (
-      //     <Typography className='capitalize' color='text.primary'>
-      //       {row.original.currentPlan}
-      //     </Typography>
-      //   )
-      // }),
       columnHelper.accessor('billing', {
         header: 'Billing',
         cell: ({ row }) => <Typography>{row.original.billing}</Typography>
@@ -271,8 +209,8 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
           <div className='flex items-center'>
             <IconButton
               onClick={() => {
-                // setSelectedUser(row.original)
-                // setEditUserOpen(true)
+                setSelectedRestaurant(row.original)
+                setEditRestaurantOpen(true)
               }}
             >
               <i className='tabler-edit text-textSecondary' />
@@ -316,8 +254,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
         pageSize: 10
       }
     },
-    enableRowSelection: true, //enable row selection for all rows
-    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
+    enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -330,21 +267,9 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
-  // const getAvatar = (params: Pick<UsersType, 'avatar' | 'fullName'>) => {
-  //   const { avatar, fullName } = params
-
-  //   if (avatar) {
-  //     return <CustomAvatar src={avatar} size={34} />
-  //   } else {
-  //     return <CustomAvatar size={34}>{getInitials(fullName as string)}</CustomAvatar>
-  //   }
-  // }
-
   return (
     <>
       <Card>
-        {/* <CardHeader title='Filters' className='pbe-4' />
-        <TableFilters setData={setFilteredData} tableData={data} /> */}
         <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
           <CustomTextField
             select
@@ -363,23 +288,6 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
               placeholder='Search Restaurant...'
               className='max-sm:is-full'
             />
-            {/* <CustomTextField
-              select
-              value=''
-              slotProps={{
-                select: {
-                  displayEmpty: true,
-                  IconComponent: () => (
-                    <i
-                      className='tabler-filter text-textSecondary text-base'
-                      style={{ transform: 'none', transition: 'none' }}
-                    />
-                  )
-                }
-              }}
-            >
-              <TableFilters setData={setFilteredData} tableData={data} />
-            </CustomTextField> */}
             <Button
               color='secondary'
               variant='tonal'
@@ -398,7 +306,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddUserOpen(!addUserOpen)}
+              onClick={() => setAddRestaurantOpen(!addRestaurantOpen)}
               className='max-sm:is-full'
             >
               Add New Restaurant
@@ -470,17 +378,17 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
           }}
         />
       </Card>
-      {/* <AddUserDrawer
-        open={addUserOpen || editUserOpen}
+      <AddRestaurantDrawer
+        open={addRestaurantOpen || editRestaurantOpen}
         handleClose={() => {
-          setAddUserOpen(false)
-          setEditUserOpen(false)
-          setSelectedUser(null)
+          setAddRestaurantOpen(false)
+          setEditRestaurantOpen(false)
+          setSelectedRestaurant(null)
         }}
-        userData={data}
+        restaurantData={data}
         setData={setData}
-        userToEdit={selectedUser}
-      /> */}
+        restaurantToEdit={selectedRestaurant}
+      />
     </>
   )
 }
