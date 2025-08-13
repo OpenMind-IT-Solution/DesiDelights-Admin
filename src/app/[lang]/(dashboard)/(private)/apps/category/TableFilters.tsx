@@ -1,24 +1,18 @@
-// React Imports
 import { useState, useEffect } from 'react'
 
-// MUI Imports
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid2'
 import MenuItem from '@mui/material/MenuItem'
 
-// Type Imports
-
-// Component Imports
 import CustomTextField from '@core/components/mui/TextField'
-import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
+import type { Category } from '@/types/apps/categoryTypes' 
 
-const TableFilters = ({ setData, tableData }: { setData: (data: RestaurantTypes[]) => void; tableData?: RestaurantTypes[] }) => {
-  // States
-  const [status, setStatus] = useState<RestaurantTypes['status']>('')
+const TableFilters = ({ setData, tableData }: { setData: (data: Category[]) => void; tableData?: Category[] }) => {
+  const [status, setStatus] = useState<Category['status']>('')
 
   useEffect(() => {
-    const filteredData = tableData?.filter(res => {
-      if (status && res.status !== status) return false
+    const filteredData = tableData?.filter(category => {
+      if (status && category.status !== status) return false
 
       return true
     })
