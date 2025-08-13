@@ -11,6 +11,7 @@ import { db as academyData } from '@/fake-db/apps/academy'
 import { db as vehicleData } from '@/fake-db/apps/logistics'
 import { db as invoiceData } from '@/fake-db/apps/invoice'
 import { db as userData } from '@/fake-db/apps/userList'
+import { db as orderData } from '@/fake-db/apps/orderList'
 import { db as permissionData } from '@/fake-db/apps/permissions'
 import { db as profileData } from '@/fake-db/pages/userProfile'
 import { db as faqData } from '@/fake-db/pages/faq'
@@ -35,6 +36,10 @@ export const getInvoiceData = async () => {
 
 export const getUserData = async () => {
   return userData
+}
+
+export const getOrderData = async () => {
+  return orderData
 }
 
 export const getPermissionsData = async () => {
