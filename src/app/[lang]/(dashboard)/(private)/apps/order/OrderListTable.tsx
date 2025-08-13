@@ -269,8 +269,9 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
                 setOrderToDelete(row.original)
                 setDeleteDialogOpen(true)
               }}
+              color='error'
             >
-              <i className='tabler-trash text-textSecondary' />
+              <i className='tabler-trash' />
             </IconButton>
           </div>
         ),
