@@ -205,7 +205,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
       }),
       columnHelper.accessor('action', {
         header: 'Action',
-        cell: ({ row }) => (
+        cell: ({ row }: { row: any }) => (
           <div className='flex items-center'>
             <IconButton
               onClick={() => {
