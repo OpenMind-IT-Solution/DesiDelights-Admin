@@ -219,19 +219,19 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
           return <Typography>{date}</Typography>
         }
       }),
-      columnHelper.accessor('status', {
-        header: 'Status',
-        cell: ({ row }) => (
-          <div className='flex items-center gap-3'>
-            <Chip
-              label={row.original.status}
-              variant='tonal'
-              color={row.original.status === 'Published' ? 'success' : 'warning'}
-              size='small'
-            />
-          </div>
-        )
-      }),
+      // columnHelper.accessor('status', {
+      //   header: 'Status',
+      //   cell: ({ row }) => (
+      //     <div className='flex items-center gap-3'>
+      //       <Chip
+      //         label={row.original.status}
+      //         variant='tonal'
+      //         color={row.original.status === 'Published' ? 'success' : 'warning'}
+      //         size='small'
+      //       />
+      //     </div>
+      //   )
+      // }),
       columnHelper.accessor('actions', {
         header: 'Actions',
         cell: ({ row }) => (
