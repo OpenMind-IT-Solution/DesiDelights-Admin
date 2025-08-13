@@ -5,15 +5,15 @@ import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 
 // Third-party Imports
 import { Controller, useForm } from 'react-hook-form'
 
 // Component Imports
-import CustomTextField from '@core/components/mui/TextField'
 import { RestaurantTypes } from '@/types/apps/restaurantTypes'
+import CustomTextField from '@core/components/mui/TextField'
+import { MenuItem } from '@mui/material'
 
 type Props = {
   open: boolean
@@ -28,7 +28,7 @@ type FormNonValidateType = {
   status: string
   avatar: string
   name: string
-  country: string
+  location: string
   contact: string
   registrationName: string
   adminUsername: string
@@ -42,7 +42,7 @@ type FormValidateType = {
   status: string
   avatar: string
   name: string
-  country: string
+  location: string
   contact: string
   registrationName: string
   adminUsername: string
@@ -56,7 +56,7 @@ const initialData = {
   status: '',
   avatar: '',
   name: '',
-  country: '',
+  location: '',
   contact: '',
   registrationName: '',
   adminUsername: '',
@@ -80,7 +80,16 @@ const AddRestaurantDrawer = (props: Props) => {
     formState: { errors }
   } = useForm<FormValidateType>({
     defaultValues: {
-
+      email: restaurantToEdit?.email || '',
+      status: restaurantToEdit?.status || '',
+      avatar: restaurantToEdit?.avatar || '',
+      name: restaurantToEdit?.name || '',
+      location: restaurantToEdit?.location || '',
+      contact: restaurantToEdit?.contact || '',
+      registrationName: restaurantToEdit?.registrationName || '',
+      adminUsername: restaurantToEdit?.adminUsername || '',
+      currentPlan: restaurantToEdit?.currentPlan || '',
+      billing: restaurantToEdit?.billing || ''
     }
   })
 
@@ -90,7 +99,7 @@ const AddRestaurantDrawer = (props: Props) => {
       status: restaurantToEdit?.status ?? '',
       avatar: restaurantToEdit?.avatar ?? '',
       name: restaurantToEdit?.name ?? '',
-      country: restaurantToEdit?.country ?? '',
+      location: restaurantToEdit?.location ?? '',
       contact: restaurantToEdit?.contact ?? '',
       registrationName: restaurantToEdit?.registrationName ?? '',
       adminUsername: restaurantToEdit?.adminUsername ?? '',
@@ -107,7 +116,7 @@ const AddRestaurantDrawer = (props: Props) => {
       status: data.status,
       avatar: data.avatar,
       name: data.name,
-      country: data.country,
+      location: data.location,
       contact: data.contact,
       registrationName: data.registrationName,
       adminUsername: data.adminUsername,
@@ -152,6 +161,50 @@ const AddRestaurantDrawer = (props: Props) => {
       <div>
         <form onSubmit={handleSubmit(data => onSubmit(data))} className='flex flex-col gap-6 p-6'>
           <Controller
+            name='name'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Restaurant Name'
+                placeholder='Desi Delights'
+                {...(errors.name && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
+          />
+          <Controller
+            name='registrationName'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Registration Name'
+                placeholder='Desi Delights Pvt Ltd'
+                {...(errors.registrationName && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
+          />
+
+          <Controller
+            name='adminUsername'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Admin Username'
+                placeholder='admin'
+                {...(errors.adminUsername && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
+          />
+
+          <Controller
             name='email'
             control={control}
             rules={{ required: true }}
@@ -165,41 +218,91 @@ const AddRestaurantDrawer = (props: Props) => {
               />
             )}
           />
-          <CustomTextField
-            label='Contact'
-            type='tel'
-            fullWidth
-            placeholder='(397) 294-5153'
-            value={formData.contact}
-            onChange={e => setFormData({ ...formData, contact: e.target.value })}
+
+          <Controller
+            name='contact'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Contact'
+                placeholder='+34 112 345 6789'
+                {...(errors.contact && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
           />
-          <CustomTextField
-            label='Registration Name'
-            fullWidth
-            placeholder='John Doe'
-            value={formData.registrationName}
-            onChange={e => setFormData({ ...formData, registrationName: e.target.value })}
+
+          <Controller
+            name='location'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Location'
+                placeholder='Belgium'
+                {...(errors.location && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
           />
-          <CustomTextField
-            label='Admin Username'
-            fullWidth
-            placeholder='admin'
-            value={formData.adminUsername}
-            onChange={e => setFormData({ ...formData, adminUsername: e.target.value })}
+
+
+
+          <Controller
+            name='currentPlan'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                label='Current Plan'
+                placeholder='Premium'
+                {...(errors.currentPlan && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
           />
-          <CustomTextField
-            label='Current Plan'
-            fullWidth
-            placeholder='Basic'
-            value={formData.currentPlan}
-            onChange={e => setFormData({ ...formData, currentPlan: e.target.value })}
+          <Controller
+            name='billing'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                select
+                fullWidth
+                id='select-billing'
+                label='Select Billing Cycle'
+                {...field}
+                {...(errors.billing && { error: true, helperText: 'This field is required.' })}
+              >
+                <MenuItem value='monthly'>Monthly</MenuItem>
+                <MenuItem value='bi-monthly'>Bi-Monthly</MenuItem>
+                <MenuItem value='quarterly'>Quarterly</MenuItem>
+                <MenuItem value='yearly'>Yearly</MenuItem>
+              </CustomTextField>
+            )}
           />
-          <CustomTextField
-            label='Billing'
-            fullWidth
-            placeholder='Monthly'
-            value={formData.billing}
-            onChange={e => setFormData({ ...formData, billing: e.target.value })}
+          <Controller
+            name='status'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                select
+                fullWidth
+                id='select-status'
+                label='Select Status'
+                {...field}
+                {...(errors.status && { error: true, helperText: 'This field is required.' })}
+              >
+                {/* <MenuItem value='pending'>Pending</MenuItem> */}
+                <MenuItem value='active'>Active</MenuItem>
+                <MenuItem value='inactive'>Inactive</MenuItem>
+              </CustomTextField>
+            )}
           />
 
           <div className='flex items-center gap-4'>

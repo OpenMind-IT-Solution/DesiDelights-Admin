@@ -12,9 +12,8 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
-import { styled } from '@mui/material/styles'
+import Rating from '@mui/material/Rating'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -38,15 +37,15 @@ import {
 import classnames from 'classnames'
 
 // Type Imports
-import type { UsersType } from '@/types/apps/userTypes'
+import { IconButton } from '@mui/material'
+
+import type { ReviewType } from '@/types/apps/ecommerceTypes'
 import type { Locale } from '@configs/i18n'
-import type { ThemeColor } from '@core/types'
 
 // Component Imports
 import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomAvatar from '@core/components/mui/Avatar'
 import CustomTextField from '@core/components/mui/TextField'
-import AddUserDrawer from './AddUserDrawer'
-import TableFilters from './TableFilters'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -63,20 +62,9 @@ declare module '@tanstack/table-core' {
   }
 }
 
-type UsersTypeWithAction = UsersType & {
-  action?: string
+type ReviewWithActionsType = ReviewType & {
+  actions?: string
 }
-
-type UserRoleType = {
-  [key: string]: { icon: string; color: string }
-}
-
-type UserStatusType = {
-  [key: string]: ThemeColor
-}
-
-// Styled Components
-const Icon = styled('i')({})
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   // Rank the item
@@ -120,93 +108,33 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Vars
-const userRoleObj: UserRoleType = {
-  admin: { icon: 'tabler-crown', color: 'error' },
-  author: { icon: 'tabler-device-desktop', color: 'warning' },
-  editor: { icon: 'tabler-edit', color: 'info' },
-  maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  user: { icon: 'tabler-user', color: 'primary' }
-}
-
-const userStatusObj: UserStatusType = {
-  active: 'success',
-  pending: 'warning',
-  inactive: 'secondary'
-}
-
 // Column Definitions
-const columnHelper = createColumnHelper<UsersTypeWithAction>()
+const columnHelper = createColumnHelper<ReviewWithActionsType>()
 
-const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
+const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => {
   // States
-  const [addUserOpen, setAddUserOpen] = useState(false)
-  const [editUserOpen, setEditUserOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
+  const [status, setStatus] = useState<ReviewType['status']>('All')
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[tableData])
-  const [filteredData, setFilteredData] = useState(data)
+  const [allData, setAllData] = useState(...[reviewsData])
+  const [data, setData] = useState(allData)
   const [globalFilter, setGlobalFilter] = useState('')
 
   // Hooks
   const { lang: locale } = useParams()
 
-  useEffect(() => {
-    setFilteredData(data)
-  }, [data])
-
-  const handleDownloadSelected = (selectedUsers: UsersTypeWithAction[], allUsers: UsersTypeWithAction[]) => {
-    const usersToExport = selectedUsers.length > 0 ? selectedUsers : allUsers
-
-    if (usersToExport.length === 0) return
-
-    const headers = Object.keys(usersToExport[0])
-
-    const escapeCSV = (value: unknown): string => {
-      if (value == null) return ''
-      const str = String(value)
-
-
-      return `"${str.replace(/"/g, '""')}"`
-    }
-
-    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
-
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement('a')
-
-    link.href = url
-    link.download = 'users-export.csv'
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
-  const columns = useMemo<ColumnDef<UsersTypeWithAction, any>[]>(
+  const columns = useMemo<ColumnDef<ReviewWithActionsType, any>[]>(
     () => [
       {
         id: 'select',
-        header: ({ table }) => {
-          const pageRows = table.getRowModel().rows
-          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
-          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
-
-          const toggleAllPageSelected = () => {
-            if (allPageSelected) {
-              pageRows.forEach(row => row.toggleSelected(false))
-            } else {
-              pageRows.forEach(row => row.toggleSelected(true))
-            }
-          }
-
-
-          return (
-            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
-          )
-        },
+        header: ({ table }) => (
+          <Checkbox
+            {...{
+              checked: table.getIsAllRowsSelected(),
+              indeterminate: table.getIsSomeRowsSelected(),
+              onChange: table.getToggleAllRowsSelectedHandler()
+            }}
+          />
+        ),
         cell: ({ row }) => (
           <Checkbox
             {...{
@@ -218,94 +146,139 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
           />
         )
       },
-      columnHelper.accessor('fullName', {
-        header: 'User',
+      columnHelper.accessor('product', {
+        header: 'Product',
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
-            {/* {getAvatar({ avatar: row.original.avatar, fullName: row.original.fullName })} */}
-            <div className='flex flex-col'>
-              <Typography color='text.primary' className='font-medium'>
-                {row.original.fullName}
+            <img src={row.original.productImage} width={38} height={38} className='rounded bg-actionHover' />
+            <div className='flex flex-col items-start'>
+              <Typography className='font-medium' color='text.primary'>
+                {row.original.product}
               </Typography>
-              {/* <Typography variant='body2'>{row.original.username}</Typography> */}
+              <Typography variant='body2' className='text-wrap'>
+                {row.original.companyName}
+              </Typography>
             </div>
           </div>
         )
       }),
-      columnHelper.accessor('role', {
-        header: 'Role',
+      columnHelper.accessor('reviewer', {
+        header: 'Reviewer',
         cell: ({ row }) => (
-          <div className='flex items-center gap-2'>
-            <Icon
-              className={userRoleObj[row.original.role].icon}
-              sx={{ color: `var(--mui-palette-${userRoleObj[row.original.role].color}-main)` }}
+          <div className='flex items-center gap-4'>
+            <CustomAvatar src={row.original.avatar} size={34} />
+            <div className='flex flex-col items-start'>
+              <Typography
+                component={Link}
+                href={getLocalizedUrl('/apps/ecommerce/customers/details/879861', locale as Locale)}
+                color='primary.main'
+                className='font-medium'
+              >
+                {row.original.reviewer}
+              </Typography>
+              <Typography variant='body2'>{row.original.email}</Typography>
+            </div>
+          </div>
+        )
+      }),
+      columnHelper.accessor('head', {
+        header: 'Review',
+        sortingFn: (rowA, rowB) => rowA.original.review - rowB.original.review,
+        cell: ({ row }) => (
+          <div className='flex flex-col gap-1'>
+            <Rating
+              name='product-review'
+              readOnly
+              value={row.original.review}
+              emptyIcon={<i className='tabler-star-filled' />}
             />
-            <Typography className='capitalize' color='text.primary'>
-              {row.original.role}
+            <Typography className='font-medium' color='text.primary'>
+              {row.original.head}
+            </Typography>
+            <Typography variant='body2' className='text-wrap'>
+              {row.original.para}
             </Typography>
           </div>
         )
+      }),
+      columnHelper.accessor('date', {
+        header: 'Date',
+        sortingFn: (rowA, rowB) => {
+          const dateA = new Date(rowA.original.date)
+          const dateB = new Date(rowB.original.date)
+
+          return dateA.getTime() - dateB.getTime()
+        },
+        cell: ({ row }) => {
+          const date = new Date(row.original.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric'
+          })
+
+          return <Typography>{date}</Typography>
+        }
       }),
       columnHelper.accessor('status', {
         header: 'Status',
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             <Chip
-              variant='tonal'
               label={row.original.status}
+              variant='tonal'
+              color={row.original.status === 'Published' ? 'success' : 'warning'}
               size='small'
-              color={userStatusObj[row.original.status]}
-              className='capitalize'
             />
           </div>
         )
       }),
-      columnHelper.accessor('email', {
-        header: 'Email',
-        cell: ({ row }) => <Typography>{row.original.email}</Typography>
-      }),
-      columnHelper.accessor('contact', {
-        header: 'Contact',
-        cell: ({ row }) => <Typography>{row.original.contact}</Typography>
-      }),
-      columnHelper.accessor('action', {
-        header: 'Action',
+      columnHelper.accessor('actions', {
+        header: 'Actions',
         cell: ({ row }) => (
-          <div className='flex items-center'>
-            <IconButton
+          <>
+          <IconButton>
+            <Link href={getLocalizedUrl('/apps/ecommerce/orders/details/5434', locale as Locale)} className='flex'>
+              <i className='tabler-eye text-textSecondary' />
+            </Link>
+          </IconButton>
+          <IconButton
               onClick={() => {
-                setSelectedUser(row.original)
-                setEditUserOpen(true)
-              }}
-            >
-              <i className='tabler-edit text-textSecondary' />
-            </IconButton>
-            <IconButton>
-              <Link href={getLocalizedUrl('/apps/user/view', locale as Locale)} className='flex'>
-                <i className='tabler-eye text-textSecondary' />
-              </Link>
-            </IconButton>
-            <IconButton
-              onClick={() => {
-                const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
-
-                setData(updatedData)
-                setFilteredData(updatedData)
+                setAllData(allData?.filter(review => review.id !== row.original.id))
               }}
             >
               <i className='tabler-trash text-textSecondary' />
             </IconButton>
-          </div>
+          {/* <OptionMenu
+            iconButtonProps={{ size: 'medium' }}
+            iconClassName='text-textSecondary'
+            options={[
+              {
+                text: 'View',
+                icon: 'tabler-eye',
+                href: getLocalizedUrl('/apps/ecommerce/orders/details/5434', locale as Locale),
+                linkProps: { className: 'flex items-center gap-2 is-full plb-2 pli-4' }
+              },
+              {
+                text: 'Delete',
+                icon: 'tabler-trash',
+                menuItemProps: {
+                  onClick: () => setAllData(allData?.filter(review => review.id !== row.original.id)),
+                  className: 'flex items-center'
+                }
+              }
+            ]}
+          /> */}
+          </>
         ),
         enableSorting: false
       })
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data, filteredData]
+    [data]
   )
 
   const table = useReactTable({
-    data: filteredData as UsersType[],
+    data: data as ReviewType[],
     columns,
     filterFns: {
       fuzzy: fuzzyFilter
@@ -319,7 +292,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
         pageSize: 10
       }
     },
-    enableRowSelection: true,
+    enableRowSelection: true, //enable row selection for all rows
+    // enableRowSelection: row => row.original.age > 18, // or enable row selection conditionally per row
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -332,67 +306,55 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
     getFacetedMinMaxValues: getFacetedMinMaxValues()
   })
 
+  useEffect(() => {
+    const filteredData = allData?.filter(review => {
+      if (status !== 'All' && review.status !== status) return false
+
+      return true
+    })
+
+    setData(filteredData)
+  }, [status, allData, setData])
 
   return (
     <>
       <Card>
-        <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
-          <CustomTextField
-            select
-            value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
-            className='max-sm:is-full sm:is-[70px]'
-          >
-            <MenuItem value='10'>10</MenuItem>
-            <MenuItem value='25'>25</MenuItem>
-            <MenuItem value='50'>50</MenuItem>
-          </CustomTextField>
-          <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
-            <DebouncedInput
-              value={globalFilter ?? ''}
-              onChange={value => setGlobalFilter(String(value))}
-              placeholder='Search User'
-              className='max-sm:is-full'
-            />
+        <div className='flex flex-wrap justify-between gap-4 p-6'>
+          <DebouncedInput
+            value={globalFilter ?? ''}
+            onChange={value => setGlobalFilter(String(value))}
+            placeholder='Search Product'
+            className='max-sm:is-full'
+          />
+          <div className='flex max-sm:flex-col sm:items-center gap-4 max-sm:is-full'>
             <CustomTextField
               select
-              value=''
-              slotProps={{
-                select: {
-                  displayEmpty: true,
-                  IconComponent: () => (
-                    <i
-                      className='tabler-filter text-textSecondary text-base'
-                      style={{ transform: 'none', transition: 'none' }}
-                    />
-                  )
-                }
-              }}
+              value={table.getState().pagination.pageSize}
+              onChange={e => table.setPageSize(Number(e.target.value))}
+              className='sm:is-[140px] flex-auto is-full'
             >
-              <TableFilters setData={setFilteredData} tableData={data} />
+              <MenuItem value='10'>10</MenuItem>
+              <MenuItem value='25'>25</MenuItem>
+              <MenuItem value='50'>50</MenuItem>
+            </CustomTextField>
+            <CustomTextField
+              select
+              fullWidth
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+              className='is-full sm:is-[140px] flex-auto'
+            >
+              <MenuItem value='All'>All</MenuItem>
+              <MenuItem value='Published'>Published</MenuItem>
+              <MenuItem value='Pending'>Pending</MenuItem>
             </CustomTextField>
             <Button
-              color='secondary'
               variant='tonal'
-              startIcon={<i className='tabler-upload' />}
               className='max-sm:is-full'
-              onClick={() => {
-                const selectedRows = table.getSelectedRowModel().rows
-                const selectedUsers = selectedRows.map(row => row.original)
-                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
-
-                handleDownloadSelected(selectedUsers, allUsers)
-              }}
+              startIcon={<i className='tabler-upload' />}
+              color='secondary'
             >
               Export
-            </Button>
-            <Button
-              variant='contained'
-              startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddUserOpen(!addUserOpen)}
-              className='max-sm:is-full'
-            >
-              Add New User
             </Button>
           </div>
         </div>
@@ -461,19 +423,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
           }}
         />
       </Card>
-      <AddUserDrawer
-        open={addUserOpen || editUserOpen}
-        handleClose={() => {
-          setAddUserOpen(false)
-          setEditUserOpen(false)
-          setSelectedUser(null)
-        }}
-        userData={data}
-        setData={setData}
-        userToEdit={selectedUser}
-      />
     </>
   )
 }
 
-export default UserListTable
+export default ManageReviewsTable

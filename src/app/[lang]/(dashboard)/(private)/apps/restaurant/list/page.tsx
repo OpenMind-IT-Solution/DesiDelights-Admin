@@ -21,12 +21,12 @@ const data: RestaurantTypes[] = [
     email: 'info@desidelights.com',
     status: 'active',
     avatar: '/images/avatars/1.png',
-    country: 'India',
-    contact: '+91 12345 67890',
+    location: 'Brussels, Belgium',
+    contact: '+34 123 456 7890',
     registrationName: 'Desi Delights Pvt Ltd',
     adminUsername: 'admin',
     currentPlan: 'premium',
-    avatarColor: 'primary' as ThemeColor, // Use a valid ThemeColor value
+    avatarColor: 'primary' as ThemeColor,
     billing: 'monthly'
   }
 ]
