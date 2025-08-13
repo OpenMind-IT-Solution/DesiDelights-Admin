@@ -1,11 +1,11 @@
+import { getCategoryData } from '@/app/server/actions' 
+import CategoryManagementView from './CategoryManagementView'
 
-import { getCategoryData } from '@/app/server/actions'
-import CategoryTable from './CategoryListTable'
 
-const CategoryListApp = async () => {
+const CategoryManagementPage = async () => {
   const data = await getCategoryData()
 
-  return <CategoryTable tableData={data.categories} />
+  return <CategoryManagementView tableData={data.categories} />
 }
 
-export default CategoryListApp
+export default CategoryManagementPage

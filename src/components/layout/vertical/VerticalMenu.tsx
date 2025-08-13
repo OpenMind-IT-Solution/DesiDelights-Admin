@@ -96,7 +96,7 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         <MenuItem href={`/${locale}/apps/menu`} icon={<i className='tabler-menu-deep' />}>
           {dictionary['navigation'].menuManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/ecommerce/products/list`} icon={<i className='tabler-shopping-cart' />}>
+        <MenuItem href={`/${locale}/apps/grocery`} icon={<i className='tabler-shopping-cart' />}>
           {dictionary['navigation'].groceryManagement}
         </MenuItem>
         <MenuItem href={`/${locale}/apps/order`} icon={<i className='tabler-truck' />}>
