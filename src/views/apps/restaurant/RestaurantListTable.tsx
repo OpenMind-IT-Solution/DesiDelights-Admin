@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
 // Next Imports
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
@@ -37,7 +36,6 @@ import {
 import classnames from 'classnames'
 
 // Type Imports
-import type { Locale } from '@configs/i18n'
 
 // Component Imports
 import TablePaginationComponent from '@components/TablePaginationComponent'
@@ -46,12 +44,13 @@ import CustomTextField from '@core/components/mui/TextField'
 // import AddUserDrawer from './AddUserDrawer'
 
 // Util Imports
-import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 import tableStyles from '@core/styles/table.module.css'
 import AddRestaurantDrawer from './AddRestaurantDrawer'
+import { Chip } from '@mui/material'
+import { ThemeColor } from '@/@core/types'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -64,6 +63,10 @@ declare module '@tanstack/table-core' {
 
 type RestaurantTypeWithAction = RestaurantTypes & {
   action?: string
+}
+
+type RestaurantStatusType = {
+  [key: string]: ThemeColor
 }
 
 // Styled Components
@@ -160,9 +163,46 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
     URL.revokeObjectURL(url)
   }
 
+  const restaurantStatusObj: RestaurantStatusType = {
+    active: 'success',
+    pending: 'warning',
+    inactive: 'secondary'
+  }
+
   const columns = useMemo<ColumnDef<RestaurantTypeWithAction, any>[]>(
     () => [
-    columnHelper.accessor('name', {
+      {
+        id: 'select',
+        header: ({ table }) => {
+          const pageRows = table.getRowModel().rows
+          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
+          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
+
+          const toggleAllPageSelected = () => {
+            if (allPageSelected) {
+              pageRows.forEach(row => row.toggleSelected(false))
+            } else {
+              pageRows.forEach(row => row.toggleSelected(true))
+            }
+          }
+
+
+          return (
+            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
+          )
+        },
+        cell: ({ row }) => (
+          <Checkbox
+            {...{
+              checked: row.getIsSelected(),
+              disabled: !row.getCanSelect(),
+              indeterminate: row.getIsSomeSelected(),
+              onChange: row.getToggleSelectedHandler()
+            }}
+          />
+        )
+      },
+      columnHelper.accessor('name', {
         header: 'Restaurant Name',
         cell: ({ row }) => (
           <div className='flex items-center gap-4'>
@@ -181,7 +221,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
             <Icon className='tabler-mail text-textSecondary' />
-            <Typography className='capitalize' color='text.primary'>
+            <Typography color='text.primary'>
               {row.original.email}
             </Typography>
           </div>
@@ -191,13 +231,19 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
         header: 'Status',
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
-            {row.original.status}
+            <Chip
+              variant='tonal'
+              label={row.original.status}
+              size='small'
+              color={restaurantStatusObj[row.original.status]}
+              className='capitalize'
+            />
           </div>
         )
       }),
       columnHelper.accessor('billing', {
         header: 'Billing',
-        cell: ({ row }) => <Typography>{row.original.billing}</Typography>
+        cell: ({ row }) => <Typography className='capitalize'>{row.original.billing}</Typography>
       }),
       columnHelper.accessor('contact', {
         header: 'Contact',
@@ -215,11 +261,11 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
             >
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton>
+            {/* <IconButton>
               <Link href={getLocalizedUrl('/apps/user/view', locale as Locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
               </Link>
-            </IconButton>
+            </IconButton> */}
             <IconButton
               onClick={() => {
                 const updatedData = data?.filter(product => product.id !== row.original.id) ?? []

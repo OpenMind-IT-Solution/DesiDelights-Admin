@@ -166,8 +166,8 @@ const UserListTable = ({ tableData }: { tableData?: UsersType[] }) => {
       if (value == null) return ''
       const str = String(value)
 
-      
-return `"${str.replace(/"/g, '""')}"`
+
+      return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
@@ -202,8 +202,8 @@ return `"${str.replace(/"/g, '""')}"`
             }
           }
 
-          
-return (
+
+          return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },

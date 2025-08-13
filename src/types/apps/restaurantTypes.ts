@@ -7,7 +7,7 @@ export type RestaurantTypes = {
   status: string
   avatar: string
   name: string
-  country: string
+  location: string
   contact: string
   registrationName: string
   adminUsername: string
