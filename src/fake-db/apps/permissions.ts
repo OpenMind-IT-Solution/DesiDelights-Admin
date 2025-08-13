@@ -1,59 +1,62 @@
 // Type Imports
-import type { PermissionRowType } from '@/types/apps/permissionTypes'
+import type { OrderType } from '@/types/apps/orderTypes'
 
-export const db: PermissionRowType[] = [
-  {
+export const db: OrderType[] = [
+{
     id: 1,
-    name: 'Management',
-    assignedTo: 'administrator',
-    createdDate: '14 Apr 2021, 8:43 PM'
+    status: 'pending',
+    totalAmount: 250.0,
+    paymentStatus: 'unpaid',
+    orderType: 'delivery',
+    deliveryAddress: '123 Main Street, Springfield',
+    items: [
+      { name: 'Pizza Margherita', quantity: 2, price: 120 },
+      { name: 'Coke 500ml', quantity: 1, price: 30 }
+    ]
   },
   {
     id: 2,
-    assignedTo: 'administrator',
-    name: 'Manage Billing & Roles',
-    createdDate: '16 Sep 2021, 5:20 PM'
+    status: 'completed',
+    totalAmount: 480.5,
+    paymentStatus: 'paid',
+    orderType: 'pickup',
+    deliveryAddress: '45 Park Avenue, New York',
+    items: [
+      { name: 'Veg Burger', quantity: 3, price: 90 },
+      { name: 'French Fries', quantity: 2, price: 60 },
+      { name: 'Iced Tea', quantity: 1, price: 50.5 }
+    ]
   },
   {
     id: 3,
-    name: 'Add & Remove Users',
-    createdDate: '14 Oct 2021, 10:20 AM',
-    assignedTo: ['administrator', 'manager']
+    status: 'cancelled',
+    totalAmount: 0,
+    paymentStatus: 'refunded',
+    orderType: 'delivery',
+    deliveryAddress: '77 Ocean Drive, Miami',
+    items: []
   },
   {
     id: 4,
-    name: 'Project Planning',
-    createdDate: '14 Oct 2021, 10:20 AM',
-    assignedTo: ['administrator', 'users', 'support']
+    status: 'pending',
+    totalAmount: 325.75,
+    paymentStatus: 'unpaid',
+    orderType: 'delivery',
+    deliveryAddress: '221B Baker Street, London',
+    items: [
+      { name: 'Chicken Wrap', quantity: 2, price: 150 },
+      { name: 'Mineral Water', quantity: 1, price: 25.75 }
+    ]
   },
   {
     id: 5,
-    name: 'Manage Email Sequences',
-    createdDate: '23 Aug 2021, 2:00 PM',
-    assignedTo: ['administrator', 'users', 'support']
-  },
-  {
-    id: 6,
-    name: 'Client Communication',
-    createdDate: '15 Apr 2021, 11:30 AM',
-    assignedTo: ['administrator', 'manager']
-  },
-  {
-    id: 7,
-    name: 'Only View',
-    createdDate: '04 Dec 2021, 8:15 PM',
-    assignedTo: ['administrator', 'restricted-user']
-  },
-  {
-    id: 8,
-    name: 'Financial Management',
-    createdDate: '25 Feb 2021, 10:30 AM',
-    assignedTo: ['administrator', 'manager']
-  },
-  {
-    id: 9,
-    name: 'Manage Others’ Tasks',
-    createdDate: '04 Nov 2021, 11:45 AM',
-    assignedTo: ['administrator', 'support']
+    status: 'completed',
+    totalAmount: 150.0,
+    paymentStatus: 'paid',
+    orderType: 'pickup',
+    deliveryAddress: '1600 Pennsylvania Ave NW, Washington, DC',
+    items: [
+      { name: 'Pasta Alfredo', quantity: 1, price: 150 }
+    ]
   }
 ]
