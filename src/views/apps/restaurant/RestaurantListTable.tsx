@@ -46,11 +46,12 @@ import CustomTextField from '@core/components/mui/TextField'
 // Util Imports
 
 // Style Imports
+import { ThemeColor } from '@/@core/types'
 import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 import tableStyles from '@core/styles/table.module.css'
-import AddRestaurantDrawer from './AddRestaurantDrawer'
 import { Chip } from '@mui/material'
-import { ThemeColor } from '@/@core/types'
+import AddRestaurantDrawer from './AddRestaurantDrawer'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -114,6 +115,7 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
+
 // Column Definitions
 const columnHelper = createColumnHelper<RestaurantTypeWithAction>()
 
@@ -126,6 +128,8 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
   const [data, setData] = useState(...[tableData])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<RestaurantTypes | null>(null)
 
   // Hooks
   const { lang: locale } = useParams()
@@ -167,6 +171,17 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
     active: 'success',
     pending: 'warning',
     inactive: 'secondary'
+  }
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      setData((prev: RestaurantTypes[] | undefined) =>
+        (prev ?? []).filter((item: RestaurantTypes) => item.id !== itemToDelete.id)
+      )
+    }
+
+    setDeleteDialogOpen(false)
+    setItemToDelete(null)
   }
 
   const columns = useMemo<ColumnDef<RestaurantTypeWithAction, any>[]>(
@@ -268,10 +283,8 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
             </IconButton> */}
             <IconButton
               onClick={() => {
-                const updatedData = data?.filter(product => product.id !== row.original.id) ?? []
-
-                setData(updatedData)
-                setFilteredData(updatedData)
+                setItemToDelete(row.original)
+                setDeleteDialogOpen(true)
               }}
             >
               <i className='tabler-trash text-textSecondary' />
@@ -434,6 +447,13 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
         restaurantData={data}
         setData={setData}
         restaurantToEdit={selectedRestaurant}
+      />
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.name}
+        itemType='Restaurant'
       />
     </>
   )
