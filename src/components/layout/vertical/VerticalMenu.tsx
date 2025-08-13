@@ -108,13 +108,13 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         <MenuItem href={`/${locale}/apps/ecommerce/orders/list`} icon={<i className='tabler-file-analytics' />}>
           {dictionary['navigation'].couponManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/ecommerce/manage-reviews`} icon={<i className='tabler-message-star' />}>
+        <MenuItem href={`/${locale}/apps/manage-reviews`} icon={<i className='tabler-message-star' />}>
           {dictionary['navigation'].manageReviews}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/ecommerce/manage-reviews`} icon={<i className='tabler-ticket' />}>
+        <MenuItem href={`/${locale}/apps/support-tickets`} icon={<i className='tabler-ticket' />}>
           {dictionary['navigation'].supportTickets}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/ecommerce/manage-reviews`} icon={<i className='tabler-device-tv-old' />}>
+        <MenuItem href={`/${locale}/apps/tv-management`} icon={<i className='tabler-device-tv-old' />}>
           {dictionary['navigation'].tvManagement}
         </MenuItem>
         <SubMenu label={dictionary['navigation'].settings} icon={<i className='tabler-settings' />}>
