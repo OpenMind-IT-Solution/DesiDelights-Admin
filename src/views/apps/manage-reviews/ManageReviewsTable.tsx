@@ -236,19 +236,19 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
         header: 'Actions',
         cell: ({ row }) => (
           <>
-          <IconButton>
+            {/* <IconButton>
             <Link href={getLocalizedUrl('/apps/ecommerce/orders/details/5434', locale as Locale)} className='flex'>
               <i className='tabler-eye text-textSecondary' />
             </Link>
-          </IconButton>
-          <IconButton
+          </IconButton> */}
+            <IconButton
               onClick={() => {
                 setAllData(allData?.filter(review => review.id !== row.original.id))
               }}
             >
               <i className='tabler-trash text-textSecondary' />
             </IconButton>
-          {/* <OptionMenu
+            {/* <OptionMenu
             iconButtonProps={{ size: 'medium' }}
             iconClassName='text-textSecondary'
             options={[
