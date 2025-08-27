@@ -118,10 +118,9 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
           {dictionary['navigation'].tvManagement}
         </MenuItem>
         <SubMenu label={dictionary['navigation'].settings} icon={<i className='tabler-settings' />}>
-          <MenuItem href={`/${locale}/apps/academy/dashboard`}>{dictionary['navigation'].paymentGetway}</MenuItem>
-          <MenuItem href={`/${locale}/apps/academy/my-courses`}>{dictionary['navigation'].locationManagement}</MenuItem>
-          <MenuItem href={`/${locale}/apps/academy/my-courses`}>{dictionary['navigation'].restaurantProfile}</MenuItem>
-          <MenuItem href={`/${locale}/apps/academy/my-courses`}>{dictionary['navigation'].rolesPermissions}</MenuItem>
+          <MenuItem href={`/${locale}/apps/payment`}>{dictionary['navigation'].paymentGetway}</MenuItem>
+          <MenuItem href={`/${locale}/apps/locations`}>{dictionary['navigation'].locationManagement}</MenuItem>
+          <MenuItem href={`/${locale}/apps/academy/rolesPermission`}>{dictionary['navigation'].rolesPermissions}</MenuItem>
         </SubMenu>
       </Menu>
     </ScrollWrapper>
