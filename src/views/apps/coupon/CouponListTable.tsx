@@ -1,10 +1,6 @@
 'use client'
-
-// React Imports
-import { useEffect, useMemo, useState } from 'react'
-
-// Next Imports
 import { useParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -16,32 +12,23 @@ import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 
 // Third-party Imports
+import { ThemeColor } from '@/@core/types'
+import type { CouponProps } from '@/types/apps/couponTypes'
+import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
+import tableStyles from '@core/styles/table.module.css'
+import { Chip } from '@mui/material'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
 import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getFacetedMinMaxValues,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
+  createColumnHelper, flexRender, getCoreRowModel,
+  getFacetedMinMaxValues, getFacetedRowModel, getFacetedUniqueValues,
+  getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
-
-// Component Imports
-import TablePaginationComponent from '@components/TablePaginationComponent'
-import CustomTextField from '@core/components/mui/TextField'
-
-// Style Imports
-import { ThemeColor } from '@/@core/types'
-import type { CouponProps } from '@/types/apps/couponTypes'
-import tableStyles from '@core/styles/table.module.css'
-import { Chip } from '@mui/material'
+import DeleteConfirmationDialog from '../restaurant/DeleteConfirmationDialog'
+import AddCouponDrawer from './AddCouponDrawer'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -194,7 +181,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
       }),
       columnHelper.accessor('type', {
         header: 'Type',
-        cell: ({ row }: { row: any }) => <span>{row.original.type}</span>
+        cell: ({ row }: { row: any }) => <span className='capitalize'>{row.original.type}</span>
       }),
       columnHelper.accessor('startDate', {
         header: 'Start Date',
@@ -404,7 +391,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
           }}
         />
       </Card>
-      {/* <AddCouponDrawer
+      <AddCouponDrawer
         open={addCouponOpen || editCouponOpen}
         handleClose={() => {
           setAddCouponOpen(false)
@@ -419,9 +406,9 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        itemName={itemToDelete?.name}
+        itemName={itemToDelete?.code}
         itemType='Coupon'
-      /> */}
+      />
     </>
   )
 }
