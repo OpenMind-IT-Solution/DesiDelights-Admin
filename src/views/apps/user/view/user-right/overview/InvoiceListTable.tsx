@@ -219,28 +219,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         header: 'Issued Date',
         cell: ({ row }) => <Typography>{row.original.issuedDate}</Typography>
       }),
-      columnHelper.accessor('action', {
-        header: 'Action',
-        cell: ({ row }) => (
-          <div className='flex items-center'>
-            <IconButton href={getLocalizedUrl(`/apps/invoice/edit/${row.original.id}`, locale as Locale)}>
-              <i className='tabler-edit text-textSecondary' />
-            </IconButton>
-            <IconButton>
-              <Link
-                href={getLocalizedUrl(`/apps/invoice/preview/${row.original.id}`, locale as Locale)}
-                className='flex'
-              >
-                <i className='tabler-eye text-textSecondary' />
-              </Link>
-            </IconButton>
-            <IconButton onClick={() => setData(data?.filter(invoice => invoice.id !== row.original.id))}>
-              <i className='tabler-trash text-textSecondary' />
-            </IconButton>
-          </div>
-        ),
-        enableSorting: false
-      })
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []

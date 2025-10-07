@@ -129,7 +129,7 @@ const PreviewCard = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: strin
                   <tr>
                     <th className='!bg-transparent'>Item</th>
                     <th className='!bg-transparent'>Description</th>
-                    <th className='!bg-transparent'>Hours</th>
+                    {/* <th className='!bg-transparent'>Hours</th> */}
                     <th className='!bg-transparent'>Qty</th>
                     <th className='!bg-transparent'>Total</th>
                   </tr>
@@ -143,9 +143,9 @@ const PreviewCard = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: strin
                       <td>
                         <Typography color='text.primary'>{item.Description}</Typography>
                       </td>
-                      <td>
+                      {/* <td>
                         <Typography color='text.primary'>{item.Hours}</Typography>
-                      </td>
+                      </td> */}
                       <td>
                         <Typography color='text.primary'>{item.Qty}</Typography>
                       </td>
@@ -200,15 +200,6 @@ const PreviewCard = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: strin
           </Grid>
           <Grid size={{ xs: 12 }}>
             <Divider className='border-dashed' />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <Typography>
-              <Typography component='span' className='font-medium' color='text.primary'>
-                Note:
-              </Typography>{' '}
-              It was a pleasure working with you and your team. We hope you will keep us in mind for future freelance
-              projects. Thank You!
-            </Typography>
           </Grid>
         </Grid>
       </CardContent>

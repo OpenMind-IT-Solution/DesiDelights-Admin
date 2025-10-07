@@ -48,7 +48,7 @@ const PreviewActions = ({ id, onButtonClick }: { id: string; onButtonClick: () =
             <Button fullWidth color='secondary' variant='tonal' className='capitalize' onClick={onButtonClick}>
               Print
             </Button>
-            <Button
+            {/* <Button
               fullWidth
               component={Link}
               color='secondary'
@@ -57,9 +57,9 @@ const PreviewActions = ({ id, onButtonClick }: { id: string; onButtonClick: () =
               href={getLocalizedUrl(`/apps/invoice/edit/${id}`, locale as Locale)}
             >
               Edit
-            </Button>
+            </Button> */}
           </div>
-          <Button
+          {/* <Button
             fullWidth
             color='success'
             variant='contained'
@@ -68,7 +68,7 @@ const PreviewActions = ({ id, onButtonClick }: { id: string; onButtonClick: () =
             startIcon={<i className='tabler-currency-dollar' />}
           >
             Add Payment
-          </Button>
+          </Button> */}
         </CardContent>
       </Card>
       <AddPaymentDrawer open={paymentDrawerOpen} handleClose={() => setPaymentDrawerOpen(false)} />
