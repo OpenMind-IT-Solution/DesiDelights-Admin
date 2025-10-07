@@ -3,7 +3,7 @@ export type UsersType = {
   role: string
   email: string
   status: string
-  contact: string
+  phoneNumber: string
   fullName: string
   username: string
 }

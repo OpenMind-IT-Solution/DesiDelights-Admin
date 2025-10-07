@@ -130,10 +130,7 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
 
   useEffect(() => {
     if (tableData) {
-      // Get unique role names from the user data
       const uniqueRoles = [...new Set(tableData.map(user => user.role))]
-
-      // Create the role data structure for the table
       const processedRoles: RoleTypeWithAction[] = uniqueRoles.map((roleName, index) => ({
         id: index + 1,
         roleName: roleName.charAt(0).toUpperCase() + roleName.slice(1),

@@ -1,5 +1,5 @@
 // React Imports
-import { useState,useEffect } from 'react'
+import { useState, useEffect } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -18,14 +18,15 @@ import type { UsersType } from '@/types/apps/userTypes'
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
+// Define the props that the component accepts
 type Props = {
   open: boolean
   handleClose: () => void
-  userData?: UsersType[]
-  setData: (data: UsersType[]) => void
+  onSuccess: () => void // Callback to signal the parent component
   userToEdit?: UsersType | null
 }
 
+// Define the shape of the form data
 type FormValidateType = {
   fullName: string
   username: string
@@ -34,22 +35,19 @@ type FormValidateType = {
   status: string
 }
 
+// Define the shape for non-validated form fields
 type FormNonValidateType = {
-  company: string
-  country: string
   contact: string
 }
 
-// Vars
-const initialData = {
-  company: '',
-  country: '',
+// Initial state for non-validated fields
+const initialData: FormNonValidateType = {
   contact: ''
 }
 
 const AddUserDrawer = (props: Props) => {
   // Props
-  const { open, handleClose, userData, setData, userToEdit } = props
+  const { open, handleClose, userToEdit, onSuccess } = props
 
   // States
   const [formData, setFormData] = useState<FormNonValidateType>(initialData)
@@ -61,47 +59,55 @@ const AddUserDrawer = (props: Props) => {
     handleSubmit,
     formState: { errors }
   } = useForm<FormValidateType>({
+    // Set default values based on whether we are editing or adding a user
     defaultValues: {
-      fullName: userToEdit?.fullName || '',
-      username: userToEdit?.username || '',
-      email: userToEdit?.email || '',
-      role: userToEdit?.role || '',
-      status: userToEdit?.status || ''
+      fullName: '',
+      username: '',
+      email: '',
+      role: '',
+      status: ''
     }
   })
 
+  // Effect to reset the form when the drawer opens or the userToEdit changes
   useEffect(() => {
-    resetForm({
-      fullName: userToEdit?.fullName || '',
-      username: userToEdit?.username || '',
-      email: userToEdit?.email || '',
-      role: userToEdit?.role || '',
-      status: userToEdit?.status || ''
-    })
-    
-  }, [userToEdit, resetForm, open])
-
-  const onSubmit = (data: FormValidateType) => {
-    const newUser: UsersType = {
-      id: userToEdit?.id ?? (userData?.length ? userData.length + 1 : 1),
-      
-      fullName: data.fullName,
-      username: data.username,
-      email: data.email,
-      role: data.role,
-      status: data.status,
-      contact: formData.contact,
-     
+    if (open) {
+      resetForm({
+        fullName: userToEdit?.fullName || '',
+        username: userToEdit?.username || '',
+        email: userToEdit?.email || '',
+        role: userToEdit?.role || '',
+        status: userToEdit?.status || ''
+      })
+      setFormData({
+        contact: userToEdit?.phoneNumber || ''
+      })
     }
+  }, [userToEdit, open, resetForm])
+
+  // Handle form submission
+  const onSubmit = (data: FormValidateType) => {
+    // NOTE: Here you would add your API call logic to save the user data.
+    // For example:
+    /*
+    const userDataToSubmit = {
+      ...data,
+      phoneNumber: formData.contact
+    };
 
     if (userToEdit) {
-      const updatedUsers = (userData ?? []).map(user => (user.id === userToEdit.id ? newUser : user))
-
-      setData(updatedUsers)
+      // API call to update the user
+      // await updateUserApi(userToEdit.id, userDataToSubmit);
     } else {
-      setData([newUser, ...(userData ?? [])])
+      // API call to create a new user
+      // await createUserApi(userDataToSubmit);
     }
+    */
 
+    // After the API call succeeds, call onSuccess to trigger a data refresh in the parent table.
+    onSuccess()
+
+    // Close the drawer and reset the form to its initial state
     handleClose()
     setFormData(initialData)
     resetForm({
@@ -113,9 +119,17 @@ const AddUserDrawer = (props: Props) => {
     })
   }
 
+  // Handle closing the drawer without saving
   const handleReset = () => {
     handleClose()
     setFormData(initialData)
+    resetForm({
+        fullName: '',
+        username: '',
+        email: '',
+        role: '',
+        status: ''
+      })
   }
 
   return (
@@ -135,7 +149,7 @@ const AddUserDrawer = (props: Props) => {
       </div>
       <Divider />
       <div>
-        <form onSubmit={handleSubmit(data => onSubmit(data))} className='flex flex-col gap-6 p-6'>
+        <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           <Controller
             name='fullName'
             control={control}
@@ -150,20 +164,6 @@ const AddUserDrawer = (props: Props) => {
               />
             )}
           />
-          {/* <Controller
-            name='username'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='Username'
-                placeholder='johndoe'
-                {...(errors.username && { error: true, helperText: 'This field is required.' })}
-              />
-            )}
-          /> */}
           <Controller
             name='email'
             control={control}
@@ -200,29 +200,6 @@ const AddUserDrawer = (props: Props) => {
               </CustomTextField>
             )}
           />
-          {/* <Controller
-            name='plan'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-plan'
-                label='Select Plan'
-                {...field}
-                slotProps={{
-                  htmlInput: { placeholder: 'Select Plan' }
-                }}
-                {...(errors.plan && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='basic'>Basic</MenuItem>
-                <MenuItem value='company'>Company</MenuItem>
-                <MenuItem value='enterprise'>Enterprise</MenuItem>
-                <MenuItem value='team'>Team</MenuItem>
-              </CustomTextField>
-            )}
-          /> */}
           <Controller
             name='status'
             control={control}
@@ -242,29 +219,6 @@ const AddUserDrawer = (props: Props) => {
               </CustomTextField>
             )}
           />
-          {/* <CustomTextField
-            label='Company'
-            fullWidth
-            placeholder='Company PVT LTD'
-            value={formData.company}
-            onChange={e => setFormData({ ...formData, company: e.target.value })}
-          /> */}
-          {/* <CustomTextField
-            select
-            fullWidth
-            id='country'
-            value={formData.country}
-            onChange={e => setFormData({ ...formData, country: e.target.value })}
-            label='Select Country'
-            slotProps={{
-              htmlInput: { placeholder: 'Country' }
-            }}
-          >
-            <MenuItem value='India'>India</MenuItem>
-            <MenuItem value='USA'>USA</MenuItem>
-            <MenuItem value='Australia'>Australia</MenuItem>
-            <MenuItem value='Germany'>Germany</MenuItem>
-          </CustomTextField> */}
           <CustomTextField
             label='Contact'
             type='tel'
@@ -277,7 +231,7 @@ const AddUserDrawer = (props: Props) => {
             <Button variant='contained' type='submit'>
               Submit
             </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={() => handleReset()}>
+            <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
               Cancel
             </Button>
           </div>

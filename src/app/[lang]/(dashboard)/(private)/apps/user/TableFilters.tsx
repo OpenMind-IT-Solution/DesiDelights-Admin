@@ -1,43 +1,51 @@
-import { useState, useEffect } from 'react'
+// src/app/[lang]/(dashboard)/(private)/apps/user/TableFilters.tsx
 
+// React Imports
+import type { Dispatch, FC, SetStateAction } from 'react'
+
+// MUI Imports
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid2'
 import MenuItem from '@mui/material/MenuItem'
 
-import type { UsersType } from '@/types/apps/userTypes'
-
+// Component Imports
 import CustomTextField from '@core/components/mui/TextField'
 
-const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => void; tableData?: UsersType[] }) => {
-  const [role, setRole] = useState<UsersType['role']>('')
-  const [status, setStatus] = useState<UsersType['status']>('')
+// Type Imports
+import type { FilterType } from './UserListTable' // Import the type from the parent
 
-  useEffect(() => {
-    const filteredData = tableData?.filter(user => {
-      if (role && user.role !== role) return false
-      if (status && user.status !== status) return false
+// Define the new props interface
+type TableFiltersProps = {
+  filters: FilterType
+  setFilters: Dispatch<SetStateAction<FilterType>>
+}
 
-      return true
-    })
+const TableFilters: FC<TableFiltersProps> = ({ filters, setFilters }) => {
+  // This component is now "controlled" by the parent.
+  // It receives the current filter values and a function to update them.
 
-    setData(filteredData || [])
-  }, [role, status, tableData, setData])
+  const handleFilterChange = (field: keyof FilterType, value: string) => {
+    // When a filter changes, call the setFilters function from the parent
+    setFilters(prev => ({
+      ...prev,
+      // Use null for 'All' or empty values to simplify the API call logic
+      [field]: value === 'All' || value === '' ? null : value
+    }))
+  }
 
   return (
     <CardContent>
-      <Grid container spacing={4} direction='column'>
-        <Grid size={{ xs: 12 }}>
+      <Grid container spacing={4}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <CustomTextField
             select
             fullWidth
             id='select-role'
-            value={role}
-            onChange={e => setRole(e.target.value)}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
+            label='Select Role'
+            value={filters.roleId || ''} // Control the value from props
+            onChange={e => handleFilterChange('roleId', e.target.value)}
           >
-            <MenuItem value=''>Select Role</MenuItem>
+            <MenuItem value=''>All Roles</MenuItem>
             <MenuItem value='admin'>Admin</MenuItem>
             <MenuItem value='author'>Author</MenuItem>
             <MenuItem value='editor'>Editor</MenuItem>
@@ -45,19 +53,17 @@ const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => 
             <MenuItem value='user'>User</MenuItem>
           </CustomTextField>
         </Grid>
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <CustomTextField
             select
             fullWidth
             id='select-status'
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
+            label='Select Status'
+            value={filters.status} // Control the value from props
+            onChange={e => handleFilterChange('status', e.target.value)}
           >
-            <MenuItem value=''>Select Status</MenuItem>
-            <MenuItem value='pending'>Pending</MenuItem>
+            <MenuItem value='All'>All Statuses</MenuItem>
+            {/* <MenuItem value='pending'>Pending</MenuItem> */}
             <MenuItem value='active'>Active</MenuItem>
             <MenuItem value='inactive'>Inactive</MenuItem>
           </CustomTextField>
