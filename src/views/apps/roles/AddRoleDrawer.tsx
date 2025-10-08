@@ -1,27 +1,25 @@
 // React Imports
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
-import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
-import Checkbox from '@mui/material/Checkbox'
-import FormGroup from '@mui/material/FormGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import MenuItem from '@mui/material/MenuItem'
+import Paper from '@mui/material/Paper'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
-import Paper from '@mui/material/Paper'
+import Typography from '@mui/material/Typography'
 
 
 // Third-party Imports
-import { useForm, Controller } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
@@ -58,6 +56,7 @@ const initialPermissions: ModulePermissions = {
   dashboard: { all: false, view: false, create: false, edit: false, delete: false },
   users: { all: false, view: false, create: false, edit: false, delete: false },
   roles: { all: false, view: false, create: false, edit: false, delete: false },
+
   // Add other modules here
 }
 
@@ -146,6 +145,7 @@ const RoleDrawer = (props: Props) => {
 
     if (roleToEdit) {
       const updatedRoles = (roleData ?? []).map(role => (role.id === roleToEdit.id ? newRole : role))
+
       setData(updatedRoles)
     } else {
       setData([newRole, ...(roleData ?? [])])

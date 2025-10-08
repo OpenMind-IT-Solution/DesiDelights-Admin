@@ -1,64 +1,60 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Next Imports
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Card from '@mui/material/Card'
 import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
+import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
 import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
-import MenuItem from '@mui/material/MenuItem'
-import CircularProgress from '@mui/material/CircularProgress'
+import Typography from '@mui/material/Typography'
 
-import classnames from 'classnames'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
+  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, SortingState,FilterFn, PaginationState } from '@tanstack/react-table'
+import classnames from 'classnames'
 
-// Type Imports
-import type { ThemeColor } from '@core/types'
-import type { UsersType } from '@/types/apps/userTypes'
-import type { Locale } from '@configs/i18n'
-
-// Component Imports
-import TableFilters from './TableFilters'
-import AddUserDrawer from './AddUserDrawer'
-import CustomTextField from '@core/components/mui/TextField'
-import DeleteConfirmationDialog from './DeleteConfirmationDialog'
-
-// Util Imports
-import { getLocalizedUrl } from '@/utils/i18n'
-
-// Style Imports
-import tableStyles from '@core/styles/table.module.css'
-import { userEndpoints } from '@/services/endpoints/user'
-import { post } from '@/services/apiService'
 import { rankItem } from '@tanstack/match-sorter-utils'
 
-// Type Definitions
+import { toast } from 'react-toastify'
+
+import { useSession } from 'next-auth/react'
+
+import type { UsersType } from '@/types/apps/userTypes'
+import type { Locale } from '@configs/i18n'
+import type { ThemeColor } from '@core/types'
+
+import CustomTextField from '@core/components/mui/TextField'
+import AddUserDrawer from './AddUserDrawer'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
+import TableFilters from './TableFilters'
+
+import { getLocalizedUrl } from '@/utils/i18n'
+
+import { del, get, post } from '@/services/apiService'
+import { userEndpoints } from '@/services/endpoints/user'
+import tableStyles from '@core/styles/table.module.css'
+
 type UsersTypeWithAction = UsersType & {
   action?: string
-}
-
-type UserRoleType = {
-  [key: string]: { icon: string; color: string }
 }
 
 type UserStatusType = {
@@ -68,7 +64,6 @@ type UserStatusType = {
 export type FilterType = {
   status: 'All' | 'active' | 'inactive'
   roleId: string | null
-  companyId: string | null
 }
 
 const Icon = styled('i')({})
@@ -101,18 +96,20 @@ const DebouncedInput = ({
 }
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  const itemRank = rankItem(row.getValue(columnId), value);
-  addMeta({ itemRank });
-  return true;
-};
+  const itemRank = rankItem(row.getValue(columnId), value)
 
-const userRoleObj: UserRoleType = {
-  superadmin: { icon: 'tabler-crown', color: 'error' },
-  admin: { icon: 'tabler-crown', color: 'error' },
-  author: { icon: 'tabler-device-desktop', color: 'warning' },
-  editor: { icon: 'tabler-edit', color: 'info' },
-  maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  user: { icon: 'tabler-user', color: 'primary' }
+  addMeta({ itemRank })
+  
+return true
+}
+
+const userRoleObj: { [key: string]: { icon: string; color: string } } = {
+  'Super Admin': { icon: 'tabler-crown', color: 'error' },
+  'Restaurant Admin': { icon: 'tabler-crown', color: 'error' },
+  Manager: { icon: 'tabler-device-desktop', color: 'warning' },
+  Chef: { icon: 'tabler-edit', color: 'info' },
+  'Technical Support': { icon: 'tabler-chart-pie', color: 'success' },
+  default: { icon: 'tabler-user', color: 'primary' }
 }
 
 const userStatusObj: UserStatusType = {
@@ -123,100 +120,117 @@ const userStatusObj: UserStatusType = {
 const columnHelper = createColumnHelper<UsersTypeWithAction>()
 
 const UserListTable = () => {
+  const { data: session } = useSession()
   const [addUserOpen, setAddUserOpen] = useState(false)
-  const [editUserOpen, setEditUserOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UsersType | null>(null)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState<UsersTypeWithAction[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<UsersTypeWithAction | null>(null)
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false) // State for filter popover
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalRows, setTotalRows] = useState(0)
-  const [sorting, setSorting] = useState<SortingState>([])
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
   })
+
   const [filters, setFilters] = useState<FilterType>({
     status: 'All',
     roleId: null,
-    companyId: null
   })
 
   const { lang: locale } = useParams()
 
-  const getData = useCallback(async (options: { isExport?: boolean } = {}) => {
+  const getData = useCallback(
+    async (options: { isExport?: boolean } = {}) => {
+      if (!session) return
+      setLoading(true)
+      setError(null)
+      const { isExport = false } = options
+
+      try {
+        const result: any = await post(userEndpoints.getUser, {
+          page: pagination.pageIndex + 1,
+          limit: isExport ? 100000 : pagination.pageSize,
+          search: globalFilter,
+          status: filters.status === 'All' ? null : [filters.status === 'active'],
+          roleId: filters.roleId ? [filters.roleId] : null,
+          restaurantId:
+            typeof session?.user?.restaurantId === 'string'
+              ? JSON.parse(session.user.restaurantId)
+              : session?.user?.restaurantId || []
+        })
+
+        const formattedUsers = (result.data.users || []).map((user: any) => ({
+          ...user,
+          status: user.status ? 'active' : 'inactive'
+        })) as UsersTypeWithAction[]
+
+        if (isExport) {
+          handleDownload(formattedUsers)
+        } else {
+          setData(formattedUsers)
+          setTotalRows(result.data.total ?? 0)
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch data')
+        setData([])
+        setTotalRows(0)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [pagination, globalFilter, filters, session]
+  )
+
+  useEffect(() => {
+    if (session) {
+      getData()
+    }
+  }, [getData, session])
+
+  const handleEditClick = async (userData: UsersType) => {
     setLoading(true)
-    setError(null)
-    const { isExport = false } = options
 
     try {
-      const result: any = await post(userEndpoints.getUser, {
-        page: pagination.pageIndex + 1,
-        limit: isExport ? 100000 : pagination.pageSize,
-        search: globalFilter,
-        status: filters.status === 'All' ? null : [filters.status === 'active'],
-        roleId: filters.roleId ? [filters.roleId] : null,
-        restaurantId: [1]
-      })
+      const endpoint = userEndpoints.getUserById(userData.id)
+      const result = await get(endpoint)
 
-      const formattedUsers = (result.data.users || []).map((user: any) => ({
-        ...user,
-        status: user.status ? 'active' : 'inactive',
-        role: user.roleName?.toLowerCase().replace(' ', '') || 'user'
-      })) as UsersTypeWithAction[];
-
-      if (isExport) {
-        handleDownload(formattedUsers)
+      if (result.status === 'success') {
+        setSelectedUser(result.data)
+        setAddUserOpen(true)
       } else {
-        setData(formattedUsers)
-        setTotalRows(result.data.total ?? 0)
+        toast.error(result?.Message || 'Failed to fetch user details.')
       }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to fetch data')
-      setData([])
-      setTotalRows(0)
+    } catch (error: any) {
+      setError(error.message)
     } finally {
       setLoading(false)
     }
-  }, [pagination, globalFilter, filters])
-
-  useEffect(() => {
-    getData()
-  }, [getData])
-
-  const handleDownload = (usersToExport: UsersTypeWithAction[]) => {
-    if (!usersToExport || usersToExport.length === 0) return
-
-    const headers = Object.keys(usersToExport[0])
-    const escapeCSV = (value: unknown): string => {
-      if (value == null) return ''
-      const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
-    }
-    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'users-export.csv'
-    link.click()
-    URL.revokeObjectURL(url)
   }
 
   const handleConfirmDelete = async () => {
     if (userToDelete) {
       try {
-        await post(userEndpoints.deleteUser, { id: userToDelete.id })
-        await getData()
+        const endpoint = userEndpoints.deleteUser(userToDelete.id)
+        const result = await del(endpoint)
+
+        if (result.ResponseStatus === 'success') {
+          toast.success(result?.Message || 'User deleted successfully.')
+          await getData()
+        } else {
+          toast.error(result?.Message || 'Failed to delete user.')
+        }
       } catch (err) {
         console.error('Failed to delete user', err)
       }
     }
+
     setDeleteDialogOpen(false)
     setUserToDelete(null)
   }
@@ -249,16 +263,18 @@ const UserListTable = () => {
           </Typography>
         )
       }),
-      columnHelper.accessor('role', {
+      columnHelper.accessor('roleName', {
         header: 'Role',
         cell: ({ row }) => (
           <div className='flex items-center gap-2'>
             <Icon
-              className={userRoleObj[row.original.role]?.icon}
-              sx={{ color: `var(--mui-palette-${userRoleObj[row.original.role]?.color}-main)` }}
+              className={userRoleObj[row.original.roleName]?.icon || userRoleObj.default.icon}
+              sx={{
+                color: `var(--mui-palette-${userRoleObj[row.original.roleName]?.color || userRoleObj.default.color}-main)`
+              }}
             />
             <Typography className='capitalize' color='text.primary'>
-              {row.original.role || row.original.role}
+              {row.original.roleName}
             </Typography>
           </div>
         )
@@ -275,7 +291,10 @@ const UserListTable = () => {
           />
         )
       }),
-      columnHelper.accessor('email', { header: 'Email', cell: ({ row }) => <Typography>{row.original.email}</Typography> }),
+      columnHelper.accessor('email', {
+        header: 'Email',
+        cell: ({ row }) => <Typography>{row.original.email}</Typography>
+      }),
       columnHelper.accessor('phoneNumber', {
         header: 'Contact',
         cell: ({ row }) => <Typography>{row.original.phoneNumber}</Typography>
@@ -284,15 +303,21 @@ const UserListTable = () => {
         header: 'Action',
         cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton onClick={() => { setSelectedUser(row.original); setEditUserOpen(true) }}>
+            <IconButton onClick={() => handleEditClick(row.original)}>
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton>
-              <Link href={getLocalizedUrl('/apps/user/view', locale as Locale)} className='flex'>
+              <Link href={getLocalizedUrl(`/apps/user/view/${row.original.id}`, locale as Locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton>
-            <IconButton onClick={() => { setUserToDelete(row.original); setDeleteDialogOpen(true) }} color='error'>
+            <IconButton
+              onClick={() => {
+                setUserToDelete(row.original)
+                setDeleteDialogOpen(true)
+              }}
+              color='error'
+            >
               <i className='tabler-trash' />
             </IconButton>
           </div>
@@ -303,21 +328,37 @@ const UserListTable = () => {
     [locale]
   )
 
-const table = useReactTable<UsersTypeWithAction>({
+  const handleDownload = (usersToExport: UsersTypeWithAction[]) => {
+    if (!usersToExport || usersToExport.length === 0) return
+    const headers = Object.keys(usersToExport[0])
+
+    const escapeCSV = (value: unknown): string => {
+      if (value == null) return ''
+      const str = String(value)
+
+      
+return `"${str.replace(/"/g, '""')}"`
+    }
+
+    const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = url
+    link.download = 'users-export.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const table = useReactTable<UsersTypeWithAction>({
     data: data as UsersTypeWithAction[],
     columns,
-    filterFns: {
-      fuzzy: fuzzyFilter,
-    },
-    state: {
-      globalFilter,
-      rowSelection,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+    state: { pagination, globalFilter, rowSelection },
+    onPaginationChange: setPagination,
+    filterFns: { fuzzy: fuzzyFilter },
+    manualPagination: true,
     manualSorting: true,
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
@@ -326,8 +367,8 @@ const table = useReactTable<UsersTypeWithAction>({
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
+    getPaginationRowModel: getPaginationRowModel()
+  })
 
   return (
     <>
@@ -350,7 +391,27 @@ const table = useReactTable<UsersTypeWithAction>({
               placeholder='Search User'
               className='max-sm:is-full'
             />
-            <TableFilters filters={filters} setFilters={setFilters} />
+            <CustomTextField
+              select
+              value=''
+              SelectProps={{
+                open: filterMenuOpen,
+                onClose: () => setFilterMenuOpen(false),
+                displayEmpty: true,
+                IconComponent: () => (
+                  <IconButton onClick={() => setFilterMenuOpen(prev => !prev)} sx={{ p: 1.25 }}>
+                    <i
+                      className='tabler-filter text-textSecondary text-base'
+                      style={{ transform: 'none', transition: 'none' }}
+                    />
+                  </IconButton>
+                )
+              }}
+              onClick={e => e.preventDefault()}
+              sx={{ '& .MuiSelect-select': { p: '0 !important' } }}
+            >
+              <TableFilters filters={filters} setFilters={setFilters} onClose={() => setFilterMenuOpen(false)} />
+            </CustomTextField>
             <Button
               color='secondary'
               variant='tonal'
@@ -434,23 +495,31 @@ const table = useReactTable<UsersTypeWithAction>({
           rowsPerPage={pagination.pageSize}
           page={pagination.pageIndex}
           onPageChange={(_, page) => table.setPageIndex(page)}
-          onRowsPerPageChange={e => {
-            table.setPageSize(Number(e.target.value))
-            table.setPageIndex(0)
-          }}
+          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
           rowsPerPageOptions={[10, 25, 50]}
         />
       </Card>
 
       <AddUserDrawer
-        open={addUserOpen || editUserOpen}
+        open={addUserOpen}
         handleClose={() => {
           setAddUserOpen(false)
-          setEditUserOpen(false)
           setSelectedUser(null)
         }}
         onSuccess={getData}
-        userToEdit={selectedUser}
+        userToEdit={
+          selectedUser
+            ? {
+                userId: selectedUser.id,
+                fullName: selectedUser.fullName,
+                username: selectedUser.userName,
+                email: selectedUser.email,
+                roleId: selectedUser.roleId ? Number(selectedUser.roleId) : undefined,
+                status: !!selectedUser.status,
+                phoneNumber: selectedUser.phoneNumber
+              }
+            : null
+        }
       />
 
       <DeleteConfirmationDialog

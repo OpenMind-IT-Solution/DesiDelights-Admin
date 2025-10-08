@@ -2,7 +2,7 @@ const prefix = 'users'
 
 export const userEndpoints = {
   getUser: `${prefix}/list`,
+  getUserById: (userId: number) => `${prefix}/${userId}`,
   saveUser: `${prefix}/save`,
-  deleteUser: `${prefix}/delete`,
-  getUsers: `${prefix}/all`
+  deleteUser: (userId: number) => `${prefix}/delete/${userId}`
 }

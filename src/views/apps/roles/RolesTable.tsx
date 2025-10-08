@@ -88,8 +88,10 @@ const roleStatusObj: Record<RoleType['status'], ThemeColor> = {
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -112,7 +114,9 @@ const DebouncedInput = ({
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
-    return () => clearTimeout(timeout)
+
+    
+return () => clearTimeout(timeout)
   }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
@@ -131,6 +135,7 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
   useEffect(() => {
     if (tableData) {
       const uniqueRoles = [...new Set(tableData.map(user => user.role))]
+
       const processedRoles: RoleTypeWithAction[] = uniqueRoles.map((roleName, index) => ({
         id: index + 1,
         roleName: roleName.charAt(0).toUpperCase() + roleName.slice(1),
@@ -142,6 +147,7 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
           roles: { all: false, view: false, create: false, edit: false, delete: false }
         }
       }))
+
       setRoles(processedRoles)
     }
   }, [tableData])

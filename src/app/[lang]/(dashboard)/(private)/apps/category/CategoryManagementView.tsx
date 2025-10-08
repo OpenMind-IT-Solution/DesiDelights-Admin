@@ -34,7 +34,9 @@ const useDebounce = (value: string, delay: number) => {
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(handler)
+
+    
+return () => clearTimeout(handler)
   }, [value, delay])
 
   return debouncedValue
@@ -67,7 +69,9 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
     return data.filter(cat => {
       const searchMatch = cat.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
       const statusMatch = !statusFilter || cat.status === statusFilter
-      return searchMatch && statusMatch
+
+      
+return searchMatch && statusMatch
     })
   }, [data, debouncedSearchTerm, statusFilter])
 
@@ -81,7 +85,8 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
         setSelectedCategory(null)
       }
     }
-  }, [filteredCategories, selectedCategory]) 
+  }, [filteredCategories, selectedCategory])
+ 
   const handleSelectCategory = (category: Category) => {
     setSelectedCategory(category)
     setFormMode('hidden')
@@ -91,19 +96,23 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
   const handleFormSave = (formData: Category | Omit<Category, 'id'>) => {
     if ('id' in formData) {
       const updatedCategory = formData as Category
+
       setData(prev => prev.map(cat => (cat.id === updatedCategory.id ? updatedCategory : cat)))
       setSelectedCategory(updatedCategory)
     } else {
       const newId = data.length > 0 ? Math.max(...data.map(c => c.id)) + 1 : 1
       const newCategory: Category = { id: newId, ...(formData as Omit<Category, 'id'>) }
+
       setData(prev => [newCategory, ...prev])
       setSelectedCategory(newCategory)
     }
+
     setFormMode('hidden')
   }
 
   const handleFormCancel = () => {
     setFormMode('hidden')
+
     if (!selectedCategory && filteredCategories.length > 0) {
       setSelectedCategory(filteredCategories[0])
     }
@@ -114,6 +123,7 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
     const deletedIndex = data.findIndex(cat => cat.id === selectedCategory.id)
     const newData = data.filter(cat => cat.id !== selectedCategory.id)
     const nextSelected = newData.length > 0 ? newData[Math.max(0, deletedIndex - 1)] : null
+
     setData(newData)
     setSelectedCategory(nextSelected)
     setDeleteDialogOpen(false)
@@ -121,14 +131,17 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
 
   const handleExportCsv = () => {
     const headers = ['ID', 'Name', 'Description', 'Status']
+
     const csvRows = [
       headers.join(','),
       ...filteredCategories.map(cat =>
         [cat.id, `"${cat.name.replace(/"/g, '""')}"`, `"${cat.description.replace(/"/g, '""')}"`, cat.status].join(',')
       )
     ]
+
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
+
     link.href = URL.createObjectURL(blob)
     link.download = 'categories.csv'
     link.click()
@@ -250,6 +263,7 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
         />
       )
     }
+
     if (selectedCategory) {
       return (
         <CategoryDetails
@@ -259,7 +273,9 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
         />
       )
     }
-    return (
+
+    
+return (
       <EmptyStatePlaceholder
         icon='tabler-category'
         title='Select a Category'
@@ -272,7 +288,8 @@ const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
     if (formMode === 'add') return 'Add New Category'
     if (formMode === 'edit') return 'Edit Category'
     if (selectedCategory) return 'Category Details'
-    return 'Manage Categories'
+    
+return 'Manage Categories'
   }
 
   return (

@@ -1,23 +1,24 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 // MUI Imports
+import { TableBody, TableCell, TableHead, TableRow } from '@mui/material'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
-import Grid from '@mui/material/Grid'
-import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
 import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import Grid from '@mui/material/Grid'
+import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
-import { CardHeader, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material'
 import type { TextFieldProps } from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
+import { rankItem, type RankingInfo } from '@tanstack/match-sorter-utils'
 import {
   createColumnHelper,
   flexRender,
@@ -27,22 +28,21 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
-  type SortingState,
-  type FilterFn
+  type FilterFn,
+  type SortingState
 } from '@tanstack/react-table'
-import { rankItem, type RankingInfo } from '@tanstack/match-sorter-utils'
 import classnames from 'classnames'
 
 // Types and Data
-import type { GroceryItem } from '@/types/apps/groceryTypes'
 import { db } from '@/fake-db/apps/grocery'
+import type { GroceryItem } from '@/types/apps/groceryTypes'
 import type { ThemeColor } from '@core/types'
 
 // Custom Components
 import CustomTextField from '@/@core/components/mui/TextField'
-import GroceryFormDrawer from './GroceryFormDrawer'
-import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TablePaginationComponent from '@/components/TablePaginationComponent'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
+import GroceryFormDrawer from './GroceryFormDrawer'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -103,8 +103,10 @@ const StatCard = ({
 // FUZZY FILTER FUNCTION for smart searching
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 // DEBOUNCED INPUT COMPONENT
@@ -128,7 +130,9 @@ const DebouncedInput = ({
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
-    return () => clearTimeout(timeout)
+
+    
+return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
@@ -165,6 +169,7 @@ const GroceryDashboard = () => {
     setEditingItem(item)
     setIsDrawerOpen(true)
   }
+
   const handleCloseDrawer = () => {
     setEditingItem(null)
     setIsDrawerOpen(false)
@@ -183,6 +188,7 @@ const GroceryDashboard = () => {
         ...data
       ])
     }
+
     handleCloseDrawer()
   }
 
@@ -196,17 +202,22 @@ const GroceryDashboard = () => {
   const handleExportSelected = (itemsToExport: GroceryItemWithAction[]) => {
     if (itemsToExport.length === 0) return
     const headers = ['id', 'name', 'stock_quantity', 'unit', 'stock_status', 'type', 'store_name', 'location']
+
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
-      return `"${String(value).replace(/"/g, '""')}"`
+      
+return `"${String(value).replace(/"/g, '""')}"`
     }
+
     const rows = itemsToExport.map(item =>
       headers.map(header => escapeCSV(item[header as keyof GroceryItemWithAction]))
     )
+
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'grocery-export.csv'
     link.click()
@@ -241,12 +252,15 @@ const GroceryDashboard = () => {
         header: 'Status',
         cell: info => {
           const status = info.getValue() as GroceryItem['stock_status']
+
           const stockStatusColors: Record<GroceryItem['stock_status'], ThemeColor> = {
             'In Stock': 'success',
             'Low Stock': 'warning',
             'Out of Stock': 'error'
           }
-          return <Chip label={status} color={stockStatusColors[status]} size='small' />
+
+          
+return <Chip label={status} color={stockStatusColors[status]} size='small' />
         }
       }),
       columnHelper.accessor('stock_quantity', {

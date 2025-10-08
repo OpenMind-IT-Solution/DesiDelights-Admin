@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
 // Next Imports
-import { useParams } from 'next/navigation'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -38,6 +37,8 @@ import classnames from 'classnames'
 // Type Imports
 
 // Component Imports
+import { Chip } from '@mui/material'
+
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 
@@ -46,10 +47,9 @@ import CustomTextField from '@core/components/mui/TextField'
 // Util Imports
 
 // Style Imports
-import { ThemeColor } from '@/@core/types'
+import type { ThemeColor } from '@/@core/types'
 import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 import tableStyles from '@core/styles/table.module.css'
-import { Chip } from '@mui/material'
 import AddRestaurantDrawer from './AddRestaurantDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
@@ -132,7 +132,7 @@ const RestaurantListTable = ({ tableData }: { tableData?: RestaurantTypes[] }) =
   const [itemToDelete, setItemToDelete] = useState<RestaurantTypes | null>(null)
 
   // Hooks
-  const { lang: locale } = useParams()
+  // const { lang: locale } = useParams()
 
   useEffect(() => {
     setFilteredData(data)

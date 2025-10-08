@@ -55,16 +55,20 @@ const handleResponse = async (response: Response) => {
     } else {
       const errorResponse = await response.json()
       const { Message } = errorResponse
+
       toast.error(Message)
       throw new Error(Message)
     }
   } else {
     const successResponse = await response.json()
+
     if (successResponse.ResponseStatus === 'failure') {
       toast.error(successResponse?.Message)
       throw new Error(successResponse?.Message)
     }
-    return successResponse
+
+    
+return successResponse
   }
 }
 
@@ -84,9 +88,12 @@ export const fetchData = async (endpoint: string, options: RequestInit = {}) => 
         ...options.headers
       }
     })
-    return await handleResponse(response)
+
+    
+return await handleResponse(response)
   } catch (error: any) {
     console.error('Error fetching data:', error.message)
+
     // toast.error(error.message);
     throw error
   }
@@ -103,7 +110,9 @@ export const unauthorizedPost = async (endpoint: string, data: any) => {
       },
       body: JSON.stringify(data)
     })
-    return await handleResponse(response)
+
+    
+return await handleResponse(response)
   } catch (error: any) {
     console.error('Error fetching data:', error.message)
     throw error
@@ -142,9 +151,12 @@ export const postFormData = async (endpoint: string, formData: any) => {
         Authorization: `Bearer ${session?.user.accessToken}`
       }
     })
-    return await handleResponse(response)
+
+    
+return await handleResponse(response)
   } catch (error: any) {
     console.error('Error fetching data:', error)
+
     // toast.error(error.message);
     throw error
   }
@@ -216,6 +228,7 @@ export const ExportData = async (endpoint: string, formData: any, fileName: stri
     const blob = new Blob([response.data])
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
+
     a.href = url
     a.download = fileName
     document.body.appendChild(a)

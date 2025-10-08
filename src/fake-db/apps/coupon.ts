@@ -1,4 +1,4 @@
-import { CouponTypes } from "@/types/apps/couponTypes";
+import type { CouponTypes } from "@/types/apps/couponTypes";
 
 export const db: CouponTypes = {
   coupons: [

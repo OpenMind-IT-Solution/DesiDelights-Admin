@@ -1,142 +1,195 @@
+'use client'
+
 // React Imports
-import { useState, useEffect } from 'react'
+import type { ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 // MUI Imports
-import Button from '@mui/material/Button'
-import Drawer from '@mui/material/Drawer'
-import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
-import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import Drawer from '@mui/material/Drawer';
+import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
+import { styled } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
 
 // Third-party Imports
-import { useForm, Controller } from 'react-hook-form'
-
-// Types Imports
-import type { UsersType } from '@/types/apps/userTypes'
+import { useFormik } from 'formik';
+import { toast } from 'react-toastify';
+import * as yup from 'yup';
 
 // Component Imports
-import CustomTextField from '@core/components/mui/TextField'
+import CustomTextField from '@core/components/mui/TextField';
 
-// Define the props that the component accepts
-type Props = {
+// Service & Endpoint Imports
+import { post, postFormData } from '@/services/apiService';
+import { roleEndpoints } from '@/services/endpoints/role';
+import { userEndpoints } from '@/services/endpoints/user';
+
+// Styled components for the image uploader
+const ImgStyled = styled('img')(({ theme }) => ({
+  width: 100,
+  height: 100,
+  marginRight: theme.spacing(4),
+  borderRadius: theme.shape.borderRadius
+}))
+
+const ResetButtonStyled = styled(Button)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+    marginLeft: 0,
+    textAlign: 'center'
+  }
+}))
+
+// Define component props
+interface Props {
   open: boolean
   handleClose: () => void
-  onSuccess: () => void // Callback to signal the parent component
-  userToEdit?: UsersType | null
+  userToEdit?: UserToEditType | null
+  onSuccess: () => void
 }
 
-// Define the shape of the form data
-type FormValidateType = {
+// Define the shape of user data for editing
+interface UserToEditType {
+  userId?: number
+  fullName?: string
+  username?: string
+  email?: string
+  roleId?: number
+  status?: boolean
+  phoneNumber?: string
+  profileImage?: string // URL of existing image
+}
+
+// Define the shape of our form values
+interface FormValidateType {
   fullName: string
   username: string
   email: string
-  role: string
-  status: string
+  roleId: number | ''
+  status: boolean
+  phoneNumber: string
+  profileImage: File | null
 }
 
-// Define the shape for non-validated form fields
-type FormNonValidateType = {
-  contact: string
-}
+const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
+  const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-// Initial state for non-validated fields
-const initialData: FormNonValidateType = {
-  contact: ''
-}
+  const validationSchema = yup.object({
+    fullName: yup.string().required('Full Name is required'),
+    username: yup.string().required('Username is required'),
+    email: yup.string().email('Enter a valid email').required('Email is required'),
+    roleId: yup.number().required('Role is required'),
+    status: yup.boolean().required('Status is required'),
+    phoneNumber: yup.string().required('Phone Number is required'),
+    profileImage: yup.mixed().nullable()
+  })
 
-const AddUserDrawer = (props: Props) => {
-  // Props
-  const { open, handleClose, userToEdit, onSuccess } = props
+  const initialValues = useMemo<FormValidateType>(
+    () => ({
+      fullName: userToEdit?.fullName || '',
+      username: userToEdit?.username || '',
+      email: userToEdit?.email || '',
+      roleId: userToEdit?.roleId || '',
+      status: userToEdit?.status ?? true,
+      phoneNumber: userToEdit?.phoneNumber || '',
+      profileImage: null
+    }),
+    [userToEdit]
+  )
 
-  // States
-  const [formData, setFormData] = useState<FormNonValidateType>(initialData)
+  const formik = useFormik({
+    initialValues: initialValues,
+    validationSchema: validationSchema,
+    enableReinitialize: true,
+    onSubmit: async values => {
+      const formData = new FormData()
 
-  // Hooks
-  const {
-    control,
-    reset: resetForm,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<FormValidateType>({
-    // Set default values based on whether we are editing or adding a user
-    defaultValues: {
-      fullName: '',
-      username: '',
-      email: '',
-      role: '',
-      status: ''
+      formData.append('id', String(userToEdit?.userId || 0))
+      formData.append('fullName', values.fullName)
+      formData.append('username', values.username)
+      formData.append('email', values.email)
+      formData.append('restaurantId', '1')
+      formData.append('roleId', String(values.roleId))
+      formData.append('status', String(values.status))
+      formData.append('phoneNumber', values.phoneNumber)
+
+      if (values.profileImage) {
+        formData.append('profileImage', values.profileImage)
+      }
+
+      try {
+        const result = await postFormData(userEndpoints.saveUser, formData)
+
+        if (result.status === 'success') {
+          toast.success(result?.message || 'User saved successfully.')
+          onSuccess()
+          handleReset()
+        } else {
+          toast.error(result?.message || 'Failed to save user.')
+        }
+      } catch (error) {
+        console.error('Error saving user:', error)
+        toast.error('An unexpected error occurred.')
+      }
     }
   })
 
-  // Effect to reset the form when the drawer opens or the userToEdit changes
   useEffect(() => {
-    if (open) {
-      resetForm({
-        fullName: userToEdit?.fullName || '',
-        username: userToEdit?.username || '',
-        email: userToEdit?.email || '',
-        role: userToEdit?.role || '',
-        status: userToEdit?.status || ''
-      })
-      setFormData({
-        contact: userToEdit?.phoneNumber || ''
-      })
+    const fetchRoles = async () => {
+      try {
+        const payload = { search: '', page: 1, limit: 1000 }
+        const response = await post(roleEndpoints.getRole, payload)
+        const allRoles = response?.data?.roles || []
+        const activeRoles = allRoles.filter((r: any) => r.status)
+
+        setRoles(activeRoles)
+      } catch (err) {
+        console.error('Error fetching roles:', err)
+      }
     }
-  }, [userToEdit, open, resetForm])
 
-  // Handle form submission
-  const onSubmit = (data: FormValidateType) => {
-    // NOTE: Here you would add your API call logic to save the user data.
-    // For example:
-    /*
-    const userDataToSubmit = {
-      ...data,
-      phoneNumber: formData.contact
-    };
+    if (open) fetchRoles()
+  }, [open])
 
-    if (userToEdit) {
-      // API call to update the user
-      // await updateUserApi(userToEdit.id, userDataToSubmit);
+  useEffect(() => {
+    if (userToEdit && userToEdit.profileImage) {
+      setImgSrc(userToEdit.profileImage)
     } else {
-      // API call to create a new user
-      // await createUserApi(userDataToSubmit);
+      setImgSrc('/images/avatars/1.png')
     }
-    */
+  }, [userToEdit])
 
-    // After the API call succeeds, call onSuccess to trigger a data refresh in the parent table.
-    onSuccess()
+  const handleInputImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
 
-    // Close the drawer and reset the form to its initial state
-    handleClose()
-    setFormData(initialData)
-    resetForm({
-      fullName: '',
-      username: '',
-      email: '',
-      role: '',
-      status: ''
-    })
+    if (files && files.length > 0) {
+      const file = files[0]
+
+      formik.setFieldValue('profileImage', file) 
+
+      const reader = new FileReader()
+
+      reader.onload = () => setImgSrc(reader.result as string)
+      reader.readAsDataURL(file)
+    }
   }
 
-  // Handle closing the drawer without saving
   const handleReset = () => {
     handleClose()
-    setFormData(initialData)
-    resetForm({
-        fullName: '',
-        username: '',
-        email: '',
-        role: '',
-        status: ''
-      })
+    formik.resetForm()
+    setImgSrc('/images/avatars/1.png')
   }
 
   return (
     <Drawer
       open={open}
       anchor='right'
-      variant='temporary'
       onClose={handleReset}
       ModalProps={{ keepMounted: true }}
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
@@ -148,95 +201,131 @@ const AddUserDrawer = (props: Props) => {
         </IconButton>
       </div>
       <Divider />
-      <div>
-        <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
-          <Controller
-            name='fullName'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                label='Full Name'
-                placeholder='John Doe'
-                {...(errors.fullName && { error: true, helperText: 'This field is required.' })}
-              />
-            )}
-          />
-          <Controller
-            name='email'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='email'
-                label='Email'
-                placeholder='johndoe@gmail.com'
-                {...(errors.email && { error: true, helperText: 'This field is required.' })}
-              />
-            )}
-          />
-          <Controller
-            name='role'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-role'
-                label='Select Role'
-                {...field}
-                {...(errors.role && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='admin'>Admin</MenuItem>
-                <MenuItem value='author'>Author</MenuItem>
-                <MenuItem value='editor'>Editor</MenuItem>
-                <MenuItem value='maintainer'>Maintainer</MenuItem>
-                <MenuItem value='user'>User</MenuItem>
-              </CustomTextField>
-            )}
-          />
-          <Controller
-            name='status'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                id='select-status'
-                label='Select Status'
-                {...field}
-                {...(errors.status && { error: true, helperText: 'This field is required.' })}
-              >
-                <MenuItem value='pending'>Pending</MenuItem>
-                <MenuItem value='active'>Active</MenuItem>
-                <MenuItem value='inactive'>Inactive</MenuItem>
-              </CustomTextField>
-            )}
-          />
-          <CustomTextField
-            label='Contact'
-            type='tel'
-            fullWidth
-            placeholder='(397) 294-5153'
-            value={formData.contact}
-            onChange={e => setFormData({ ...formData, contact: e.target.value })}
-          />
-          <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit'>
-              Submit
+
+      <form onSubmit={formik.handleSubmit} className='flex flex-col gap-6 p-6'>
+        {/* Profile Image Uploader */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <ImgStyled src={imgSrc} alt='Profile Pic' />
+          <div>
+            <Button variant='contained' size='small' onClick={() => fileInputRef.current?.click()}>
+              Upload Photo
             </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
-              Cancel
-            </Button>
+            <input
+              ref={fileInputRef}
+              type='file'
+              hidden
+              accept='image/png, image/jpeg'
+              onChange={handleInputImageChange}
+            />
+            <ResetButtonStyled
+              color='secondary'
+              variant='tonal'
+              size='small'
+              onClick={() => {
+                setImgSrc('/images/avatars/1.png')
+                formik.setFieldValue('profileImage', null)
+              }}
+            >
+              Reset
+            </ResetButtonStyled>
+            <Typography variant='body2' sx={{ mt: 2 }}>
+              Allowed PNG or JPEG. Max size of 800K.
+            </Typography>
           </div>
-        </form>
-      </div>
+        </Box>
+
+        <CustomTextField
+          fullWidth
+          name='fullName'
+          label='Full Name'
+          placeholder='John Doe'
+          value={formik.values.fullName}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.fullName && Boolean(formik.errors.fullName)}
+          helperText={formik.touched.fullName && formik.errors.fullName}
+        />
+
+        <CustomTextField
+          fullWidth
+          name='username'
+          label='Username'
+          placeholder='john_doe'
+          value={formik.values.username}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.username && Boolean(formik.errors.username)}
+          helperText={formik.touched.username && formik.errors.username}
+        />
+
+        <CustomTextField
+          fullWidth
+          name='email'
+          type='email'
+          label='Email'
+          placeholder='johndoe@gmail.com'
+          value={formik.values.email}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.email && Boolean(formik.errors.email)}
+          helperText={formik.touched.email && formik.errors.email}
+        />
+
+        <CustomTextField
+          select
+          fullWidth
+          name='roleId'
+          label='Select Role'
+          value={formik.values.roleId}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.roleId && Boolean(formik.errors.roleId)}
+          helperText={formik.touched.roleId && formik.errors.roleId}
+        >
+          {roles.map(role => (
+            <MenuItem key={role.id} value={role.id}>
+              {role.name}
+            </MenuItem>
+          ))}
+        </CustomTextField>
+
+        <CustomTextField
+          select
+          fullWidth
+          name='status'
+          label='Select Status'
+          value={formik.values.status ? 'true' : 'false'}
+          onChange={e => formik.setFieldValue('status', e.target.value === 'true')}
+          onBlur={formik.handleBlur}
+          error={formik.touched.status && Boolean(formik.errors.status)}
+          helperText={formik.touched.status && formik.errors.status}
+        >
+          <MenuItem value='true'>Active</MenuItem>
+          <MenuItem value='false'>Inactive</MenuItem>
+        </CustomTextField>
+
+        <CustomTextField
+          fullWidth
+          name='phoneNumber'
+          type='tel'
+          label='Phone Number'
+          placeholder='(397) 294-5153'
+          value={formik.values.phoneNumber}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
+          helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
+        />
+
+        <div className='flex items-center gap-4'>
+          <Button variant='contained' type='submit'>
+            Submit
+          </Button>
+          <Button variant='tonal' color='error' onClick={handleReset}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </Drawer>
   )
 }

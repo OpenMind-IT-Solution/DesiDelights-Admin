@@ -72,6 +72,7 @@ export const getPricingData = async () => {
 export const getStatisticsData = async () => {
   return statisticsData
 }
+
 export const getCouponData = async () => {
   return coupon
 }

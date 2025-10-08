@@ -58,7 +58,8 @@ const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) =
     // Basic validation
     if (!formData.name.trim() || !formData.description.trim()) {
       alert('Name and Description cannot be empty.') // Or use a more sophisticated notification
-      return
+      
+return
     }
 
     // Pass data to the onSave handler

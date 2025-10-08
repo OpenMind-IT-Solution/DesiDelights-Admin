@@ -11,7 +11,6 @@ import { useParams } from 'next/navigation'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
-import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import Tooltip from '@mui/material/Tooltip'
@@ -103,6 +102,8 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
   // States
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState(...[invoiceData])
+
+  console.log("🚀 ~ InvoiceListTable ~ setData:", setData)
   const [globalFilter, setGlobalFilter] = useState('')
 
   // Hooks

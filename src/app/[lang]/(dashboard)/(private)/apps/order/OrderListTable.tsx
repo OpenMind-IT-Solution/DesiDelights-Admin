@@ -1,55 +1,51 @@
 'use client'
 
 // React Imports
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 // Next Imports
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Card from '@mui/material/Card'
 import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
+import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import { styled } from '@mui/material/styles'
+import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
-import MenuItem from '@mui/material/MenuItem'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import classnames from 'classnames'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
+  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 
 // Type Imports
-import type { ThemeColor } from '@core/types'
 import type { OrderType } from '@/types/apps/orderTypes'
-import type { Locale } from '@configs/i18n'
+import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import TableFilters from './TableFilters'
-import AddOrderDrawer from './AddOrderDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import AddOrderDrawer from './AddOrderDrawer'
+import TableFilters from './TableFilters'
 
 // Util Imports
-import { getLocalizedUrl } from '@/utils/i18n'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
@@ -73,12 +69,14 @@ type OrderStatusType = {
 }
 
 // Styled Components
-const Icon = styled('i')({})
+// const Icon = styled('i')({})
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -101,7 +99,9 @@ const DebouncedInput = ({
     const timeout = setTimeout(() => {
       onChange(value)
     }, debounce)
-    return () => clearTimeout(timeout)
+
+    
+return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
@@ -140,7 +140,9 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = ordersToExport.map(order => headers.map(header => escapeCSV(order[header as keyof OrderTypeWithAction])))
@@ -150,6 +152,7 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'orders-export.csv'
     link.click()
@@ -159,9 +162,11 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
   const handleConfirmDelete = () => {
     if (orderToDelete) {
       const updatedData = data?.filter(order => order.id !== orderToDelete.id) ?? []
+
       setData(updatedData)
       setFilteredData(updatedData)
     }
+
     setDeleteDialogOpen(false)
     setOrderToDelete(null)
   }
@@ -346,6 +351,7 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
               className='max-sm:is-full'
               onClick={() => {
                 const selectedOrders = table.getSelectedRowModel().rows.map(row => row.original)
+
                 handleDownloadSelected(selectedOrders)
               }}
             >

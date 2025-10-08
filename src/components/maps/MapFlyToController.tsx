@@ -1,8 +1,9 @@
 // components/maps/MapFlyToController.tsx
 
 import { useEffect } from 'react'
+
 import { useMap } from 'react-leaflet'
-import { LatLngExpression } from 'leaflet'
+import type { LatLngExpression } from 'leaflet'
 
 interface MapFlyToControllerProps {
   position: LatLngExpression | null

@@ -11,9 +11,10 @@ import Typography from '@mui/material/Typography'
 import { Controller, useForm } from 'react-hook-form'
 
 // Component Imports
-import { RestaurantTypes } from '@/types/apps/restaurantTypes'
-import CustomTextField from '@core/components/mui/TextField'
 import { MenuItem } from '@mui/material'
+
+import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
+import CustomTextField from '@core/components/mui/TextField'
 
 type Props = {
   open: boolean
@@ -71,6 +72,8 @@ const AddRestaurantDrawer = (props: Props) => {
 
   // States
   const [formData, setFormData] = useState<FormNonValidateType>(initialData)
+
+  console.log("🚀 ~ AddRestaurantDrawer ~ formData:", formData)
 
   // Hooks
   const {

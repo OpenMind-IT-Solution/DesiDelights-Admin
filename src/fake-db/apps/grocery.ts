@@ -3,7 +3,8 @@ import type { GroceryItem } from '@/types/apps/groceryTypes'
 const getStockStatus = (quantity: number): GroceryItem['stock_status'] => {
   if (quantity <= 0) return 'Out of Stock'
   if (quantity < 10) return 'Low Stock'
-  return 'In Stock'
+  
+return 'In Stock'
 }
 
 const now = new Date()

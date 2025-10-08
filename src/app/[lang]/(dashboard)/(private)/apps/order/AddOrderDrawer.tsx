@@ -1,16 +1,16 @@
 // React Imports
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
+import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
 
 // Third-party Imports
-import { useForm, Controller } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 // Types Imports
 import type { OrderType } from '@/types/apps/orderTypes'
@@ -73,6 +73,7 @@ const AddOrderDrawer = (props: Props) => {
       const updatedOrders = (orderData ?? []).map(order =>
         order.id === orderToEdit.id ? newOrder : order
       )
+
       setData(updatedOrders)
     } else {
       setData([newOrder, ...(orderData ?? [])])

@@ -33,12 +33,8 @@ export const authOptions: NextAuthOptions = {
             const apiUserData = data.data
 
             const user = {
-              // Conforms to NextAuth's default 'id' which must be a string
               id: String(apiUserData.userId),
-
-              // CORRECTED: Use the professional and clear name 'userId'
               userId: apiUserData.userId,
-
               name: apiUserData.name,
               userName: apiUserData.userName,
               email: apiUserData.email,

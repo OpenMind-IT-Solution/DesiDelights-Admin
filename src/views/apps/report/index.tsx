@@ -1,17 +1,19 @@
 "use client"
-import TabContext from '@mui/lab/TabContext'
-import TabList from '@mui/lab/TabList'
-import TabPanel from '@mui/lab/TabPanel'
-import { Card, Tab } from '@mui/material'
-import Grid from '@mui/material/Grid2'
-import { MouseEvent, SyntheticEvent, useState } from 'react'
-import AccountingReports from './AccountingReports'
-import CustomerReports from './CustomerReports'
-import InventoryReports from './InventoryReports'
-import OrderReports from './OrderReports'
-import PromotionReports from './PromotionReports'
-import RestaurantReports from './RestaurantReports'
-import SalesReports from './SalesReports'
+import type { MouseEvent, SyntheticEvent } from 'react';
+import { useState } from 'react';
+
+import TabContext from '@mui/lab/TabContext';
+import TabList from '@mui/lab/TabList';
+import TabPanel from '@mui/lab/TabPanel';
+import { Card, Tab } from '@mui/material';
+import Grid from '@mui/material/Grid2';
+
+import AccountingReports from './AccountingReports';
+import InventoryReports from './InventoryReports';
+import OrderReports from './OrderReports';
+import PromotionReports from './PromotionReports';
+import RestaurantReports from './RestaurantReports';
+import SalesReports from './SalesReports';
 
 const ReportTab = () => {
   const [value, setValue] = useState<string>('1')
@@ -19,7 +21,9 @@ const ReportTab = () => {
   const handleChange = (event: SyntheticEvent, newValue: string) => {
     setValue(newValue)
   }
-  return (
+
+  
+return (
     <Grid size={{ xs: 12 }}>
       <Card className='p-4'>
         <TabContext value={value}>

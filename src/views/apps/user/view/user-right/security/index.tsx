@@ -3,7 +3,6 @@ import Grid from '@mui/material/Grid2'
 
 // Component Imports
 import ChangePassword from './ChangePassword'
-import RecentDevice from './RecentDevice'
 
 const SecurityTab = () => {
   return (

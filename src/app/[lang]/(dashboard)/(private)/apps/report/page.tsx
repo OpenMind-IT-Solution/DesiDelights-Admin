@@ -1,8 +1,7 @@
-import { getCouponData } from "@/app/server/actions"
 import ReportListTable from "@/views/apps/report"
 
 const ReportModule = async () => {
-  const data = await getCouponData()
+  // const data = await getCouponData()
 
   return (
     <>

@@ -1,6 +1,6 @@
 'use client'
-import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -12,11 +12,6 @@ import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 
 // Third-party Imports
-import { ThemeColor } from '@/@core/types'
-import type { CouponProps } from '@/types/apps/couponTypes'
-import TablePaginationComponent from '@components/TablePaginationComponent'
-import CustomTextField from '@core/components/mui/TextField'
-import tableStyles from '@core/styles/table.module.css'
 import { Chip } from '@mui/material'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
@@ -27,6 +22,12 @@ import {
   getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
+
+import type { ThemeColor } from '@/@core/types'
+import type { CouponProps } from '@/types/apps/couponTypes'
+import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
+import tableStyles from '@core/styles/table.module.css'
 import DeleteConfirmationDialog from '../restaurant/DeleteConfirmationDialog'
 import AddCouponDrawer from './AddCouponDrawer'
 
@@ -49,8 +50,10 @@ type CouponStatusType = {
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -96,7 +99,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
   const [itemToDelete, setItemToDelete] = useState<CouponProps | null>(null)
 
   // Hooks
-  const { lang: locale } = useParams()
+  // const { lang: locale } = useParams()
 
   useEffect(() => {
     setFilteredData(data)
@@ -104,12 +107,16 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
 
   const handleDownloadSelected = (selectedCoupons: CouponTypeWithAction[], allCoupons: CouponTypeWithAction[]) => {
     const couponsToExport = selectedCoupons.length > 0 ? selectedCoupons : allCoupons
+
     if (couponsToExport.length === 0) return
     const headers = Object.keys(couponsToExport[0])
+
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = couponsToExport.map(coupon => headers.map(header => escapeCSV(coupon[header as keyof CouponTypeWithAction])))
@@ -117,6 +124,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'Coupon-export.csv'
     link.click()
@@ -156,7 +164,9 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
               pageRows.forEach(row => row.toggleSelected(true))
             }
           }
-          return (
+
+          
+return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
@@ -198,6 +208,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
           const endDate = new Date(row.original.endDate);
           let status: 'active' | 'inactive' | 'expired';
           let label: string;
+
           if (endDate < currentDate) {
             status = 'expired';
             label = 'Expired';
@@ -205,7 +216,9 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
             status = row.original.isActive ? 'active' : 'inactive';
             label = row.original.isActive ? 'Active' : 'Inactive';
           }
-          return (
+
+          
+return (
             <Chip
               variant='tonal'
               label={label}
