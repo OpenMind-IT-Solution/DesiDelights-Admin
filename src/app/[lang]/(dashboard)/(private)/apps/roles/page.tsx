@@ -1,14 +1,19 @@
-// Component Imports
-import Roles from '@views/apps/roles'
+// MUI Imports
+import Grid from '@mui/material/Grid2'
 
-// Data Imports
-import { getUserData } from '@/app/server/actions'
+// Type Imports
+import type { UsersType } from '@/types/apps/userTypes'
 
-const RolesApp = async () => {
-  // Vars
-  const data = await getUserData()
+import RolesTable from './RolesTable'
 
-  return <Roles userData={data} />
+const Roles = ({ userData }: { userData?: UsersType[] }) => {
+  return (
+    <Grid container spacing={6}>
+      <Grid size={{ xs: 12 }}>
+        <RolesTable />
+      </Grid>
+    </Grid>
+  )
 }
 
-export default RolesApp
+export default Roles

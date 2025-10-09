@@ -99,8 +99,8 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
 
   addMeta({ itemRank })
-  
-return true
+
+  return true
 }
 
 const userRoleObj: { [key: string]: { icon: string; color: string } } = {
@@ -141,7 +141,7 @@ const UserListTable = () => {
 
   const [filters, setFilters] = useState<FilterType>({
     status: 'All',
-    roleId: null,
+    roleId: null
   })
 
   const { lang: locale } = useParams()
@@ -306,11 +306,11 @@ const UserListTable = () => {
             <IconButton onClick={() => handleEditClick(row.original)}>
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton>
+            {/* <IconButton>
               <Link href={getLocalizedUrl(`/apps/user/view/${row.original.id}`, locale as Locale)} className='flex'>
                 <i className='tabler-eye text-textSecondary' />
               </Link>
-            </IconButton>
+            </IconButton> */}
             <IconButton
               onClick={() => {
                 setUserToDelete(row.original)
@@ -336,8 +336,7 @@ const UserListTable = () => {
       if (value == null) return ''
       const str = String(value)
 
-      
-return `"${str.replace(/"/g, '""')}"`
+      return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = usersToExport.map(user => headers.map(header => escapeCSV(user[header as keyof UsersTypeWithAction])))

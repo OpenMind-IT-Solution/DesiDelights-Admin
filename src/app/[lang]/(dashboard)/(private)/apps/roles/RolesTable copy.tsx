@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // MUI Imports
 import Button from '@mui/material/Button'
@@ -11,23 +11,19 @@ import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
-import type { TextFieldProps } from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
 import { styled } from '@mui/material/styles'
-
 
 // Third-party Imports
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFacetedMinMaxValues,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -36,64 +32,31 @@ import {
 import classnames from 'classnames'
 
 // Type Imports
-import type { UsersType } from '@/types/apps/userTypes'
-import type { RoleType } from './AddRoleDrawer' // Adjust the import path as needed
+import type { ModulePermissions, RoleType } from './AddRoleDrawer'
 import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import RoleDrawer from './AddRoleDrawer' // Adjust the import path as needed
+import RoleDrawer from './AddRoleDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+
+// Service Imports
+import { get, post } from '@/services/apiService'
+import { roleEndpoints } from '@/services/endpoints/role'
 
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
-
 // Styled Components
 const Icon = styled('i')({})
 
-// Types and Objects for Role Display
-type UserRoleType = {
-  [key: string]: { icon: string; color: string }
-}
-
-const userRoleObj: UserRoleType = {
-  admin: { icon: 'tabler-crown', color: 'error' },
-  author: { icon: 'tabler-device-desktop', color: 'warning' },
-  editor: { icon: 'tabler-edit', color: 'info' },
-  maintainer: { icon: 'tabler-chart-pie', color: 'success' },
-  user: { icon: 'tabler-user', color: 'primary' }
-}
-
-declare module '@tanstack/table-core' {
-  interface FilterFns {
-    fuzzy: FilterFn<unknown>
-  }
-  interface FilterMeta {
-    itemRank: RankingInfo
-  }
-}
-
-// This type alias is for internal table use
-type RoleTypeWithAction = RoleType & {
-  action?: string
-}
-
-// Maps role status to a color for the Chip component
+// Table status color mapping
 const roleStatusObj: Record<RoleType['status'], ThemeColor> = {
   active: 'success',
-  pending: 'warning',
   inactive: 'secondary'
 }
 
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  const itemRank = rankItem(row.getValue(columnId), value)
-
-  addMeta({ itemRank })
-  
-return itemRank.passed
-}
-
+// Debounced Input Component
 const DebouncedInput = ({
   value: initialValue,
   onChange,
@@ -103,7 +66,7 @@ const DebouncedInput = ({
   value: string | number
   onChange: (value: string | number) => void
   debounce?: number
-} & Omit<TextFieldProps, 'onChange'>) => {
+} & Omit<React.ComponentProps<typeof CustomTextField>, 'onChange'>) => {
   const [value, setValue] = useState(initialValue)
 
   useEffect(() => {
@@ -111,56 +74,116 @@ const DebouncedInput = ({
   }, [initialValue])
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      onChange(value)
-    }, debounce)
-
-    
-return () => clearTimeout(timeout)
+    const timeout = setTimeout(() => onChange(value), debounce)
+    return () => clearTimeout(timeout)
   }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-const columnHelper = createColumnHelper<RoleTypeWithAction>()
+// Fuzzy filter for global search
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+  addMeta({ itemRank })
+  return itemRank.passed
+}
 
-const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
+const columnHelper = createColumnHelper<RoleType>()
+
+const RolesTable = () => {
   // States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [roleToEdit, setRoleToEdit] = useState<RoleType | null>(null)
-  const [rowSelection, setRowSelection] = useState({})
+  const [roles, setRoles] = useState<RoleType[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
-  const [roles, setRoles] = useState<RoleTypeWithAction[]>([])
+  const [rowSelection, setRowSelection] = useState({})
+  const [totalRows, setTotalRows] = useState(0)
 
-  useEffect(() => {
-    if (tableData) {
-      const uniqueRoles = [...new Set(tableData.map(user => user.role))]
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10
+  })
 
-      const processedRoles: RoleTypeWithAction[] = uniqueRoles.map((roleName, index) => ({
-        id: index + 1,
-        roleName: roleName.charAt(0).toUpperCase() + roleName.slice(1),
-        status: 'active', // Assign a default status
-        // In a real application, permissions should be fetched from the backend for each role
-        permissions: {
-          dashboard: { all: false, view: true, create: false, edit: false, delete: false },
-          users: { all: false, view: false, create: false, edit: false, delete: false },
-          roles: { all: false, view: false, create: false, edit: false, delete: false }
-        }
-      }))
+  const getRoles = useCallback(async () => {
+    setLoading(true)
+    setError(null)
 
-      setRoles(processedRoles)
+    try {
+      const res: any = await post(roleEndpoints.getRole, {
+        search: globalFilter,
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize
+      })
+
+      const roleData =
+        res?.data?.roles?.map((r: any) => ({
+          id: r.id,
+          roleName: r.name,
+          status: r.status ? 'active' : 'inactive'
+        })) || []
+
+      setRoles(roleData)
+      setTotalRows(res?.data?.total || roleData.length || 0)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.message || 'Failed to fetch roles')
+      setRoles([])
+    } finally {
+      setLoading(false)
     }
-  }, [tableData])
+  }, [pagination, globalFilter])
 
-  // Handlers
+  // Fetch roles when filters or pagination change
+  useEffect(() => {
+    getRoles()
+  }, [getRoles])
+
+  // Drawer Handlers
   const handleOpenDrawer = () => {
     setRoleToEdit(null)
     setIsDrawerOpen(true)
   }
 
-  const handleEditRole = (role: RoleType) => {
-    setRoleToEdit(role)
-    setIsDrawerOpen(true)
+  const handleEditRole = async (role: RoleType) => {
+    setLoading(true)
+    try {
+      const endpoint = roleEndpoints.getRoleById(role.id)
+      const result: any = await get(endpoint)
+
+      if (result.status === 'success') {
+        const r = result.data
+
+        const permissionMap: ModulePermissions = {}
+        r.permission.forEach((p: any) => {
+          permissionMap[p.moduleName] = {
+            all: p.view && p.create && p.edit && p.delete,
+            view: p.view,
+            create: p.create,
+            edit: p.edit,
+            delete: p.delete
+          }
+        })
+
+        const roleDetails: RoleType = {
+          id: r.id,
+          roleName: r.name,
+          status: r.status ? 'active' : 'inactive',
+          permissions: permissionMap
+        }
+
+        setRoleToEdit(roleDetails)
+        setIsDrawerOpen(true)
+      } else {
+        console.error(result.message || 'Failed to fetch role details')
+      }
+    } catch (error: any) {
+      console.error(error)
+      setError(error.message || 'Failed to load role details')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDrawerClose = () => {
@@ -168,112 +191,69 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
     setIsDrawerOpen(false)
   }
 
-  const columns = useMemo<ColumnDef<RoleTypeWithAction, any>[]>(
+  const columns = useMemo<ColumnDef<RoleType, any>[]>(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <Checkbox
-            {...{
-              checked: table.getIsAllRowsSelected(),
-              indeterminate: table.getIsSomeRowsSelected(),
-              onChange: table.getToggleAllRowsSelectedHandler()
-            }}
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
-          />
-        )
-      },
       columnHelper.accessor('roleName', {
-        header: 'Role',
-        cell: ({ row }) => {
-            // ✅ FIX: Convert roleName to lowercase for lookup and provide a fallback
-            const roleKey = row.original.roleName.toLowerCase();
-            const roleConfig = userRoleObj[roleKey] || { icon: 'tabler-user', color: 'secondary' };
-
-            return (
-                <div className='flex items-center gap-2'>
-                  <Icon
-                    className={roleConfig.icon}
-                    sx={{ color: `var(--mui-palette-${roleConfig.color}-main)` }}
-                  />
-                  <Typography className='font-medium capitalize' color='text.primary'>
-                    {row.original.roleName}
-                  </Typography>
-                </div>
-            )
-        }
+        header: 'Role Name',
+        cell: ({ row }) => (
+          <Typography color='text.primary' className='font-medium capitalize'>
+            {row.original.roleName}
+          </Typography>
+        )
       }),
       columnHelper.accessor('status', {
         header: 'Status',
         cell: ({ row }) => (
           <Chip
-            label={row.original.status}
-            color={roleStatusObj[row.original.status]}
+            label={row.original.status || 'inactive'}
+            color={roleStatusObj[row.original.status] || 'secondary'}
             size='small'
             variant='tonal'
             className='capitalize'
           />
         )
       }),
-      columnHelper.accessor('action', {
+      columnHelper.display({
+        id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
           <div className='flex items-center'>
             <IconButton onClick={() => handleEditRole(row.original)}>
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton onClick={() => setRoles(prevRoles => prevRoles.filter(role => role.id !== row.original.id))}>
-              <i className='tabler-trash text-error' />
+            <IconButton color='error'>
+              <i className='tabler-trash' />
             </IconButton>
           </div>
-        ),
-        enableSorting: false
+        )
       })
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
 
+  // Table Instance
   const table = useReactTable({
     data: roles,
     columns,
-    filterFns: {
-      fuzzy: fuzzyFilter
-    },
-    state: {
-      rowSelection,
-      globalFilter
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10
-      }
-    },
+    state: { rowSelection, globalFilter, pagination },
+    onPaginationChange: setPagination,
+    filterFns: { fuzzy: fuzzyFilter },
+    manualPagination: true,
+    manualSorting: true,
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
-    getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    getPaginationRowModel: getPaginationRowModel()
   })
 
   return (
     <>
       <Card>
+        {/* Header */}
         <CardContent className='flex justify-between flex-col gap-4 items-start sm:flex-row sm:items-center'>
           <div className='flex items-center gap-2'>
             <Typography>Show</Typography>
@@ -288,6 +268,7 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
               <MenuItem value='50'>50</MenuItem>
             </CustomTextField>
           </div>
+
           <div className='flex gap-4 flex-col !items-start max-sm:is-full sm:flex-row sm:items-center'>
             <DebouncedInput
               value={globalFilter ?? ''}
@@ -305,6 +286,8 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
             </Button>
           </div>
         </CardContent>
+
+        {/* Table */}
         <div className='overflow-x-auto'>
           <table className={tableStyles.table}>
             <thead>
@@ -332,45 +315,54 @@ const RolesTable = ({ tableData }: { tableData?: UsersType[] }) => {
                 </tr>
               ))}
             </thead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
-              <tbody>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center p-4'>
+                    <CircularProgress />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center text-red-500 p-4'>
+                    {error}
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center p-4'>
                     No data available
                   </td>
                 </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
-                  .map(row => (
-                    <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                      {row.getVisibleCells().map(cell => (
-                        <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                      ))}
-                    </tr>
-                  ))}
-              </tbody>
-            )}
+              ) : (
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          count={totalRows}
+          rowsPerPage={pagination.pageSize}
+          page={pagination.pageIndex}
+          onPageChange={(_, page) => table.setPageIndex(page)}
         />
       </Card>
+
+      {/* Drawer */}
       <RoleDrawer
         open={isDrawerOpen}
         handleClose={handleDrawerClose}
         roleData={roles}
-        setData={setRoles as (data: RoleType[]) => void}
+        setData={setRoles}
         roleToEdit={roleToEdit}
       />
     </>
