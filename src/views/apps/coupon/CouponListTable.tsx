@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 
-
 // MUI Imports
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -17,9 +16,16 @@ import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
 import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
-  createColumnHelper, flexRender, getCoreRowModel,
-  getFacetedMinMaxValues, getFacetedRowModel, getFacetedUniqueValues,
-  getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getFacetedMinMaxValues,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
 
@@ -28,7 +34,7 @@ import type { CouponProps } from '@/types/apps/couponTypes'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
-import DeleteConfirmationDialog from '../restaurant/DeleteConfirmationDialog'
+import DeleteConfirmationDialog from '@/app/[lang]/(dashboard)/(private)/apps/category/DeleteConfirmationDialog'
 import AddCouponDrawer from './AddCouponDrawer'
 
 declare module '@tanstack/table-core' {
@@ -52,8 +58,8 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
 
   addMeta({ itemRank })
-  
-return itemRank.passed
+
+  return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -115,11 +121,12 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
       if (value == null) return ''
       const str = String(value)
 
-      
-return `"${str.replace(/"/g, '""')}"`
+      return `"${str.replace(/"/g, '""')}"`
     }
 
-    const rows = couponsToExport.map(coupon => headers.map(header => escapeCSV(coupon[header as keyof CouponTypeWithAction])))
+    const rows = couponsToExport.map(coupon =>
+      headers.map(header => escapeCSV(coupon[header as keyof CouponTypeWithAction]))
+    )
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -165,8 +172,7 @@ return `"${str.replace(/"/g, '""')}"`
             }
           }
 
-          
-return (
+          return (
             <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
@@ -204,29 +210,22 @@ return (
       columnHelper.accessor('isActive', {
         header: 'Status',
         cell: ({ row }: { row: any }) => {
-          const currentDate = new Date();
-          const endDate = new Date(row.original.endDate);
-          let status: 'active' | 'inactive' | 'expired';
-          let label: string;
+          const currentDate = new Date()
+          const endDate = new Date(row.original.endDate)
+          let status: 'active' | 'inactive' | 'expired'
+          let label: string
 
           if (endDate < currentDate) {
-            status = 'expired';
-            label = 'Expired';
+            status = 'expired'
+            label = 'Expired'
           } else {
-            status = row.original.isActive ? 'active' : 'inactive';
-            label = row.original.isActive ? 'Active' : 'Inactive';
+            status = row.original.isActive ? 'active' : 'inactive'
+            label = row.original.isActive ? 'Active' : 'Inactive'
           }
 
-          
-return (
-            <Chip
-              variant='tonal'
-              label={label}
-              size='small'
-              className='capitalize'
-              color={couponStatusObj[status]}
-            />
-          );
+          return (
+            <Chip variant='tonal' label={label} size='small' className='capitalize' color={couponStatusObj[status]} />
+          )
         }
       }),
       columnHelper.accessor('usageCount', {
