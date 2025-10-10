@@ -116,14 +116,8 @@ const RoleDrawer = (props: Props) => {
     onSubmit: async values => {
       try {
         setLoading(true)
-
-        // FIX 2: Refactor the mapping to be more robust.
-        // This explicitly separates moduleId and the other permission flags,
-        // ensuring moduleId is always included in the final object.
-        // It also correctly omits the 'all' flag which is not part of the API payload.
         const permissionArray = Object.entries(values.permissions).map(([moduleName, perms]) => {
-          const { moduleId, view, create, edit, delete: del } = perms // 'delete' is a reserved keyword, so we alias it.
-
+          const { moduleId, view, create, edit, delete: del } = perms 
           return {
             moduleId,
             moduleName,

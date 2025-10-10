@@ -1,23 +1,18 @@
 'use client'
 
-// React Imports
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-// MUI Imports
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
-import Checkbox from '@mui/material/Checkbox'
-import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
-import TablePagination from '@mui/material/TablePagination'
-import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
 import { styled } from '@mui/material/styles'
+import TablePagination from '@mui/material/TablePagination'
+import Typography from '@mui/material/Typography'
 
-// Third-party Imports
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
 import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
@@ -31,34 +26,27 @@ import {
 } from '@tanstack/react-table'
 import classnames from 'classnames'
 
-// Type Imports
-import type { ModulePermissions, RoleType } from './AddRoleDrawer'
 import type { ThemeColor } from '@core/types'
+import type { ModulePermissions, RoleType } from './AddRoleDrawer'
 
-// Component Imports
-import RoleDrawer from './AddRoleDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import RoleDrawer from './AddRoleDrawer'
 
-// Service Imports
 import { del, get, post } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 
-// Style Imports
 import tableStyles from '@core/styles/table.module.css'
 import { toast } from 'react-toastify'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
-// Styled Components
 const Icon = styled('i')({})
 
-// Table status color mapping
 const roleStatusObj: Record<RoleType['status'], ThemeColor> = {
   active: 'success',
   inactive: 'secondary'
 }
 
-// Debounced Input Component
 const DebouncedInput = ({
   value: initialValue,
   onChange,
@@ -83,7 +71,6 @@ const DebouncedInput = ({
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
-// Fuzzy filter for global search
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
   addMeta({ itemRank })
@@ -93,7 +80,6 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
 const columnHelper = createColumnHelper<RoleType>()
 
 const RolesTable = () => {
-  // States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [roleToEdit, setRoleToEdit] = useState<RoleType | null>(null)
   const [roles, setRoles] = useState<RoleType[]>([])
@@ -139,12 +125,10 @@ const RolesTable = () => {
     }
   }, [pagination, globalFilter])
 
-  // Fetch roles when filters or pagination change
   useEffect(() => {
     getRoles()
   }, [getRoles])
 
-  // Drawer Handlers
   const handleOpenDrawer = () => {
     setRoleToEdit(null)
     setIsDrawerOpen(true)
@@ -201,7 +185,6 @@ const RolesTable = () => {
     setDeleteDialogOpen(true)
   }
 
-  // Confirm delete handler
   const handleConfirmDelete = async () => {
     if (!roleToDelete) return
     setLoading(true)
@@ -265,7 +248,6 @@ const RolesTable = () => {
     []
   )
 
-  // Table Instance
   const table = useReactTable({
     data: roles,
     columns,
@@ -287,7 +269,6 @@ const RolesTable = () => {
   return (
     <>
       <Card>
-        {/* Header */}
         <CardContent className='flex justify-between flex-col gap-4 items-start sm:flex-row sm:items-center'>
           <div className='flex items-center gap-2'>
             <Typography>Show</Typography>
@@ -321,7 +302,6 @@ const RolesTable = () => {
           </div>
         </CardContent>
 
-        {/* Table */}
         <div className='overflow-x-auto'>
           <table className={tableStyles.table}>
             <thead>
@@ -381,7 +361,6 @@ const RolesTable = () => {
           </table>
         </div>
 
-        {/* Pagination */}
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
           count={totalRows}
@@ -391,7 +370,6 @@ const RolesTable = () => {
         />
       </Card>
 
-      {/* Drawer */}
       <RoleDrawer
         open={isDrawerOpen}
         handleClose={handleDrawerClose}

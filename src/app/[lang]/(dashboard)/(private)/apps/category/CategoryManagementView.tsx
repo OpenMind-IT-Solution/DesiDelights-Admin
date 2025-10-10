@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
@@ -21,6 +21,7 @@ import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
 import MenuItem from '@mui/material/MenuItem'
 import Grid from '@mui/material/Grid'
+import CircularProgress from '@mui/material/CircularProgress'
 
 import type { Category } from '@/types/apps/categoryTypes'
 
@@ -28,6 +29,9 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import CategoryDetails from './CategoryDetails'
 import CategoryForm from './CategoryForm'
 import CustomTextField from '@/@core/components/mui/TextField'
+import { post, get, del } from '@/services/apiService' // Import the 'del' method
+import { categoriesEndpoints } from '@/services/endpoints/category'
+import { toast } from 'react-toastify'
 
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -35,8 +39,7 @@ const useDebounce = (value: string, delay: number) => {
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedValue(value), delay)
 
-    
-return () => clearTimeout(handler)
+    return () => clearTimeout(handler)
   }, [value, delay])
 
   return debouncedValue
@@ -52,62 +55,146 @@ const EmptyStatePlaceholder = ({ icon, title, message }: { icon: string; title: 
   </Box>
 )
 
-const CategoryManagementView = ({ tableData }: { tableData?: Category[] }) => {
+const CategoryManagementView = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
-  const [data, setData] = useState(tableData ?? [])
+  // State for data, selection, and UI modes
+  const [data, setData] = useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [formMode, setFormMode] = useState<'hidden' | 'add' | 'edit'>('hidden')
-  const [searchTerm, setSearchTerm] = useState('')
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const [statusFilter, setStatusFilter] = useState<Category['status'] | ''>('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
 
-  const filteredCategories = useMemo(() => {
-    return data.filter(cat => {
-      const searchMatch = cat.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      const statusMatch = !statusFilter || cat.status === statusFilter
+  // State for API and filtering
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalRows, setTotalRows] = useState(0)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 15 })
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
+  const [statusFilter, setStatusFilter] = useState<Category['status'] | ''>('')
 
-      
-return searchMatch && statusMatch
-    })
-  }, [data, debouncedSearchTerm, statusFilter])
+  const getCategories = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const body = {
+        search: debouncedSearchTerm,
+        status: statusFilter ? [statusFilter === 'active'] : [],
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize
+      }
+
+      const res: any = await post(categoriesEndpoints.getCategories, body)
+
+      const categoryData =
+        res?.data?.categories?.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          description: cat.description,
+          status: cat.status ? 'active' : 'inactive'
+        })) || []
+
+      setData(categoryData)
+      setTotalRows(res?.data?.total || categoryData.length || 0)
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.message || 'Failed to fetch categories')
+      setData([])
+      setTotalRows(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination, debouncedSearchTerm, statusFilter])
+
+  useEffect(() => {
+    getCategories()
+  }, [getCategories])
+
+  const filteredCategories = useMemo(() => {
+    return data
+  }, [data])
 
   useEffect(() => {
     const isSelectedVisible = selectedCategory && filteredCategories.some(cat => cat.id === selectedCategory.id)
 
     if (!isSelectedVisible) {
-      if (filteredCategories.length > 0) {
-        setSelectedCategory(filteredCategories[0])
-      } else {
-        setSelectedCategory(null)
-      }
+      setSelectedCategory(filteredCategories.length > 0 ? filteredCategories[0] : null)
     }
   }, [filteredCategories, selectedCategory])
- 
+
   const handleSelectCategory = (category: Category) => {
     setSelectedCategory(category)
     setFormMode('hidden')
     if (isMobile) setMobileDrawerOpen(false)
   }
 
-  const handleFormSave = (formData: Category | Omit<Category, 'id'>) => {
-    if ('id' in formData) {
-      const updatedCategory = formData as Category
+  const handleEdit = async () => {
+    if (!selectedCategory) return
 
-      setData(prev => prev.map(cat => (cat.id === updatedCategory.id ? updatedCategory : cat)))
-      setSelectedCategory(updatedCategory)
-    } else {
-      const newId = data.length > 0 ? Math.max(...data.map(c => c.id)) + 1 : 1
-      const newCategory: Category = { id: newId, ...(formData as Omit<Category, 'id'>) }
+    setLoading(true)
+    setError(null)
 
-      setData(prev => [newCategory, ...prev])
-      setSelectedCategory(newCategory)
+    try {
+      const endpoint = categoriesEndpoints.getCategoriesById(selectedCategory.id)
+      const result: any = await get(endpoint)
+
+      if (result.status === 'success' && result.data) {
+        const categoryDetails: Category = {
+          id: result.data.id,
+          name: result.data.name,
+          description: result.data.description,
+          status: result.data.status ? 'active' : 'inactive'
+        }
+
+        setSelectedCategory(categoryDetails)
+        setFormMode('edit')
+      } else {
+        toast.error(result?.message || 'Failed to fetch category details.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      const errorMessage = err?.message || 'An unexpected error occurred.'
+
+      toast.error(errorMessage)
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFormSave = async (formData: Category | Omit<Category, 'id'>) => {
+    setLoading(true)
+    const isEditMode = 'id' in formData
+    const body = {
+      categoryId: isEditMode ? formData.id : 0,
+      restaurantId: [1],
+      name: formData.name,
+      description: formData.description,
+      status: formData.status === 'active'
     }
 
-    setFormMode('hidden')
+    try {
+      const result: any = await post(categoriesEndpoints.saveCategories, body)
+
+      if (result.status === 'success') {
+        toast.success(result.message || `Category ${isEditMode ? 'updated' : 'created'} successfully!`)
+        if (isEditMode) {
+          setSelectedCategory(formData as Category)
+        }
+        setFormMode('hidden')
+        await getCategories()
+      } else {
+        toast.error(result.message || 'Failed to save category.')
+        setLoading(false)
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.message || 'An unexpected error occurred.')
+      setLoading(false)
+    }
   }
 
   const handleFormCancel = () => {
@@ -118,15 +205,29 @@ return searchMatch && statusMatch
     }
   }
 
-  const handleDeleteCategory = () => {
+  // UPDATED: handleDeleteCategory now performs the API call
+  const handleDeleteCategory = async () => {
     if (!selectedCategory) return
-    const deletedIndex = data.findIndex(cat => cat.id === selectedCategory.id)
-    const newData = data.filter(cat => cat.id !== selectedCategory.id)
-    const nextSelected = newData.length > 0 ? newData[Math.max(0, deletedIndex - 1)] : null
 
-    setData(newData)
-    setSelectedCategory(nextSelected)
-    setDeleteDialogOpen(false)
+    setLoading(true)
+
+    try {
+      const endpoint = categoriesEndpoints.deleteCategories(selectedCategory.id)
+      const result: any = await del(endpoint)
+
+      if (result.status === 'success') {
+        toast.success(result?.message || 'Category deleted successfully!')
+        await getCategories() // Refetch data to show the changes
+      } else {
+        toast.error(result?.message || 'Failed to delete category.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.message || 'An unexpected error occurred while deleting.')
+    } finally {
+      setLoading(false)
+      setDeleteDialogOpen(false)
+    }
   }
 
   const handleExportCsv = () => {
@@ -192,7 +293,6 @@ return searchMatch && statusMatch
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='active'>Active</MenuItem>
               <MenuItem value='inactive'>Inactive</MenuItem>
-              <MenuItem value='pending'>Pending</MenuItem>
             </CustomTextField>
           </Grid>
         </Grid>
@@ -200,24 +300,52 @@ return searchMatch && statusMatch
 
       <Divider />
 
-      <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', position: 'relative' }}>
+        {loading && data.length === 0 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'action.hover'
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
         <List disablePadding>
-          {filteredCategories.length > 0 ? (
-            filteredCategories.map(cat => (
-              <ListItem key={cat.id} disablePadding>
-                <ListItemButton selected={selectedCategory?.id === cat.id} onClick={() => handleSelectCategory(cat)}>
-                  <ListItemIcon>
-                    <i className='tabler-category-2 text-xl' />
-                  </ListItemIcon>
-                  <ListItemText primary={cat.name} />
-                </ListItemButton>
-              </ListItem>
-            ))
-          ) : (
+          {!loading && error && (
             <ListItem>
-              <ListItemText primary='No categories found.' sx={{ p: 4, fontStyle: 'italic' }} />
+              <ListItemText
+                primary='Error'
+                secondary={error}
+                primaryTypographyProps={{ color: 'error' }}
+                sx={{ p: 4, fontStyle: 'italic' }}
+              />
             </ListItem>
           )}
+          {!loading && !error && filteredCategories.length > 0
+            ? filteredCategories.map(cat => (
+                <ListItem key={cat.id} disablePadding>
+                  <ListItemButton selected={selectedCategory?.id === cat.id} onClick={() => handleSelectCategory(cat)}>
+                    <ListItemIcon>
+                      <i className='tabler-category-2 text-xl' />
+                    </ListItemIcon>
+                    <ListItemText primary={cat.name} />
+                  </ListItemButton>
+                </ListItem>
+              ))
+            : !loading &&
+              !error && (
+                <ListItem>
+                  <ListItemText primary='No categories found.' sx={{ p: 4, fontStyle: 'italic' }} />
+                </ListItem>
+              )}
         </List>
       </Box>
 
@@ -253,6 +381,14 @@ return searchMatch && statusMatch
   )
 
   const renderContent = () => {
+    if (loading) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <CircularProgress />
+        </Box>
+      )
+    }
+
     if (formMode !== 'hidden') {
       return (
         <CategoryForm
@@ -266,16 +402,11 @@ return searchMatch && statusMatch
 
     if (selectedCategory) {
       return (
-        <CategoryDetails
-          category={selectedCategory}
-          onEdit={() => setFormMode('edit')}
-          onDelete={() => setDeleteDialogOpen(true)}
-        />
+        <CategoryDetails category={selectedCategory} onEdit={handleEdit} onDelete={() => setDeleteDialogOpen(true)} />
       )
     }
 
-    
-return (
+    return (
       <EmptyStatePlaceholder
         icon='tabler-category'
         title='Select a Category'
@@ -288,8 +419,8 @@ return (
     if (formMode === 'add') return 'Add New Category'
     if (formMode === 'edit') return 'Edit Category'
     if (selectedCategory) return 'Category Details'
-    
-return 'Manage Categories'
+
+    return 'Manage Categories'
   }
 
   return (

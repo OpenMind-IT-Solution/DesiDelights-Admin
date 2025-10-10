@@ -30,10 +30,8 @@ const initialData: Omit<Category, 'id'> = {
 }
 
 const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) => {
-  // State to manage form data
   const [formData, setFormData] = useState(initialData)
 
-  // Set form data when in 'edit' mode or reset for 'add' mode
   useEffect(() => {
     if (mode === 'edit' && category) {
       setFormData({
@@ -46,23 +44,19 @@ const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) =
     }
   }, [mode, category])
 
-  // Handle input changes
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Basic validation
     if (!formData.name.trim() || !formData.description.trim()) {
       alert('Name and Description cannot be empty.') // Or use a more sophisticated notification
       
 return
     }
 
-    // Pass data to the onSave handler
     if (mode === 'edit' && category) {
       onSave({ ...category, ...formData })
     } else {
@@ -104,7 +98,6 @@ return
       >
         <MenuItem value='active'>Active</MenuItem>
         <MenuItem value='inactive'>Inactive</MenuItem>
-        <MenuItem value='pending'>Pending</MenuItem>
       </CustomTextField>
       <Box className='flex gap-4'>
         <Button type='submit' variant='contained'>
