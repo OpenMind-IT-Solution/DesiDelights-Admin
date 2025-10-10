@@ -30,9 +30,8 @@ import { post } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 import { toast } from 'react-toastify'
 import { useSession } from 'next-auth/react'
+import { RequiredLabel } from '@/components/RequierdLabel'
 
-// Types
-// FIX 1: Create a separate type for the permission flags that are actually booleans
 type PermissionFlag = 'all' | 'view' | 'create' | 'edit' | 'delete'
 
 type Permissions = {
@@ -63,7 +62,6 @@ type Props = {
   roleToEdit?: RoleType | null
 }
 
-// Default permissions
 const initialPermissions: ModulePermissions = {
   'Category Management': { moduleId: 5, all: false, view: false, create: false, edit: false, delete: false },
   'Coupon Management': { moduleId: 10, all: false, view: false, create: false, edit: false, delete: false },
@@ -85,7 +83,6 @@ const initialPermissions: ModulePermissions = {
   'User Management': { moduleId: 3, all: false, view: false, create: false, edit: false, delete: false }
 }
 
-// Validation schema
 const validationSchema = Yup.object({
   roleName: Yup.string().required('Role name is required'),
   status: Yup.string().oneOf(['active', 'inactive', 'pending']).required('Status is required'),
@@ -117,7 +114,7 @@ const RoleDrawer = (props: Props) => {
       try {
         setLoading(true)
         const permissionArray = Object.entries(values.permissions).map(([moduleName, perms]) => {
-          const { moduleId, view, create, edit, delete: del } = perms 
+          const { moduleId, view, create, edit, delete: del } = perms
           return {
             moduleId,
             moduleName,
@@ -240,7 +237,7 @@ const RoleDrawer = (props: Props) => {
         <CustomTextField
           fullWidth
           name='roleName'
-          label='Role Name'
+          label={<RequiredLabel label='Role Name' isRequired={true} />}
           placeholder='Enter Role Name'
           value={values.roleName}
           onChange={handleChange}
@@ -253,7 +250,7 @@ const RoleDrawer = (props: Props) => {
           select
           fullWidth
           name='status'
-          label='Select Status'
+          label={<RequiredLabel label='Select Status' isRequired={true} />}
           value={values.status}
           onChange={handleChange}
           error={touched.status && Boolean(errors.status)}
