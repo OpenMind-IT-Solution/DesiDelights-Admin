@@ -21,7 +21,8 @@ const TableFilters = ({ setData, tableData }: { setData: (data: OrderType[]) => 
     const filteredData = tableData?.filter(order => {
       if (orderType && order.orderType !== orderType) return false
       if (status && order.status !== status) return false
-      return true
+      
+return true
     })
 
     setData(filteredData || [])

@@ -14,12 +14,12 @@ import CustomTextField from '@core/components/mui/TextField'
 
 const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => void; tableData?: UsersType[] }) => {
   // States
-  const [role, setRole] = useState<UsersType['role']>('')
+  const [role, setRole] = useState<UsersType['roleName']>('')
   const [status, setStatus] = useState<UsersType['status']>('')
 
   useEffect(() => {
     const filteredData = tableData?.filter(user => {
-      if (role && user.role !== role) return false
+      if (role && user.roleName !== role) return false
       if (status && user.status !== status) return false
 
       return true

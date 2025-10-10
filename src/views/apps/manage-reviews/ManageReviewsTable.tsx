@@ -11,7 +11,6 @@ import { useParams } from 'next/navigation'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
-import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Rating from '@mui/material/Rating'
 import TablePagination from '@mui/material/TablePagination'
@@ -219,6 +218,7 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
           return <Typography>{date}</Typography>
         }
       }),
+
       // columnHelper.accessor('status', {
       //   header: 'Status',
       //   cell: ({ row }) => (

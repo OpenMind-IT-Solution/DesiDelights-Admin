@@ -3,7 +3,6 @@ import Grid from '@mui/material/Grid2'
 
 // Component Imports
 import ChangePassword from './ChangePassword'
-import RecentDevice from './RecentDevice'
 
 const SecurityTab = () => {
   return (
@@ -14,9 +13,9 @@ const SecurityTab = () => {
       {/* <Grid size={{ xs: 12 }}>
         <TwoStepVerification />
       </Grid> */}
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <RecentDevice />
-      </Grid>
+      </Grid> */}
     </Grid>
   )
 }

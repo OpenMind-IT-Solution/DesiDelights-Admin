@@ -1,5 +1,5 @@
 // Type Imports
-import { OrderType } from '@/types/apps/orderTypes'
+import type { OrderType } from '@/types/apps/orderTypes'
 
 export const db: OrderType[] = [
   {

@@ -35,12 +35,12 @@ const UserRight = ({ tabContentList }: { tabContentList: { [key: string]: ReactE
                 label='Billing & Address'
                 iconPosition='start'
               />
-              <Tab
+              {/* <Tab
                 icon={<i className='tabler-bell' />}
                 value='notifications'
                 label='Notifications'
                 iconPosition='start'
-              />
+              /> */}
               {/* <Tab icon={<i className='tabler-link' />} value='connections' label='Connections' iconPosition='start' /> */}
             </CustomTabList>
           </Grid>

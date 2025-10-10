@@ -1,6 +1,7 @@
 // components/maps/LocationMap.tsx
 
 import React from 'react'
+
 import {
   MapContainer,
   TileLayer,
@@ -12,15 +13,17 @@ import {
   Polyline,
   CircleMarker
 } from 'react-leaflet'
-import { LatLngExpression, LatLng, PathOptions } from 'leaflet'
+import type { LatLngExpression, LatLng, PathOptions } from 'leaflet'
 
 // --- MapController to handle flying to locations ---
 const MapController: React.FC<{ center: LatLngExpression }> = ({ center }) => {
   const map = useMap()
+
   React.useEffect(() => {
     map.flyTo(center, 13)
   }, [center, map])
-  return null
+  
+return null
 }
 
 // --- MapClickHandler to handle drawing points ---
@@ -35,7 +38,8 @@ const MapClickHandler: React.FC<{ isDrawing: boolean; onMapClick: (latlng: LatLn
       }
     }
   })
-  return null
+  
+return null
 }
 
 interface Zone {
@@ -69,7 +73,9 @@ const LocationMap: React.FC<LocationMapProps> = ({ zone, mapCenter, isDrawing, o
     const lngs = boundary.map(p => (p as number[])[1])
     const avgLat = lats.reduce((a, b) => a + b, 0) / lats.length
     const avgLng = lngs.reduce((a, b) => a + b, 0) / lngs.length
-    return [avgLat, avgLng]
+
+    
+return [avgLat, avgLng]
   }
 
   const polygonCenter = getPolygonCenter(boundaryToShow)

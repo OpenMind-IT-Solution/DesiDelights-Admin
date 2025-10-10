@@ -1,9 +1,10 @@
 export type UsersType = {
   id: number
-  role: string
+  roleId: string
+  roleName: string
   email: string
   status: string
-  contact: string
+  phoneNumber: string
   fullName: string
-  username: string
+  userName: string
 }

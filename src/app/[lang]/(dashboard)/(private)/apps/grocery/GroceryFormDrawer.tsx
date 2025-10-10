@@ -43,7 +43,8 @@ const defaultValues = {
 const getStockStatus = (quantity: number): GroceryItem['stock_status'] => {
   if (quantity <= 0) return 'Out of Stock'
   if (quantity < 10) return 'Low Stock'
-  return 'In Stock'
+  
+return 'In Stock'
 }
 
 const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
@@ -69,6 +70,7 @@ const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
           location: item.location || '',
           priority: item.priority || 5
         }
+
         reset(formValues)
       } else {
         reset(defaultValues)
@@ -82,6 +84,7 @@ const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
       ...formData,
       stock_status: getStockStatus(formData.stock_quantity)
     }
+
     onSave(dataToSave)
   }
 

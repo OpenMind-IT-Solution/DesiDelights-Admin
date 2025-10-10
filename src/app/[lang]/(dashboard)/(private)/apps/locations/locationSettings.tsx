@@ -1,7 +1,10 @@
 
 'use client'
 
-import DeleteConfirmationDialog from '@/components/dialogs/DeleteConfirmationDialog'
+import React, { useEffect, useState } from 'react'
+
+import dynamic from 'next/dynamic'
+
 import {
   Box,
   Button,
@@ -23,7 +26,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { LatLng, LatLngExpression } from 'leaflet'
+import type { LatLng, LatLngExpression } from 'leaflet'
 import {
   CheckCircleOutline,
   CloseCircleOutline,
@@ -32,9 +35,10 @@ import {
   MapMarkerPlusOutline,
   TrashCanOutline
 } from 'mdi-material-ui'
-import dynamic from 'next/dynamic'
-import React, { useEffect, useState } from 'react'
+
 import { toast } from 'react-toastify'
+
+import DeleteConfirmationDialog from '@/components/dialogs/DeleteConfirmationDialog'
 
 interface Zone {
   id: number | null
@@ -42,11 +46,6 @@ interface Zone {
   charge: number
   boundary: LatLngExpression[]
   status: 'active' | 'inactive'
-}
-interface SearchResult {
-  display_name: string
-  lat: string
-  lon: string
 }
 
 const LocationMap = dynamic(() => import('../../../../../../components/maps/LocationMap'), {
@@ -103,15 +102,19 @@ const getPolygonCenter = (boundary: LatLngExpression[]): LatLngExpression => {
   if (!boundary || boundary.length === 0) return [50.8503, 4.3517]
   const lats = boundary.map(p => (p as number[])[0])
   const lngs = boundary.map(p => (p as number[])[1])
-  return [lats.reduce((a, b) => a + b, 0) / lats.length, lngs.reduce((a, b) => a + b, 0) / lngs.length]
+
+  
+return [lats.reduce((a, b) => a + b, 0) / lats.length, lngs.reduce((a, b) => a + b, 0) / lngs.length]
 }
 
 const LocationSettings: React.FC = () => {
   const [zones, setZones] = useState<Zone[]>(initialZones)
   const [selectedZone, setSelectedZone] = useState<Zone | null>(zones.length > 0 ? zones[0] : null)
+
   const [mapCenter, setMapCenter] = useState<LatLngExpression>(
     zones.length > 0 ? getPolygonCenter(zones[0].boundary) : [50.8503, 4.3517]
   )
+
   const [isDrawing, setIsDrawing] = useState<boolean>(false)
   const [isEditingBoundary, setIsEditingBoundary] = useState<boolean>(false)
   const [drawingPoints, setDrawingPoints] = useState<LatLngExpression[]>([])
@@ -124,6 +127,7 @@ const LocationSettings: React.FC = () => {
       if (selectedZone.boundary && selectedZone.boundary.length > 0) {
         setMapCenter(getPolygonCenter(selectedZone.boundary))
       }
+
       setFormValues({ name: selectedZone.name, charge: selectedZone.charge })
     } else {
       setMapCenter([50.8503, 4.3517])
@@ -151,10 +155,12 @@ const LocationSettings: React.FC = () => {
   const handleConfirmDelete = () => {
     if (zoneToDelete !== null) {
       setZones(prevZones => prevZones.filter(zone => zone.id !== zoneToDelete))
+
       if (selectedZone?.id === zoneToDelete) {
         setSelectedZone(null)
       }
     }
+
     handleCloseDialog()
   }
 
@@ -168,14 +174,17 @@ const LocationSettings: React.FC = () => {
 
   const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
+
     setFormValues(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSaveChanges = () => {
     if (!selectedZone) return
+
     const updatedZones = zones.map(z =>
       z.id === selectedZone.id ? { ...z, name: formValues.name, charge: Number(formValues.charge) } : z
     )
+
     setZones(updatedZones)
     setSelectedZone(updatedZones.find(z => z.id === selectedZone.id) || null)
     toast.success('Changes saved!')
@@ -192,12 +201,14 @@ const LocationSettings: React.FC = () => {
     if (!selectedZone) return
     setIsEditingBoundary(true)
     const boundaryToEdit = [...selectedZone.boundary]
+
     if (
       boundaryToEdit.length > 1 &&
       JSON.stringify(boundaryToEdit[0]) === JSON.stringify(boundaryToEdit[boundaryToEdit.length - 1])
     ) {
       boundaryToEdit.pop()
     }
+
     setDrawingPoints(boundaryToEdit)
   }
 
@@ -213,6 +224,7 @@ const LocationSettings: React.FC = () => {
       boundary: [...drawingPoints, drawingPoints[0]],
       status: 'active'
     }
+
     setZones(prevZones => [...prevZones, newZone])
     setSelectedZone(newZone)
     setIsDrawing(false)
@@ -223,6 +235,7 @@ const LocationSettings: React.FC = () => {
     if (!selectedZone) return
     const updatedBoundary = drawingPoints.length > 0 ? [...drawingPoints, drawingPoints[0]] : []
     const updatedZones = zones.map(z => (z.id === selectedZone.id ? { ...z, boundary: updatedBoundary } : z))
+
     setZones(updatedZones)
     setSelectedZone(updatedZones.find(z => z.id === selectedZone.id) || null)
     setIsEditingBoundary(false)

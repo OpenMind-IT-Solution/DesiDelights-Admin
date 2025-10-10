@@ -13,7 +13,7 @@ export const authOptions: NextAuthOptions = {
         const { login, password } = credentials as { login: string; password: string }
 
         try {
-          const res = await fetch(`${process.env.API_URL}auth/login`, {
+          const res = await fetch(`${process.env.API_URL}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -33,12 +33,8 @@ export const authOptions: NextAuthOptions = {
             const apiUserData = data.data
 
             const user = {
-              // Conforms to NextAuth's default 'id' which must be a string
               id: String(apiUserData.userId),
-
-              // CORRECTED: Use the professional and clear name 'userId'
               userId: apiUserData.userId,
-
               name: apiUserData.name,
               userName: apiUserData.userName,
               email: apiUserData.email,
@@ -51,7 +47,7 @@ export const authOptions: NextAuthOptions = {
               accessTokenExpiresAt: apiUserData.accessTokenExpiresAt
             }
 
-            
+
 return user
           } else {
             throw new Error(data.message || 'Login failed. Please try again.')
@@ -89,7 +85,7 @@ return user
         token.accessTokenExpiresAt = user.accessTokenExpiresAt
       }
 
-      
+
 return token
     },
     async session({ session, token }) {
@@ -106,7 +102,7 @@ return token
         session.user.accessToken = token.accessToken
       }
 
-      
+
 return session
     }
   }

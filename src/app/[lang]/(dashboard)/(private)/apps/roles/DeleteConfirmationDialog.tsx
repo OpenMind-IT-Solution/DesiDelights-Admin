@@ -1,34 +1,25 @@
-// src/components/dialogs/DeleteConfirmationDialog.tsx
+'use client'
 
 import type { FC } from 'react'
 
-import {
-  Dialog,
-  Card,
-  CardHeader,
-  CardContent,
-  CardActions,
-  Button,
-  Typography,
-  Divider,
-  IconButton
-} from '@mui/material'
+import Dialog from '@mui/material/Dialog'
+import Card from '@mui/material/Card'
+import CardHeader from '@mui/material/CardHeader'
+import CardContent from '@mui/material/CardContent'
+import CardActions from '@mui/material/CardActions'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
+import Divider from '@mui/material/Divider'
+import IconButton from '@mui/material/IconButton' 
 
-interface DeleteConfirmationDialogProps {
+interface DeleteConfirmationCardProps {
   open: boolean
   onClose: () => void
   onConfirm: () => void
-  itemName?: string
-  itemType?: string
+  userName?: string
 }
 
-const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
-  open,
-  onClose,
-  onConfirm,
-  itemName,
-  itemType = 'item'
-}) => {
+const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm, userName }) => {
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby='delete-dialog-title'>
       <Card>
@@ -47,15 +38,13 @@ const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
         />
         <Divider />
         <CardContent>
-          <Typography>
-            Are you sure you want to delete the {itemType} &quot;{itemName || `this ${itemType}`}&quot;?
-          </Typography>
+          <Typography>Are you sure you want to delete the role &quot;{userName || 'this role'}&quot;?</Typography>
           <Typography color='text.secondary' sx={{ mt: 2 }}>
             This action is permanent and cannot be undone.
           </Typography>
         </CardContent>
         <Divider />
-        <CardActions sx={{ justifyContent: 'center', p: 3 }}>
+        <CardActions sx={{ justifyContent: 'center', p: theme => `${theme.spacing(3)} !important` }}>
           <Button variant='outlined' color='secondary' onClick={onClose}>
             No, Cancel
           </Button>

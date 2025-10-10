@@ -11,9 +11,10 @@ import Typography from '@mui/material/Typography'
 import { Controller, useForm } from 'react-hook-form'
 
 // Component Imports
-import { CouponProps } from '@/types/apps/couponTypes'
-import CustomTextField from '@core/components/mui/TextField'
 import { MenuItem } from '@mui/material'
+
+import type { CouponProps } from '@/types/apps/couponTypes'
+import CustomTextField from '@core/components/mui/TextField'
 
 type Props = {
   open: boolean
@@ -49,6 +50,7 @@ const initialData = {
 
 // Ensure type is either "percentage" or "fixed"
 const allowedTypes = ["percentage", "fixed"] as const
+
 type CouponType = typeof allowedTypes[number]
 
 const AddCouponDrawer = (props: Props) => {
@@ -57,6 +59,8 @@ const AddCouponDrawer = (props: Props) => {
 
   // States
   const [formData, setFormData] = useState<FormValidateType>(initialData)
+
+  console.log("🚀 ~ AddCouponDrawer ~ formData:", formData)
 
   // Hooks
   const {
@@ -107,6 +111,7 @@ const AddCouponDrawer = (props: Props) => {
       const updatedCoupons = (couponData ?? []).map(coupon =>
         coupon.id === couponToEdit.id ? newCoupon : coupon
       )
+
       setData(updatedCoupons)
     } else {
       setData([newCoupon, ...(couponData ?? [])])

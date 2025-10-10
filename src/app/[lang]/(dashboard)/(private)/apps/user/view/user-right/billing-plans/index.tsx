@@ -12,9 +12,9 @@ import CurrentPlan from './CurrentPlan'
 const BillingPlans = ({ data }: { data?: PricingPlanType[] }) => {
   return (
     <Grid container spacing={6}>
-      <Grid size={{ xs: 12 }}>
+      {/* <Grid size={{ xs: 12 }}>
         <CurrentPlan data={data} />
-      </Grid>
+      </Grid> */}
       <Grid size={{ xs: 12 }}>
         <PaymentMethod />
       </Grid>

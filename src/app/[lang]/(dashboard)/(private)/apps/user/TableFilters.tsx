@@ -1,27 +1,54 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type Dispatch, type FC, type SetStateAction } from 'react'
 
+// MUI Imports
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid2'
 import MenuItem from '@mui/material/MenuItem'
-
-import type { UsersType } from '@/types/apps/userTypes'
+import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
 
 import CustomTextField from '@core/components/mui/TextField'
 
-const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => void; tableData?: UsersType[] }) => {
-  const [role, setRole] = useState<UsersType['role']>('')
-  const [status, setStatus] = useState<UsersType['status']>('')
+import type { FilterType } from './UserListTable'
+
+type TableFiltersProps = {
+  filters: FilterType
+  setFilters: Dispatch<SetStateAction<FilterType>>
+  onClose: () => void 
+}
+
+const TableFilters: FC<TableFiltersProps> = ({ filters, setFilters, onClose }) => {
+  const [localFilters, setLocalFilters] = useState<FilterType>({ ...filters })
 
   useEffect(() => {
-    const filteredData = tableData?.filter(user => {
-      if (role && user.role !== role) return false
-      if (status && user.status !== status) return false
+    setLocalFilters(filters)
+  }, [filters])
 
-      return true
-    })
+  const handleFilterChange = (field: keyof FilterType, value: string) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      [field]: value as FilterType[keyof FilterType] 
+    }))
+  }
 
-    setData(filteredData || [])
-  }, [role, status, tableData, setData])
+  const handleApply = () => {
+    const filtersToApply: FilterType = {
+      status: localFilters.status === 'All' ? 'All' : localFilters.status,
+      roleId: localFilters.roleId === 'All' || localFilters.roleId === '' ? null : localFilters.roleId
+    }
+
+    setFilters(filtersToApply)
+    onClose()
+  }
+
+  const handleReset = () => {
+    const defaultFilters: FilterType = {
+      status: 'All',
+      roleId: null
+    }
+
+    setLocalFilters(defaultFilters)
+  }
 
   return (
     <CardContent>
@@ -30,14 +57,11 @@ const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => 
           <CustomTextField
             select
             fullWidth
-            id='select-role'
-            value={role}
-            onChange={e => setRole(e.target.value)}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
+            label='Select Role'
+            value={localFilters.roleId || 'All Roles'}
+            onChange={e => handleFilterChange('roleId', e.target.value)}
           >
-            <MenuItem value=''>Select Role</MenuItem>
+            <MenuItem value='All Roles'>All Roles</MenuItem>
             <MenuItem value='admin'>Admin</MenuItem>
             <MenuItem value='author'>Author</MenuItem>
             <MenuItem value='editor'>Editor</MenuItem>
@@ -45,22 +69,33 @@ const TableFilters = ({ setData, tableData }: { setData: (data: UsersType[]) => 
             <MenuItem value='user'>User</MenuItem>
           </CustomTextField>
         </Grid>
+
         <Grid size={{ xs: 12 }}>
           <CustomTextField
             select
             fullWidth
-            id='select-status'
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
+            label='Select Status'
+            value={localFilters.status || 'All Status'} 
+            onChange={e => handleFilterChange('status', e.target.value)}
           >
-            <MenuItem value=''>Select Status</MenuItem>
-            <MenuItem value='pending'>Pending</MenuItem>
+            <MenuItem value='All Status'>All</MenuItem>
             <MenuItem value='active'>Active</MenuItem>
             <MenuItem value='inactive'>Inactive</MenuItem>
           </CustomTextField>
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 5, mt: 2 }}>
+            <Button variant='contained' onClick={handleApply} fullWidth>
+              Apply
+            </Button>
+            <Button variant='tonal' color='secondary' onClick={handleReset} fullWidth>
+              Reset
+            </Button>
+            <Button variant='outlined' color='error' onClick={onClose} fullWidth sx={{ mt: 1 }}>
+              Cancel
+            </Button>
+          </Box>
         </Grid>
       </Grid>
     </CardContent>
