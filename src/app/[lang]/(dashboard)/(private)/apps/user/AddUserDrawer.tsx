@@ -1,31 +1,33 @@
 'use client'
 
 // React Imports
-import type { ChangeEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 // MUI Imports
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
-import Drawer from '@mui/material/Drawer';
-import IconButton from '@mui/material/IconButton';
-import MenuItem from '@mui/material/MenuItem';
-import { styled } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Divider from '@mui/material/Divider'
+import Drawer from '@mui/material/Drawer'
+import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
+import { styled } from '@mui/material/styles'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import { useFormik } from 'formik';
-import { toast } from 'react-toastify';
-import * as yup from 'yup';
+import { useFormik } from 'formik'
+import { toast } from 'react-toastify'
+import * as yup from 'yup'
 
 // Component Imports
-import CustomTextField from '@core/components/mui/TextField';
+import CustomTextField from '@core/components/mui/TextField'
 
 // Service & Endpoint Imports
-import { post, postFormData } from '@/services/apiService';
-import { roleEndpoints } from '@/services/endpoints/role';
-import { userEndpoints } from '@/services/endpoints/user';
+import { post, postFormData } from '@/services/apiService'
+import { roleEndpoints } from '@/services/endpoints/role'
+import { userEndpoints } from '@/services/endpoints/user'
+import { useSession } from 'next-auth/react'
+import { RequiredLabel } from '@/components/RequierdLabel'
 
 // Styled components for the image uploader
 const ImgStyled = styled('img')(({ theme }) => ({
@@ -76,6 +78,8 @@ interface FormValidateType {
 }
 
 const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
+  const { data: session } = useSession()
+
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
   const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -114,10 +118,18 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
       formData.append('fullName', values.fullName)
       formData.append('username', values.username)
       formData.append('email', values.email)
-      formData.append('restaurantId', '1')
       formData.append('roleId', String(values.roleId))
       formData.append('status', String(values.status))
       formData.append('phoneNumber', values.phoneNumber)
+
+      const restaurantIds: (string | number)[] =
+        typeof session?.user?.restaurantId === 'string'
+          ? (JSON.parse(session.user.restaurantId) as (string | number)[])
+          : session?.user?.restaurantId || []
+
+      restaurantIds.forEach(id => {
+        formData.append('restaurantId', String(id))
+      })
 
       if (values.profileImage) {
         formData.append('profileImage', values.profileImage)
@@ -171,7 +183,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
     if (files && files.length > 0) {
       const file = files[0]
 
-      formik.setFieldValue('profileImage', file) 
+      formik.setFieldValue('profileImage', file)
 
       const reader = new FileReader()
 
@@ -237,7 +249,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
         <CustomTextField
           fullWidth
           name='fullName'
-          label='Full Name'
+          label={<RequiredLabel label='Full Name' isRequired={true} />}
           placeholder='John Doe'
           value={formik.values.fullName}
           onChange={formik.handleChange}
@@ -249,7 +261,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
         <CustomTextField
           fullWidth
           name='username'
-          label='Username'
+          label={<RequiredLabel label='Username' isRequired={true} />}
           placeholder='john_doe'
           value={formik.values.username}
           onChange={formik.handleChange}
@@ -262,7 +274,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
           fullWidth
           name='email'
           type='email'
-          label='Email'
+          label={<RequiredLabel label='Email' isRequired={true} />}
           placeholder='johndoe@gmail.com'
           value={formik.values.email}
           onChange={formik.handleChange}
@@ -275,7 +287,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
           select
           fullWidth
           name='roleId'
-          label='Select Role'
+          label={<RequiredLabel label='Select Role' isRequired={true} />}
           value={formik.values.roleId}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
@@ -293,7 +305,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
           select
           fullWidth
           name='status'
-          label='Select Status'
+          label={<RequiredLabel label='Select Status' isRequired={true} />}
           value={formik.values.status ? 'true' : 'false'}
           onChange={e => formik.setFieldValue('status', e.target.value === 'true')}
           onBlur={formik.handleBlur}
@@ -308,7 +320,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
           fullWidth
           name='phoneNumber'
           type='tel'
-          label='Phone Number'
+          label={<RequiredLabel label='Phone Number' isRequired={true} />}
           placeholder='(397) 294-5153'
           value={formik.values.phoneNumber}
           onChange={formik.handleChange}
