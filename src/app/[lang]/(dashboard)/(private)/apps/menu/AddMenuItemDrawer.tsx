@@ -1,9 +1,8 @@
 'use client'
 
-// React and MUI Imports
 import { useEffect, useState } from 'react'
 
-import Image from 'next/image' // For displaying images
+import Image from 'next/image' 
 
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
@@ -13,24 +12,22 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
-// Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
-import { useDropzone } from 'react-dropzone' // Import Dropzone
+import { useDropzone } from 'react-dropzone' 
+import { toast } from 'react-toastify'
 
-// Type Imports
 import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
 import CustomTextField from '@core/components/mui/TextField'
+import { postFormData } from '@/services/apiService'
+import { menuEndpoints } from '@/services/endpoints/menu' 
 
-// Props remain the same
 type Props = {
   open: boolean
   handleClose: () => void
-  menuData?: MenuItemType[]
-  setData: (data: MenuItemType[]) => void
   itemToEdit?: MenuItemType | null
+  refetchData: () => void
 }
 
-// Form validation type
 type FormValidateType = {
   name: string
   description: string
@@ -40,7 +37,6 @@ type FormValidateType = {
   status: boolean
 }
 
-// Styled component for the dropzone area
 const Dropzone = styled('div')(({ theme }) => ({
   border: `2px dashed ${theme.palette.divider}`,
   padding: theme.spacing(6),
@@ -53,10 +49,10 @@ const Dropzone = styled('div')(({ theme }) => ({
 }))
 
 const AddMenuItemDrawer = (props: Props) => {
-  const { open, handleClose, menuData, setData, itemToEdit } = props
+  const { open, handleClose, itemToEdit, refetchData } = props
 
-  // State to manage files (both URLs and new File objects)
   const [files, setFiles] = useState<(File | string)[]>([])
+  const [loading, setLoading] = useState(false)
 
   const {
     control,
@@ -74,16 +70,13 @@ const AddMenuItemDrawer = (props: Props) => {
     }
   })
 
-  // React-Dropzone hook
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] },
     onDrop: (acceptedFiles: File[]) => {
-      // Add new files to the existing file state
       setFiles(prevFiles => [...prevFiles, ...acceptedFiles.map(file => Object.assign(file))])
     }
   })
 
-  // Effect to populate form and files when editing
   useEffect(() => {
     if (itemToEdit) {
       resetForm({
@@ -95,29 +88,25 @@ const AddMenuItemDrawer = (props: Props) => {
         status: itemToEdit.status ?? true
       })
 
-      // Set existing images
       setFiles(itemToEdit.menuImages || [])
     } else {
-      resetForm({
-        name: '',
-        description: '',
-        price: 0,
-        tag: '',
-        offer: '0',
-        status: true
-      })
+      resetForm() 
       setFiles([])
     }
   }, [itemToEdit, open, resetForm])
 
-  // Function to remove an image (works for both URLs and Files)
   const handleRemoveFile = (fileToRemove: File | string) => {
     setFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove))
   }
 
-  // Generate preview thumbnails for all files
   const renderFilePreview = (file: File | string) => {
-    const src = typeof file === 'string' ? file : URL.createObjectURL(file)
+    let src: string
+
+    if (typeof file === 'string') {
+      src = `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${file}`
+    } else {
+      src = URL.createObjectURL(file)
+    }
 
     return (
       <div key={typeof file === 'string' ? file : file.name} className='relative m-2'>
@@ -134,27 +123,44 @@ const AddMenuItemDrawer = (props: Props) => {
     )
   }
 
-  const onSubmit = (data: FormValidateType) => {
-    // In a real application, you would upload the new `File` objects to a server
-    // and get back URLs. Here, we'll simulate this by keeping existing URLs
-    // and using blob URLs for new files for demonstration.
-    const newImageUrls = files.map(file => (typeof file === 'string' ? file : URL.createObjectURL(file)))
+  const onSubmit = async (data: FormValidateType) => {
+    setLoading(true)
 
-    const newItem: MenuItemType = {
-      id: itemToEdit?.id ?? (menuData ? Math.max(...menuData.map(item => item.id)) + 1 : 1),
-      ...data,
-      menuImages: newImageUrls
+    const formData = new FormData()
+
+    formData.append('id', itemToEdit?.id ? String(itemToEdit.id) : '0')
+
+    Object.entries(data).forEach(([key, value]) => {
+      formData.append(key, String(value))
+    })
+
+    const existingImages: string[] = []
+
+    files.forEach(file => {
+      if (typeof file === 'string') {
+        existingImages.push(file)
+      } else {
+        formData.append('menuImages', file)
+      }
+    })
+
+    formData.append('menuImages', JSON.stringify(existingImages))
+
+    try {
+      const result = await postFormData(menuEndpoints.saveMenu, formData)
+
+      if (result.status === 'success') {
+        toast.success(itemToEdit ? 'Item updated successfully!' : 'Item added successfully!')
+        refetchData() 
+        handleClose() 
+      } else {
+        toast.error(result.message || 'An error occurred.')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'An unexpected error occurred.')
+    } finally {
+      setLoading(false)
     }
-
-    if (itemToEdit) {
-      const updatedData = (menuData ?? []).map(item => (item.id === itemToEdit.id ? newItem : item))
-
-      setData(updatedData)
-    } else {
-      setData([newItem, ...(menuData ?? [])])
-    }
-
-    handleClose()
   }
 
   const handleReset = () => {
@@ -181,7 +187,6 @@ const AddMenuItemDrawer = (props: Props) => {
       <Divider />
       <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6'>
-          {/* Text fields for item details remain the same */}
           <Controller
             name='name'
             control={control}
@@ -241,20 +246,13 @@ const AddMenuItemDrawer = (props: Props) => {
             control={control}
             rules={{ required: true }}
             render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                label='Select Status'
-                {...field}
-                defaultValue={itemToEdit?.status ?? true}
-              >
+              <CustomTextField select fullWidth label='Select Status' value={field.value} onChange={field.onChange}>
                 <MenuItem value={'true'}>Active</MenuItem>
                 <MenuItem value={'false'}>Inactive</MenuItem>
               </CustomTextField>
             )}
           />
 
-          {/* NEW: Image Upload Section */}
           <div>
             <Typography variant='body2' className='mb-2'>
               Menu Images
@@ -267,8 +265,8 @@ const AddMenuItemDrawer = (props: Props) => {
           </div>
 
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit'>
-              Submit
+            <Button variant='contained' type='submit' disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit'}
             </Button>
             <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
               Cancel

@@ -23,7 +23,17 @@ const nextConfig: NextConfig = {
         locale: false
       }
     ]
-  }
+  },
+   images: {
+    remotePatterns: [
+      {
+        protocol: 'http', 
+        hostname: 'localhost',
+        port: '3009',
+        pathname: '/upload/images/**', 
+      },
+    ],
+  },
 }
 
 export default nextConfig

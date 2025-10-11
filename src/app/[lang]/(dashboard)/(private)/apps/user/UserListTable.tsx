@@ -52,6 +52,7 @@ import { getLocalizedUrl } from '@/utils/i18n'
 import { del, get, post } from '@/services/apiService'
 import { userEndpoints } from '@/services/endpoints/user'
 import tableStyles from '@core/styles/table.module.css'
+import { Menu } from '@mui/material'
 
 type UsersTypeWithAction = UsersType & {
   action?: string
@@ -133,6 +134,7 @@ const UserListTable = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalRows, setTotalRows] = useState(0)
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -143,6 +145,14 @@ const UserListTable = () => {
     status: 'All',
     roleId: null
   })
+
+  const handleFilterOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleFilterClose = () => {
+    setAnchorEl(null)
+  }
 
   const { lang: locale } = useParams()
 
@@ -390,27 +400,12 @@ const UserListTable = () => {
               placeholder='Search User'
               className='max-sm:is-full'
             />
-            <CustomTextField
-              select
-              value=''
-              SelectProps={{
-                open: filterMenuOpen,
-                onClose: () => setFilterMenuOpen(false),
-                displayEmpty: true,
-                IconComponent: () => (
-                  <IconButton onClick={() => setFilterMenuOpen(prev => !prev)} sx={{ p: 1.25 }}>
-                    <i
-                      className='tabler-filter text-textSecondary text-base'
-                      style={{ transform: 'none', transition: 'none' }}
-                    />
-                  </IconButton>
-                )
-              }}
-              onClick={e => e.preventDefault()}
-              sx={{ '& .MuiSelect-select': { p: '0 !important' } }}
-            >
-              <TableFilters filters={filters} setFilters={setFilters} onClose={() => setFilterMenuOpen(false)} />
-            </CustomTextField>
+            <Button variant='contained' startIcon={<i className='tabler-filter' />} onClick={handleFilterOpen}>
+              Filters
+            </Button>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleFilterClose}>
+              <TableFilters filters={filters} setFilters={setFilters} onClose={handleFilterClose} />
+            </Menu>
             <Button
               color='secondary'
               variant='tonal'
