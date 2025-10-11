@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Image from 'next/image'
+import { toast } from 'react-toastify'
 
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -10,18 +11,16 @@ import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
+import Menu from '@mui/material/Menu'
 import TablePagination from '@mui/material/TablePagination'
-import Typography from '@mui/material/Typography'
 import type { TextFieldProps } from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 import { rankItem } from '@tanstack/match-sorter-utils'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFacetedMinMaxValues,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -32,21 +31,30 @@ import classnames from 'classnames'
 import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
 import type { ThemeColor } from '@core/types'
 
+import { del, get, post } from '@/services/apiService'
+import { menuEndpoints } from '@/services/endpoints/menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
+import { CircularProgress } from '@mui/material'
 import AddMenuItemDrawer from './AddMenuItemDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
+import TableFilters from './TableFilters'
 
 type MenuItemWithAction = MenuItemType & { action?: string }
 type StatusType = { [key: string]: ThemeColor }
+
+type FilterType = {
+  status: 'All' | 'active' | 'inactive'
+  categoryId: string | null
+}
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
 
   addMeta({ itemRank })
-  
-return itemRank.passed
+
+  return itemRank.passed
 }
 
 const DebouncedInput = (
@@ -60,14 +68,14 @@ const DebouncedInput = (
   const [value, setValue] = useState(initialValue)
 
   useEffect(() => setValue(initialValue), [initialValue])
+
   useEffect(() => {
     const timeout = setTimeout(() => onChange(value), debounce)
 
-    
-return () => clearTimeout(timeout)
+    return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
-  
-return <CustomTextField {...rest} value={value} onChange={e => setValue(e.target.value)} />
+
+  return <CustomTextField {...rest} value={value} onChange={e => setValue(e.target.value)} />
 }
 
 const statusObj: StatusType = {
@@ -77,21 +85,123 @@ const statusObj: StatusType = {
 
 const columnHelper = createColumnHelper<MenuItemWithAction>()
 
-const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
+const MenuTable = () => {
   const [addItemOpen, setAddItemOpen] = useState(false)
   const [editItemOpen, setEditItemOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<MenuItemType | null>(null)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(tableData ?? [])
+  const [data, setData] = useState<MenuItemWithAction[]>([])
+  const [totalRows, setTotalRows] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null)
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
-  useEffect(() => setData(tableData ?? []), [tableData])
+  const [filters, setFilters] = useState<FilterType>({
+    status: 'All',
+    categoryId: null
+  })
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10
+  })
 
-  const handleConfirmDelete = () => {
+  const handleFilterOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleFilterClose = () => {
+    setAnchorEl(null)
+  }
+
+  const getData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const payload: any = {
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        search: globalFilter
+      }
+
+      if (filters.status !== 'All') {
+        payload.status = filters.status === 'active'
+      }
+
+      if (filters.categoryId) {
+        payload.categoryId = [filters.categoryId]
+      }
+
+      const result: any = await post(menuEndpoints.getMenu, payload)
+
+      if (result.status === 'success') {
+        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
+          ...item,
+          menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
+        }))
+
+        setData(formattedMenuItems)
+        setTotalRows(result.data.total ?? 0)
+      } else {
+        throw new Error(result.message || 'Failed to fetch menu items.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred.')
+      setData([])
+      setTotalRows(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination, globalFilter, filters])
+
+  useEffect(() => {
+    getData()
+  }, [getData])
+
+  const handleEditClick = async (item: MenuItemType) => {
+    setLoading(true)
+
+    try {
+      const endpoint = menuEndpoints.getMenuById(item.id)
+      const result = await get(endpoint)
+
+      if (result.status === 'success') {
+        const itemData = result.data
+        const formattedItem = {
+          ...itemData,
+          menuImages: typeof itemData.menuImages === 'string' ? JSON.parse(itemData.menuImages) : itemData.menuImages
+        }
+
+        setSelectedItem(formattedItem)
+        setEditItemOpen(true)
+      } else {
+        toast.error(result?.Message || 'Failed to fetch item details.')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred while fetching item details.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
     if (itemToDelete) {
-      setData(prev => prev.filter(item => item.id !== itemToDelete.id))
+      try {
+        const endpoint = menuEndpoints.deleteMenu(itemToDelete.id)
+        const result = await del(endpoint)
+
+        if (result.status === 'success') {
+          toast.success(result?.message || 'Menu item deleted successfully.')
+          await getData()
+        } else {
+          toast.error(result?.message || 'Failed to delete menu item.')
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'An error occurred while deleting the item.')
+      }
     }
 
     setDeleteDialogOpen(false)
@@ -122,10 +232,10 @@ const MenuTable = ({ tableData }: { tableData?: MenuItemType[] }) => {
         header: 'Image',
         enableSorting: false,
         cell: ({ row }) => {
-          const imageUrl = row.original.menuImages?.[0]
+          const relativeImageUrl = row.original.menuImages?.[0]
+          const imageUrl = relativeImageUrl ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${relativeImageUrl}` : null
 
-          
-return imageUrl ? (
+          return imageUrl ? (
             <Image
               src={imageUrl}
               alt={row.original.name}
@@ -167,33 +277,27 @@ return imageUrl ? (
           const originalPrice = row.original.price
           const offerPercentage = parseFloat(row.original.offer || '0')
 
-          // If there is no valid offer, just show the original price
           if (offerPercentage <= 0) {
             return <Typography>₹{originalPrice}</Typography>
           }
 
-          // Calculate the discounted price
           const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
 
           return (
             <div className='flex items-center gap-3'>
-              {/* Container for the original price and the cross line */}
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                {/* The original price text, with muted color */}
                 <Typography component='span' color='text.secondary'>
                   ₹{originalPrice}
                 </Typography>
-
-                {/* The visual "cross line" element */}
                 <span
                   style={{
                     position: 'absolute',
                     top: '50%',
-                    left: '-5%', 
-                    width: '110%', 
-                    height: '1.5px', 
-                    backgroundColor: 'red', 
-                    transform: 'rotate(-15deg)' 
+                    left: '-5%',
+                    width: '110%',
+                    height: '1.5px',
+                    backgroundColor: 'red',
+                    transform: 'rotate(-15deg)'
                   }}
                 />
               </div>
@@ -235,8 +339,7 @@ return imageUrl ? (
           <div className='flex items-center'>
             <IconButton
               onClick={() => {
-                setSelectedItem(row.original)
-                setEditItemOpen(true)
+                handleEditClick(row.original)
               }}
             >
               <i className='tabler-edit text-textSecondary' />
@@ -259,11 +362,13 @@ return imageUrl ? (
   )
 
   const table = useReactTable({
-    data,
+    data: data,
     columns,
+    state: { pagination, globalFilter, rowSelection },
+    onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, globalFilter },
-    initialState: { pagination: { pageSize: 10 } },
+    manualPagination: true,
+    manualSorting: true,
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
@@ -271,10 +376,7 @@ return imageUrl ? (
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    getPaginationRowModel: getPaginationRowModel()
   })
 
   return (
@@ -298,6 +400,12 @@ return imageUrl ? (
               placeholder='Search Menu'
               className='max-sm:is-full'
             />
+            <Button variant='contained' startIcon={<i className='tabler-filter' />} onClick={handleFilterOpen}>
+              Filters
+            </Button>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleFilterClose}>
+              <TableFilters filters={filters} setFilters={setFilters} onClose={handleFilterClose} />
+            </Menu>
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
@@ -336,7 +444,19 @@ return imageUrl ? (
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                    <CircularProgress />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center text-red-500'>
+                    {error}
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length > 0 ? (
                 table.getRowModel().rows.map(row => (
                   <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
                     {row.getVisibleCells().map(cell => (
@@ -356,10 +476,11 @@ return imageUrl ? (
         </div>
         <TablePagination
           component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
+          count={totalRows}
+          rowsPerPage={pagination.pageSize}
+          page={pagination.pageIndex}
           onPageChange={(_, page) => table.setPageIndex(page)}
+          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
         />
       </Card>
       <AddMenuItemDrawer
@@ -369,9 +490,8 @@ return imageUrl ? (
           setEditItemOpen(false)
           setSelectedItem(null)
         }}
-        menuData={data}
-        setData={setData}
         itemToEdit={selectedItem}
+        refetchData={getData}
       />
       <DeleteConfirmationDialog
         open={deleteDialogOpen}
