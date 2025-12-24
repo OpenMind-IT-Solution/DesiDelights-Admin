@@ -1,3 +1,4 @@
+import ReportList from './list/ReportList';
 import StatCard from './list/StatCard';
 
 const StatCardData = [
@@ -8,19 +9,19 @@ const StatCardData = [
     color: 'primary'
   },
   {
-    title: 'Total Orders',
+    title: 'This Month Sales',
     stats: 1200,
     icon: 'tabler-receipt',
     color: 'success'
   },
   {
-    title: 'Average Order Value',
+    title: 'Average Sales / Day',
     stats: 20.83,
     icon: 'tabler-currency-dollar',
     color: 'warning'
   },
   {
-    title: 'Returning Customers',
+    title: 'Returning Sales',
     stats: 300,
     icon: 'tabler-users',
     color: 'error'
@@ -44,6 +45,7 @@ const SalesReports = () => {
           />
         ))}
       </div>
+      <ReportList />
     </>
   )
 }
