@@ -1,8 +1,13 @@
-import React from 'react'
+// interface ReportTableProps {
+//   columns: any[];
+// }
 
 const ReportList = () => {
+
   return (
-    <div>ReportList</div>
+    <>
+      Report List
+    </>
   )
 }
 
