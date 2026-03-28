@@ -1,9 +1,6 @@
 'use client'
-
 import { useEffect, useState } from 'react'
-
-import Image from 'next/image' 
-
+import Image from 'next/image'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -11,15 +8,14 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
-
-import { useForm, Controller } from 'react-hook-form'
-import { useDropzone } from 'react-dropzone' 
+import { useDropzone } from 'react-dropzone'
+import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
-
+import { post, postFormData } from '@/services/apiService'
+import { categoriesEndpoints } from '@/services/endpoints/category'
+import { menuEndpoints } from '@/services/endpoints/menu'
 import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
 import CustomTextField from '@core/components/mui/TextField'
-import { postFormData } from '@/services/apiService'
-import { menuEndpoints } from '@/services/endpoints/menu' 
 
 type Props = {
   open: boolean
@@ -29,12 +25,14 @@ type Props = {
 }
 
 type FormValidateType = {
+  id: number
   name: string
   description: string
   price: number
   tag: string
   offer: string
   status: boolean
+  categoryId: number | null
 }
 
 const Dropzone = styled('div')(({ theme }) => ({
@@ -53,6 +51,7 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const [files, setFiles] = useState<(File | string)[]>([])
   const [loading, setLoading] = useState(false)
+  const [categoryIds, setCategoryIds] = useState<{ id: number; name: string }[]>([])
 
   const {
     control,
@@ -61,12 +60,14 @@ const AddMenuItemDrawer = (props: Props) => {
     formState: { errors }
   } = useForm<FormValidateType>({
     defaultValues: {
+      id: 0,
       name: '',
       description: '',
       price: 0,
       tag: '',
       offer: '0',
-      status: true
+      status: true,
+      categoryId: null
     }
   })
 
@@ -78,19 +79,22 @@ const AddMenuItemDrawer = (props: Props) => {
   })
 
   useEffect(() => {
+    getCategoryDropdown(1)
     if (itemToEdit) {
       resetForm({
+        id: itemToEdit.id || 0,
         name: itemToEdit.name || '',
         description: itemToEdit.description || '',
         price: itemToEdit.price || 0,
         tag: itemToEdit.tag || '',
         offer: itemToEdit.offer || '0',
-        status: itemToEdit.status ?? true
+        status: itemToEdit.status ?? true,
+        categoryId: itemToEdit.category?.id || null
       })
 
       setFiles(itemToEdit.menuImages || [])
     } else {
-      resetForm() 
+      resetForm()
       setFiles([])
     }
   }, [itemToEdit, open, resetForm])
@@ -123,13 +127,19 @@ const AddMenuItemDrawer = (props: Props) => {
     )
   }
 
+  const getCategoryDropdown = async (restaurantId: number) => {
+    const resp = await post(categoriesEndpoints.categoryDropdown, { restaurantId: [restaurantId] })
+    console.log('response from category dropdown:', resp)
+    setCategoryIds(resp.data)
+  }
+
   const onSubmit = async (data: FormValidateType) => {
     setLoading(true)
-
     const formData = new FormData()
-
-    formData.append('id', itemToEdit?.id ? String(itemToEdit.id) : '0')
-
+    if (itemToEdit) {
+      // @ts-ignore
+      formData.append('menuItemId', itemToEdit.id)
+    }
     Object.entries(data).forEach(([key, value]) => {
       formData.append(key, String(value))
     })
@@ -145,14 +155,15 @@ const AddMenuItemDrawer = (props: Props) => {
     })
 
     formData.append('menuImages', JSON.stringify(existingImages))
-
+    formData.append('restaurantId', '1')
+    formData.append('categoryId', itemToEdit ? String(itemToEdit.category?.id) : '1')
     try {
       const result = await postFormData(menuEndpoints.saveMenu, formData)
 
       if (result.status === 'success') {
         toast.success(itemToEdit ? 'Item updated successfully!' : 'Item added successfully!')
-        refetchData() 
-        handleClose() 
+        refetchData()
+        handleClose()
       } else {
         toast.error(result.message || 'An error occurred.')
       }
@@ -240,6 +251,20 @@ const AddMenuItemDrawer = (props: Props) => {
             control={control}
             rules={{ required: true, min: 0 }}
             render={({ field }) => <CustomTextField {...field} fullWidth label='Offer (%)' placeholder='15' />}
+          />
+          <Controller
+            name='categoryId'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField select fullWidth label='Select Category' value={field.value} onChange={field.onChange}>
+                {categoryIds.map(category => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </CustomTextField>
+            )}
           />
           <Controller
             name='status'

@@ -322,11 +322,11 @@ const MenuTable = () => {
         )
       }),
       columnHelper.accessor('offer', {
-        header: 'Offer',
+        header: 'offer',
         cell: ({ row }) => (
           <Chip
             variant='tonal'
-            label={`${row.original.offer}%`}
+            label={`${row.original.offer || 0}%`}
             size='small'
             color={'warning'}
             className='capitalize'
