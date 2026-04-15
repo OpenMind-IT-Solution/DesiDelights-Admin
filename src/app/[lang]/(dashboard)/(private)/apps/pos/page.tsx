@@ -1,49 +1,48 @@
 'use client'
 
 // React Imports
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // MUI Imports
 import {
   Box,
-  Grid,
+  Button,
   Card,
   CardContent,
   CardMedia,
-  Typography,
-  Button,
   Chip,
-  IconButton,
-  Divider,
-  Paper,
-  TextField,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Fab,
+  Grid,
+  IconButton,
   List,
   ListItem,
-  ListItemText,
   ListItemSecondaryAction,
-  Fab
+  ListItemText,
+  Paper,
+  Typography
 } from '@mui/material'
 
-// Icon Imports
-// import AddIcon from '@mui/icons-material/Add'
-// import RemoveIcon from '@mui/icons-material/Remove'
-// import DeleteIcon from '@mui/icons-material/Delete'
-// import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
-// import PrintIcon from '@mui/icons-material/Print'
-// import ReceiptIcon from '@mui/icons-material/Receipt'
-
 // Type Imports
-import type { MenuItem } from '@/types/apps/menuTypes'
 import type { Category } from '@/types/apps/categoryTypes'
+import type { MenuItem } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 
 // Data Imports
-import { db as menuData } from '@/fake-db/apps/menuList'
 import { db as categoryData } from '@/fake-db/apps/categoryList'
+import { db as menuData } from '@/fake-db/apps/menuList'
+import {
+  MinusCircleOutline,
+  PlusCircleOutline,
+  Printer,
+  Receipt,
+  ShoppingOutline,
+  TrashCanOutline
+} from 'mdi-material-ui'
 
 const TAX_RATE = 0.18 // 18% GST
 
@@ -75,24 +74,29 @@ const Pos = () => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id)
 
     if (existingItem) {
-      setCart(cart.map(cartItem =>
-        cartItem.id === item.id
-          ? {
-              ...cartItem,
-              quantity: cartItem.quantity + 1,
-              total: (cartItem.quantity + 1) * cartItem.price
-            }
-          : cartItem
-      ))
+      setCart(
+        cart.map(cartItem =>
+          cartItem.id === item.id
+            ? {
+                ...cartItem,
+                quantity: cartItem.quantity + 1,
+                total: (cartItem.quantity + 1) * cartItem.price
+              }
+            : cartItem
+        )
+      )
     } else {
-      setCart([...cart, {
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: 1,
-        total: item.price,
-        image: item.menuImages[0]
-      }])
+      setCart([
+        ...cart,
+        {
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: 1,
+          total: item.price,
+          image: item.menuImages[0]
+        }
+      ])
     }
   }
 
@@ -101,15 +105,17 @@ const Pos = () => {
     const existingItem = cart.find(cartItem => cartItem.id === itemId)
 
     if (existingItem && existingItem.quantity > 1) {
-      setCart(cart.map(cartItem =>
-        cartItem.id === itemId
-          ? {
-              ...cartItem,
-              quantity: cartItem.quantity - 1,
-              total: (cartItem.quantity - 1) * cartItem.price
-            }
-          : cartItem
-      ))
+      setCart(
+        cart.map(cartItem =>
+          cartItem.id === itemId
+            ? {
+                ...cartItem,
+                quantity: cartItem.quantity - 1,
+                total: (cartItem.quantity - 1) * cartItem.price
+              }
+            : cartItem
+        )
+      )
     } else {
       setCart(cart.filter(cartItem => cartItem.id !== itemId))
     }
@@ -166,7 +172,7 @@ const Pos = () => {
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-        <Typography variant="h4" component="h1" align="center">
+        <Typography variant='h4' component='h1' align='center'>
           Desi Delights - POS Kiosk
         </Typography>
       </Box>
@@ -177,14 +183,14 @@ const Pos = () => {
         <Box sx={{ width: '70%', p: 2, overflow: 'auto' }}>
           {/* Category Filter */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant='h6' gutterBottom>
               Categories
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Button
                 variant={selectedCategory === null ? 'contained' : 'outlined'}
                 onClick={() => setSelectedCategory(null)}
-                size="small"
+                size='small'
               >
                 All
               </Button>
@@ -193,7 +199,7 @@ const Pos = () => {
                   key={category.id}
                   variant={selectedCategory === category.id ? 'contained' : 'outlined'}
                   onClick={() => setSelectedCategory(category.id)}
-                  size="small"
+                  size='small'
                 >
                   {category.name}
                 </Button>
@@ -215,29 +221,27 @@ const Pos = () => {
                   onClick={() => addToCart(item)}
                 >
                   <CardMedia
-                    component="img"
-                    height="140"
+                    component='img'
+                    height='140'
                     image={item.menuImages[0] || '/images/cards/default.png'}
                     alt={item.name}
                   />
                   <CardContent sx={{ pb: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="h6" component="h3" sx={{ flex: 1, mr: 1 }}>
+                      <Typography variant='h6' component='h3' sx={{ flex: 1, mr: 1 }}>
                         {item.name}
                       </Typography>
-                      <Typography variant="h6" color="primary">
+                      <Typography variant='h6' color='primary'>
                         ₹{item.price}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
                       {item.description}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {item.tag && (
-                        <Chip label={item.tag} size="small" color="primary" variant="outlined" />
-                      )}
+                      {item.tag && <Chip label={item.tag} size='small' color='primary' variant='outlined' />}
                       {item.offer && item.offer !== '0' && (
-                        <Chip label={`${item.offer}% OFF`} size="small" color="success" />
+                        <Chip label={`${item.offer}% OFF`} size='small' color='success' />
                       )}
                     </Box>
                   </CardContent>
@@ -250,40 +254,36 @@ const Pos = () => {
         {/* Right Panel - Order Summary */}
         <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column' }}>
           <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               {/* <ShoppingCartIcon sx={{ mr: 1 }} /> */}
-              shoppingCart
+              <ShoppingOutline sx={{ mr: 1 }} />
               Order Summary
             </Typography>
 
             {/* Cart Items */}
             <Box sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
               {cart.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+                <Typography variant='body2' color='text.secondary' align='center' sx={{ py: 4 }}>
                   No items in cart. Click on menu items to add them.
                 </Typography>
               ) : (
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText
-                        primary={item.name}
-                        secondary={`₹${item.price} x ${item.quantity}`}
-                      />
+                      <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          Remove
-                          <IconButton size="small" onClick={() => removeFromCart(item.id)}>
-                            removeIcon
+                          <IconButton size='small' onClick={() => removeFromCart(item.id)}>
+                            <MinusCircleOutline />
                             {/* <RemoveIcon /> */}
                           </IconButton>
                           <Typography>{item.quantity}</Typography>
-                          <IconButton size="small" onClick={() => addToCart(menuItems.find(m => m.id === item.id)!)}>
-                            Add
+                          <IconButton size='small' onClick={() => addToCart(menuItems.find(m => m.id === item.id)!)}>
+                            <PlusCircleOutline />
                             {/* <AddIcon /> */}
                           </IconButton>
-                          <IconButton size="small" color="error" onClick={() => deleteFromCart(item.id)}>
-                            delete
+                          <IconButton size='small' color='error' onClick={() => deleteFromCart(item.id)}>
+                            <TrashCanOutline />
                             {/* <DeleteIcon /> */}
                           </IconButton>
                         </Box>
@@ -307,19 +307,13 @@ const Pos = () => {
                   <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6">Total:</Typography>
-                  <Typography variant="h6" color="primary">
+                  <Typography variant='h6'>Total:</Typography>
+                  <Typography variant='h6' color='primary'>
                     ₹{orderSummary.total.toFixed(2)}
                   </Typography>
                 </Box>
 
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  onClick={placeOrder}
-                  disabled={cart.length === 0}
-                >
+                <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
                   Place Order
                 </Button>
               </Box>
@@ -329,26 +323,22 @@ const Pos = () => {
       </Box>
 
       {/* Receipt Dialog */}
-      <Dialog open={showReceipt} onClose={() => setShowReceipt(false)} maxWidth="sm" fullWidth>
+      <Dialog open={showReceipt} onClose={() => setShowReceipt(false)} maxWidth='sm' fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
           {/* <ReceiptIcon sx={{ mr: 1 }} /> */}
-          ReceiptIcon
+          <Receipt sx={{ mr: 1 }} />
           Order Receipt #{orderNumber}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
             </Typography>
           </Box>
-
           <List>
             {cart.map(item => (
               <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText
-                  primary={item.name}
-                  secondary={`₹${item.price} x ${item.quantity} = ₹${item.total}`}
-                />
+                <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity} = ₹${item.total}`} />
               </ListItem>
             ))}
           </List>
@@ -363,16 +353,16 @@ const Pos = () => {
             <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-            <Typography variant="h6">Total:</Typography>
-            <Typography variant="h6">₹{orderSummary.total.toFixed(2)}</Typography>
+            <Typography variant='h6'>Total:</Typography>
+            <Typography variant='h6'>₹{orderSummary.total.toFixed(2)}</Typography>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowReceipt(false)}>Close</Button>
-          <Button variant="contained" onClick={printReceipt} startIcon={/* <PrintIcon /> */ 'printIcon'}>
+          <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
             Print Receipt
           </Button>
-          <Button variant="outlined" onClick={newOrder}>
+          <Button variant='outlined' onClick={newOrder}>
             New Order
           </Button>
         </DialogActions>
@@ -380,11 +370,7 @@ const Pos = () => {
 
       {/* Floating Action Button for New Order */}
       {orderPlaced && !showReceipt && (
-        <Fab
-          color="primary"
-          sx={{ position: 'fixed', bottom: 16, right: 16 }}
-          onClick={newOrder}
-        >
+        <Fab color='primary' sx={{ position: 'fixed', bottom: 16, right: 16 }} onClick={newOrder}>
           AddICon
           {/* <AddIcon /> */}
         </Fab>
