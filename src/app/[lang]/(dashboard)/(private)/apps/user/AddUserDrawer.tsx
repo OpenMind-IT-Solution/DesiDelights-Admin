@@ -23,11 +23,11 @@ import * as yup from 'yup'
 import CustomTextField from '@core/components/mui/TextField'
 
 // Service & Endpoint Imports
+import { RequiredLabel } from '@/components/RequierdLabel'
 import { post, postFormData } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 import { userEndpoints } from '@/services/endpoints/user'
 import { useSession } from 'next-auth/react'
-import { RequiredLabel } from '@/components/RequierdLabel'
 
 // Styled components for the image uploader
 const ImgStyled = styled('img')(({ theme }) => ({
@@ -171,7 +171,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
 
   useEffect(() => {
     if (userToEdit && userToEdit.profileImage) {
-      setImgSrc(userToEdit.profileImage)
+      setImgSrc(`${process.env.NEXT_PUBLIC_API_URL}${userToEdit.profileImage}`)
     } else {
       setImgSrc('/images/avatars/1.png')
     }

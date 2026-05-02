@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // MUI Imports
 import {
@@ -24,7 +24,8 @@ import {
   ListItemSecondaryAction,
   ListItemText,
   Paper,
-  Typography
+  Typography,
+  CircularProgress
 } from '@mui/material'
 
 // Type Imports
@@ -32,9 +33,10 @@ import type { Category } from '@/types/apps/categoryTypes'
 import type { MenuItem } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 
-// Data Imports
-import { db as categoryData } from '@/fake-db/apps/categoryList'
-import { db as menuData } from '@/fake-db/apps/menuList'
+// API Imports
+import { post } from '@/services/apiService'
+import { categoriesEndpoints } from '@/services/endpoints/category'
+import { menuEndpoints } from '@/services/endpoints/menu'
 import {
   MinusCircleOutline,
   PlusCircleOutline,
@@ -48,18 +50,82 @@ const TAX_RATE = 0.18 // 18% GST
 
 const Pos = () => {
   // States
-  const [menuItems] = useState<MenuItem[]>(menuData.menuItems)
-  const [categories] = useState<Category[]>(categoryData.categories)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
 
+  // Fetch categories
+  const fetchCategories = useCallback(async () => {
+    try {
+      const body = {
+        page: 1,
+        limit: 1000, // Fetch all categories
+        status: true // Only active categories
+      }
+      const result: any = await post(categoriesEndpoints.getCategories, body)
+      if (result.status === 'success') {
+        const formattedCategories = (result.data.categories || []).map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          description: cat.description,
+          status: cat.status ? 'active' : 'inactive'
+        }))
+        setCategories(formattedCategories)
+      } else {
+        throw new Error(result.message || 'Failed to fetch categories')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch categories')
+    }
+  }, [])
+
+  // Fetch menu items
+  const fetchMenuItems = useCallback(async () => {
+    try {
+      const payload = {
+        page: 1,
+        limit: 1000, // Fetch all menu items
+        status: true // Only active items
+      }
+      const result: any = await post(menuEndpoints.getMenu, payload)
+      if (result.status === 'success') {
+        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
+          ...item,
+          menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
+        }))
+        setMenuItems(formattedMenuItems)
+      } else {
+        throw new Error(result.message || 'Failed to fetch menu items')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch menu items')
+    }
+  }, [])
+
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      await Promise.all([fetchCategories(), fetchMenuItems()])
+      setLoading(false)
+    }
+    fetchData()
+  }, [fetchCategories, fetchMenuItems])
+
   // Filter menu items by category
   const filteredMenuItems = selectedCategory
     ? menuItems.filter(item => item.category?.id === selectedCategory)
     : menuItems
+
+  // Get active categories for filter
+  const activeCategories = categories.filter(cat => cat.status === 'active')
 
   // Calculate order summary
   const orderSummary: OrderSummary = {
@@ -138,27 +204,105 @@ const Pos = () => {
 
   // Print receipt
   const printReceipt = () => {
-    const receiptContent = `
-      ===== DESI DELIGHTS RECEIPT =====
-      Order #${orderNumber}
-      Date: ${new Date().toLocaleDateString()}
-      Time: ${new Date().toLocaleTimeString()}
+  const receiptWindow = window.open('', '_blank', 'width=350,height=600')
 
-      Items:
-      ${cart.map(item => `${item.name} x${item.quantity} - ₹${item.total}`).join('\n')}
-
-      Subtotal: ₹${orderSummary.subtotal.toFixed(2)}
-      Tax (18%): ₹${orderSummary.tax.toFixed(2)}
-      Total: ₹${orderSummary.total.toFixed(2)}
-
-      Thank you for dining with us!
-      ================================
-    `
-
-    console.log('Printing receipt:', receiptContent)
-    // In a real application, this would send to a thermal printer
-    alert('Receipt printed successfully!')
+  if (!receiptWindow) {
+    console.error('Unable to open print window')
+    return
   }
+
+  const itemsHtml = cart
+    .map(
+      item => `
+        <tr>
+          <td>${item.name} x${item.quantity}</td>
+          <td style="text-align:right;">₹${item.total}</td>
+        </tr>
+      `
+    )
+    .join('')
+
+  receiptWindow.document.write(`
+    <html>
+      <head>
+        <title>Receipt</title>
+        <style>
+          body {
+            font-family: monospace;
+            width: 280px;
+            margin: 0 auto;
+            padding: 10px;
+            font-size: 12px;
+          }
+          .center { text-align: center; }
+          img {
+            width: 90px;
+            margin-bottom: 5px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          td {
+            padding: 3px 0;
+          }
+          hr {
+            border: none;
+            border-top: 1px dashed #000;
+            margin: 8px 0;
+          }
+          .bold {
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        <div class="center">
+          <img src="/logo.png" alt="Logo" />
+          <h3>DESI DELIGHTS</h3>
+          <p>info@desidelights.be</p>
+          <p>+32 XXX XXX XXX</p>
+          <hr />
+        </div>
+
+        <p>Order #: ${orderNumber}</p>
+        <p>Date: ${new Date().toLocaleDateString()}</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+
+        <hr />
+
+        <table>
+          ${itemsHtml}
+        </table>
+
+        <hr />
+
+        <table>
+          <tr>
+            <td>Subtotal</td>
+            <td style="text-align:right;">₹${orderSummary.subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td>Tax (18%)</td>
+            <td style="text-align:right;">₹${orderSummary.tax.toFixed(2)}</td>
+          </tr>
+          <tr class="bold">
+            <td>Total</td>
+            <td style="text-align:right;">₹${orderSummary.total.toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <hr />
+
+        <div class="center">
+          <p>Thank you for dining with us!</p>
+        </div>
+      </body>
+    </html>
+  `)
+
+  receiptWindow.document.close()
+}
 
   // Reset for new order
   const newOrder = () => {
@@ -194,7 +338,7 @@ const Pos = () => {
               >
                 All
               </Button>
-              {categories.map(category => (
+              {activeCategories.map(category => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? 'contained' : 'outlined'}
@@ -209,45 +353,67 @@ const Pos = () => {
 
           {/* Menu Items Grid */}
           <Grid container spacing={2}>
-            {filteredMenuItems.map(item => (
-              <Grid item xs={12} sm={6} md={4} key={item.id}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s',
-                    '&:hover': { transform: 'scale(1.02)' }
-                  }}
-                  onClick={() => addToCart(item)}
-                >
-                  <CardMedia
-                    component='img'
-                    height='140'
-                    image={item.menuImages[0] || '/images/cards/default.png'}
-                    alt={item.name}
-                  />
-                  <CardContent sx={{ pb: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant='h6' component='h3' sx={{ flex: 1, mr: 1 }}>
-                        {item.name}
-                      </Typography>
-                      <Typography variant='h6' color='primary'>
-                        ₹{item.price}
-                      </Typography>
-                    </Box>
-                    <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
-                      {item.description}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      {item.tag && <Chip label={item.tag} size='small' color='primary' variant='outlined' />}
-                      {item.offer && item.offer !== '0' && (
-                        <Chip label={`${item.offer}% OFF`} size='small' color='success' />
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
+            {loading ? (
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress />
+                </Box>
               </Grid>
-            ))}
+            ) : error ? (
+              <Grid item xs={12}>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography color='error'>{error}</Typography>
+                </Box>
+              </Grid>
+            ) : filteredMenuItems.length === 0 ? (
+              <Grid item xs={12}>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant='body2' color='text.secondary'>
+                    No menu items available
+                  </Typography>
+                </Box>
+              </Grid>
+            ) : (
+              filteredMenuItems.map(item => (
+                <Grid item xs={12} sm={6} md={4} key={item.id}>
+                  <Card
+                    sx={{
+                      height: '100%',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'scale(1.02)' }
+                    }}
+                    onClick={() => addToCart(item)}
+                  >
+                    <CardMedia
+                      component='img'
+                      height='140'
+                      image={item.menuImages[0] ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${item.menuImages[0]}` : '/images/cards/default.png'}
+                      alt={item.name}
+                    />
+                    <CardContent sx={{ pb: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant='h6' component='h3' sx={{ flex: 1, mr: 1 }}>
+                          {item.name}
+                        </Typography>
+                        <Typography variant='h6' color='primary'>
+                          ₹{item.price}
+                        </Typography>
+                      </Box>
+                      <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
+                        {item.description}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {item.tag && <Chip label={item.tag} size='small' color='primary' variant='outlined' />}
+                        {item.offer && item.offer !== '0' && (
+                          <Chip label={`${item.offer}% OFF`} size='small' color='success' />
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))
+            )}
           </Grid>
         </Box>
 

@@ -129,7 +129,6 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const getCategoryDropdown = async (restaurantId: number) => {
     const resp = await post(categoriesEndpoints.categoryDropdown, { restaurantId: [restaurantId] })
-    console.log('response from category dropdown:', resp)
     setCategoryIds(resp.data)
   }
 
@@ -177,7 +176,16 @@ const AddMenuItemDrawer = (props: Props) => {
   const handleReset = () => {
     handleClose()
     setFiles([])
-    resetForm({ name: '', description: '', price: 0, tag: '', offer: '0', status: true })
+    resetForm({
+      id: 0,
+      name: '',
+      description: '',
+      price: 0,
+      tag: '',
+      offer: '0',
+      status: true,
+      categoryId: null
+    })
   }
 
   return (
@@ -257,7 +265,13 @@ const AddMenuItemDrawer = (props: Props) => {
             control={control}
             rules={{ required: true }}
             render={({ field }) => (
-              <CustomTextField select fullWidth label='Select Category' value={field.value} onChange={field.onChange}>
+              <CustomTextField
+                select
+                fullWidth
+                label='Select Category'
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              >
                 {categoryIds.map(category => (
                   <MenuItem key={category.id} value={category.id}>
                     {category.name}
@@ -271,9 +285,15 @@ const AddMenuItemDrawer = (props: Props) => {
             control={control}
             rules={{ required: true }}
             render={({ field }) => (
-              <CustomTextField select fullWidth label='Select Status' value={field.value} onChange={field.onChange}>
-                <MenuItem value={'true'}>Active</MenuItem>
-                <MenuItem value={'false'}>Inactive</MenuItem>
+              <CustomTextField
+                select
+                fullWidth
+                label='Select Status'
+                value={field.value ? 'true' : 'false'}
+                onChange={e => field.onChange(e.target.value === 'true')}
+              >
+                <MenuItem value='true'>Active</MenuItem>
+                <MenuItem value='false'>Inactive</MenuItem>
               </CustomTextField>
             )}
           />
