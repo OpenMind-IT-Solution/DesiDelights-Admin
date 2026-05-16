@@ -98,6 +98,8 @@ const MenuTable = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const baseImgUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL || ''
 
   const [filters, setFilters] = useState<FilterType>({
     status: 'All',
@@ -160,6 +162,10 @@ const MenuTable = () => {
   useEffect(() => {
     getData()
   }, [getData])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleEditClick = async (item: MenuItemType) => {
     setLoading(true)
@@ -233,7 +239,7 @@ const MenuTable = () => {
         enableSorting: false,
         cell: ({ row }) => {
           const relativeImageUrl = row.original.menuImages?.[0]
-          const imageUrl = relativeImageUrl ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${relativeImageUrl}` : null
+          const imageUrl = relativeImageUrl ? `${baseImgUrl}${relativeImageUrl}` : null
 
           return imageUrl ? (
             <Image
@@ -322,11 +328,11 @@ const MenuTable = () => {
         )
       }),
       columnHelper.accessor('offer', {
-        header: 'Offer',
+        header: 'offer',
         cell: ({ row }) => (
           <Chip
             variant='tonal'
-            label={`${row.original.offer}%`}
+            label={`${row.original.offer || 0}%`}
             size='small'
             color={'warning'}
             className='capitalize'
@@ -379,6 +385,16 @@ const MenuTable = () => {
     getPaginationRowModel: getPaginationRowModel()
   })
 
+  if (!mounted) {
+    return (
+      <Card>
+        <div className='flex justify-center items-center p-6'>
+          <CircularProgress />
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <>
       <Card>
@@ -389,9 +405,9 @@ const MenuTable = () => {
             onChange={e => table.setPageSize(Number(e.target.value))}
             className='max-sm:is-full sm:is-[70px]'
           >
-            <MenuItem value='10'>10</MenuItem>
-            <MenuItem value='25'>25</MenuItem>
-            <MenuItem value='50'>50</MenuItem>
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={25}>25</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
           </CustomTextField>
           <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
             <DebouncedInput

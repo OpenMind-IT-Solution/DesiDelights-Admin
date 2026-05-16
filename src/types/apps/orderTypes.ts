@@ -1,4 +1,5 @@
 export type OrderItemType = {
+  id: number
   name: string
   quantity: number
   price: number
@@ -11,5 +12,5 @@ export type OrderType = {
   paymentStatus: 'paid' | 'unpaid' | 'refunded'
   orderType: 'delivery' | 'pickup'
   deliveryAddress: string
-  items: OrderItemType[]
+  orderItems: OrderItemType[]
 }

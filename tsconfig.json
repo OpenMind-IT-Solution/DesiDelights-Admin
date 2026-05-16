@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "ignoreDeprecations": "6.0",
     "downlevelIteration": true,
     "lib": [
       "DOM",

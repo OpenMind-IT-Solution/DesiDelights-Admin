@@ -7,6 +7,10 @@ export type MenuItem = {
   status: boolean
   tag?: string
   offer?: string
+  category?: {
+    id: number
+    name: string
+  }
 }
 
 export type Menu = {

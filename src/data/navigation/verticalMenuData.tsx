@@ -206,6 +206,11 @@ const verticalMenuData = (dictionary: Awaited<ReturnType<typeof getDictionary>>)
         href: '/apps/kanban'
       },
       {
+        label: dictionary['navigation'].pos,
+        icon: 'tabler-target',
+        href: '/apps/pos'
+      },
+      {
         label: dictionary['navigation'].invoice,
         icon: 'tabler-file-description',
         children: [

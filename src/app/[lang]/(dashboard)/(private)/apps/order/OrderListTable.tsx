@@ -20,7 +20,7 @@ import Typography from '@mui/material/Typography'
 // Third-party Imports
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
@@ -44,11 +44,10 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import AddOrderDrawer from './AddOrderDrawer'
 import TableFilters from './TableFilters'
-
-// Util Imports
-
-// Style Imports
+import { post } from '@/services/apiService'
+import { orderEndpoints } from '@/services/endpoints/order'
 import tableStyles from '@core/styles/table.module.css'
+import { useSession } from 'next-auth/react'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
@@ -73,10 +72,8 @@ type OrderStatusType = {
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
-
   addMeta({ itemRank })
-  
-return itemRank.passed
+  return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -100,8 +97,7 @@ const DebouncedInput = ({
       onChange(value)
     }, debounce)
 
-    
-return () => clearTimeout(timeout)
+    return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
@@ -116,22 +112,60 @@ const orderStatusObj: OrderStatusType = {
 // Column Definitions
 const columnHelper = createColumnHelper<OrderTypeWithAction>()
 
-const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
+const OrderListTable = () => {
+  const { data: session } = useSession()
   const [addOrderOpen, setAddOrderOpen] = useState(false)
   const [editOrderOpen, setEditOrderOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState(...[tableData])
+  const [data, setData] = useState([])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
-
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalRows, setTotalRows] = useState(0)
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10
+  })
   const { lang: locale } = useParams()
 
   useEffect(() => {
     setFilteredData(data)
   }, [data])
+
+  const fetchOrders = async () => {
+    if (!session) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res: any = await post(orderEndpoints.getOrders, {
+        search: globalFilter,
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        status: []
+      })
+      setData(res.data.orders)
+      setFilteredData(res.data.orders)
+      setPagination(prev => ({ ...prev, total: res.data.total }))
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.message || 'Failed to fetch orders')
+      setData([])
+      setTotalRows(0)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (session) {
+      fetchOrders()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
     if (ordersToExport.length === 0) return
@@ -140,19 +174,16 @@ const OrderListTable = ({ tableData }: { tableData?: OrderType[] }) => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-
-      
-return `"${str.replace(/"/g, '""')}"`
+      return `"${str.replace(/"/g, '""')}"`
     }
 
-    const rows = ordersToExport.map(order => headers.map(header => escapeCSV(order[header as keyof OrderTypeWithAction])))
+    const rows = ordersToExport.map(order =>
+      headers.map(header => escapeCSV(order[header as keyof OrderTypeWithAction]))
+    )
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
-
     const link = document.createElement('a')
-
     link.href = url
     link.download = 'orders-export.csv'
     link.click()
@@ -160,15 +191,13 @@ return `"${str.replace(/"/g, '""')}"`
   }
 
   const handleConfirmDelete = () => {
-    if (orderToDelete) {
-      const updatedData = data?.filter(order => order.id !== orderToDelete.id) ?? []
-
-      setData(updatedData)
-      setFilteredData(updatedData)
-    }
-
-    setDeleteDialogOpen(false)
-    setOrderToDelete(null)
+    // if (orderToDelete) {
+    //   const updatedData = data?.filter(order => order.id !== orderToDelete.id) ?? []
+    //   setData(updatedData)
+    //   setFilteredData(updatedData)
+    // }
+    // setDeleteDialogOpen(false)
+    // setOrderToDelete(null)
   }
 
   const columns = useMemo<ColumnDef<any, any>[]>(
@@ -189,11 +218,7 @@ return `"${str.replace(/"/g, '""')}"`
           }
 
           return (
-            <Checkbox
-              checked={allPageSelected}
-              indeterminate={somePageSelected}
-              onChange={toggleAllPageSelected}
-            />
+            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
           )
         },
         cell: ({ row }) => (
@@ -249,12 +274,10 @@ return `"${str.replace(/"/g, '""')}"`
           </Typography>
         )
       }),
-      columnHelper.accessor('items', {
-        header: 'Items',
+      columnHelper.accessor('orderItems', {
+        header: 'Order Items',
         cell: ({ row }) => (
-          <Typography>
-            {Array.isArray(row.original.items) ? row.original.items.length : 0} items
-          </Typography>
+          <Typography>{Array.isArray(row.original.orderItems) ? row.original.orderItems.length : 0} items</Typography>
         )
       }),
       columnHelper.accessor('action', {
@@ -326,7 +349,7 @@ return `"${str.replace(/"/g, '""')}"`
               placeholder='Search Order'
               className='max-sm:is-full'
             />
-            <CustomTextField
+            {/* <CustomTextField
               select
               value=''
               slotProps={{
@@ -342,7 +365,7 @@ return `"${str.replace(/"/g, '""')}"`
               }}
             >
               <TableFilters setData={setFilteredData} tableData={data} />
-            </CustomTextField>
+            </CustomTextField> */}
             <Button
               disabled={table.getSelectedRowModel().rows.length === 0}
               color='secondary'
@@ -427,7 +450,7 @@ return `"${str.replace(/"/g, '""')}"`
         />
       </Card>
 
-      <AddOrderDrawer
+      {/* <AddOrderDrawer
         open={addOrderOpen || editOrderOpen}
         handleClose={() => {
           setAddOrderOpen(false)
@@ -437,7 +460,7 @@ return `"${str.replace(/"/g, '""')}"`
         orderData={data}
         setData={setData}
         orderToEdit={selectedOrder}
-      />
+      /> */}
 
       <DeleteConfirmationDialog
         open={deleteDialogOpen}

@@ -96,9 +96,12 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         <MenuItem href={`/${locale}/apps/menu`} icon={<i className='tabler-menu-deep' />}>
           {dictionary['navigation'].menuManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/grocery`} icon={<i className='tabler-shopping-cart' />}>
-          {dictionary['navigation'].groceryManagement}
+        <MenuItem href={`/${locale}/apps/pos`} icon={<i className='tabler-target' />}>
+          {dictionary['navigation'].posModule}
         </MenuItem>
+        {/* <MenuItem href={`/${locale}/apps/grocery`} icon={<i className='tabler-shopping-cart' />}>
+          {dictionary['navigation'].groceryManagement}
+        </MenuItem> */}
         <MenuItem href={`/${locale}/apps/order`} icon={<i className='tabler-truck' />}>
           {dictionary['navigation'].ordersManagement}
         </MenuItem>
@@ -108,15 +111,15 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         <MenuItem href={`/${locale}/apps/coupon`} icon={<i className='tabler-discount' />}>
           {dictionary['navigation'].couponManagement}
         </MenuItem>
-        <MenuItem href={`/${locale}/apps/manage-reviews`} icon={<i className='tabler-message-star' />}>
+        {/* <MenuItem href={`/${locale}/apps/manage-reviews`} icon={<i className='tabler-message-star' />}>
           {dictionary['navigation'].manageReviews}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/support-tickets`} icon={<i className='tabler-ticket' />}>
+        </MenuItem> */}
+        {/* <MenuItem href={`/${locale}/apps/support-tickets`} icon={<i className='tabler-ticket' />}>
           {dictionary['navigation'].supportTickets}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/tv-management`} icon={<i className='tabler-device-tv-old' />}>
+        </MenuItem> */}
+        {/* <MenuItem href={`/${locale}/apps/tv-management`} icon={<i className='tabler-device-tv-old' />}>
           {dictionary['navigation'].tvManagement}
-        </MenuItem>
+        </MenuItem> */}
         <SubMenu label={dictionary['navigation'].settings} icon={<i className='tabler-settings' />}>
           <MenuItem href={`/${locale}/apps/payment`}>{dictionary['navigation'].paymentGetway}</MenuItem>
           <MenuItem href={`/${locale}/apps/locations`}>{dictionary['navigation'].locationManagement}</MenuItem>

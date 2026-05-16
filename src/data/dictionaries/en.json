@@ -32,6 +32,7 @@
     "chat": "Chat",
     "calendar": "Calendar",
     "kanban": "Kanban",
+    "pos": "POS",
     "invoice": "Invoice",
     "preview": "Preview",
     "edit": "Edit",
@@ -115,6 +116,7 @@
     "tvManagement": "TV Management",
     "paymentGetway": "Payment Gateway",
     "locationManagement": "Location Management",
-    "restaurantProfile": "Restaurant Profile"
+    "restaurantProfile": "Restaurant Profile",
+    "posModule": "POS Management"
   }
 }

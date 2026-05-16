@@ -115,6 +115,8 @@
     "tvManagement": "Gestion de la télévision",
     "paymentGetway": "Passerelle de paiement",
     "locationManagement": "Gestion de l'emplacement",
-    "restaurantProfile": "Profil du restaurant"
+    "restaurantProfile": "Profil du restaurant",
+    "posModule": "POS Management",
+    "pos": "POS"
   }
 }
