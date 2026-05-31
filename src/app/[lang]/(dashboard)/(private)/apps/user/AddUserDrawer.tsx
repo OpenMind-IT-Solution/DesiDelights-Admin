@@ -28,6 +28,7 @@ import { post, postFormData } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 import { userEndpoints } from '@/services/endpoints/user'
 import { useSession } from 'next-auth/react'
+import { getImageUrl } from '@/utils/getImageUrl'
 
 // Styled components for the image uploader
 const ImgStyled = styled('img')(({ theme }) => ({
@@ -114,7 +115,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
     onSubmit: async values => {
       const formData = new FormData()
 
-      formData.append('id', String(userToEdit?.userId || 0))
+      formData.append('userId', String(userToEdit?.userId || 0))
       formData.append('fullName', values.fullName)
       formData.append('username', values.username)
       formData.append('email', values.email)
@@ -171,7 +172,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
 
   useEffect(() => {
     if (userToEdit && userToEdit.profileImage) {
-      setImgSrc(`${process.env.NEXT_PUBLIC_API_URL}${userToEdit.profileImage}`)
+      setImgSrc(getImageUrl(userToEdit.profileImage))
     } else {
       setImgSrc('/images/avatars/1.png')
     }

@@ -16,6 +16,7 @@ import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
 import CustomTextField from '@core/components/mui/TextField'
+import { getImageUrl } from '@/utils/getImageUrl'
 
 type Props = {
   open: boolean
@@ -107,7 +108,7 @@ const AddMenuItemDrawer = (props: Props) => {
     let src: string
 
     if (typeof file === 'string') {
-      src = `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${file}`
+      src = getImageUrl(file)
     } else {
       src = URL.createObjectURL(file)
     }
@@ -155,7 +156,6 @@ const AddMenuItemDrawer = (props: Props) => {
 
     formData.append('menuImages', JSON.stringify(existingImages))
     formData.append('restaurantId', '1')
-    formData.append('categoryId', itemToEdit ? String(itemToEdit.category?.id) : '1')
     try {
       const result = await postFormData(menuEndpoints.saveMenu, formData)
 

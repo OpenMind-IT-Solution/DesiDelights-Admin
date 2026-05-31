@@ -45,6 +45,7 @@ import {
   ShoppingOutline,
   TrashCanOutline
 } from 'mdi-material-ui'
+import { getImageUrl } from '@/utils/getImageUrl'
 
 const TAX_RATE = 0.18 // 18% GST
 
@@ -388,7 +389,7 @@ const Pos = () => {
                     <CardMedia
                       component='img'
                       height='140'
-                      image={item.menuImages[0] ? `${process.env.NEXT_PUBLIC_IMAGE_BASE_URL}${item.menuImages[0]}` : '/images/cards/default.png'}
+                      image={getImageUrl(item.menuImages[0]) || '/images/cards/default.png'}
                       alt={item.name}
                     />
                     <CardContent sx={{ pb: 1 }}>
