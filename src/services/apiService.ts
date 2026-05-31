@@ -53,11 +53,15 @@ const handleResponse = async (response: Response) => {
       await signOut({ redirect: true, callbackUrl: '/login' })
       throw new Error('Unauthorized. Token missing or expired')
     } else {
-      const errorResponse = await response.json()
-      const { Message } = errorResponse
+      const errorResponse = await response.json().catch(() => ({}))
+      const message =
+        errorResponse?.message ||
+        errorResponse?.Message ||
+        errorResponse?.errors ||
+        `Request failed with status ${response.status}`
 
-      toast.error(Message)
-      throw new Error(Message)
+      toast.error(message)
+      throw new Error(message)
     }
   } else {
     const successResponse = await response.json()

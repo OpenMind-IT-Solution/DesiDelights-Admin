@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // MUI Imports
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material'
@@ -10,6 +10,7 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
+import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
@@ -32,11 +33,15 @@ import {
   type SortingState
 } from '@tanstack/react-table'
 import classnames from 'classnames'
+import { toast } from 'react-toastify'
 
 // Types and Data
-import { db } from '@/fake-db/apps/grocery'
-import type { GroceryItem } from '@/types/apps/groceryTypes'
+import type { GroceryItem, GroceryStockStatus } from '@/types/apps/groceryTypes'
 import type { ThemeColor } from '@core/types'
+
+// Services
+import { post, del } from '@/services/apiService'
+import { groceryEndpoints } from '@/services/endpoints/grocery'
 
 // Custom Components
 import CustomTextField from '@/@core/components/mui/TextField'
@@ -47,7 +52,6 @@ import GroceryFormDrawer from './GroceryFormDrawer'
 // Style Imports
 import tableStyles from '@core/styles/table.module.css'
 
-// Extend Tanstack Table interfaces
 declare module '@tanstack/table-core' {
   interface FilterFns {
     fuzzy: FilterFn<unknown>
@@ -61,7 +65,6 @@ type GroceryItemWithAction = GroceryItem & {
   action?: string
 }
 
-// A reusable Stat Card for the top of the dashboard
 const StatCard = ({
   title,
   value,
@@ -100,16 +103,14 @@ const StatCard = ({
   </Card>
 )
 
-// FUZZY FILTER FUNCTION for smart searching
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
 
   addMeta({ itemRank })
-  
-return itemRank.passed
+
+  return itemRank.passed
 }
 
-// DEBOUNCED INPUT COMPONENT
 const DebouncedInput = ({
   value: initialValue,
   onChange,
@@ -131,40 +132,85 @@ const DebouncedInput = ({
       onChange(value)
     }, debounce)
 
-    
-return () => clearTimeout(timeout)
+    return () => clearTimeout(timeout)
   }, [value, onChange, debounce])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
 }
 
+const mapApiRowToGrocery = (row: any): GroceryItem => ({
+  id: row.id,
+  name: row.itemName,
+  description: row.description ?? null,
+  type: row.type,
+  store_id: row.storeId,
+  store_name: row.store?.storeName ?? row.storeName ?? null,
+  location: row.store?.location ?? row.storeLocation ?? null,
+  priority: row.priority ?? null,
+  stock_quantity: row.quantity,
+  item_lower_value: row.itemLowerValue,
+  stock_status: row.status as GroceryStockStatus
+})
+
 const GroceryDashboard = () => {
-  // State Management
-  const [data, setData] = useState<GroceryItem[]>(db.groceryItems)
+  const [data, setData] = useState<GroceryItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [totalRows, setTotalRows] = useState(0)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [rowSelection, setRowSelection] = useState({})
-  const [filterStatus, setFilterStatus] = useState<GroceryItem['stock_status'] | ''>('')
+  const [filterStatus, setFilterStatus] = useState<GroceryStockStatus | ''>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<GroceryItem | null>(null)
   const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
-  // Memoized calculations
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(globalFilter), 500)
+
+    return () => clearTimeout(t)
+  }, [globalFilter])
+
+  const fetchGroceries = useCallback(async () => {
+    setLoading(true)
+
+    try {
+      const body = {
+        search: debouncedSearch,
+        status: filterStatus ? [filterStatus] : [],
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize
+      }
+
+      const res: any = await post(groceryEndpoints.getGroceries, body)
+      const rows: GroceryItem[] = (res?.data?.groceries || []).map(mapApiRowToGrocery)
+
+      setData(rows)
+      setTotalRows(res?.data?.total ?? rows.length)
+    } catch (err: any) {
+      console.error(err)
+      setData([])
+      setTotalRows(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [debouncedSearch, filterStatus, pagination.pageIndex, pagination.pageSize])
+
+  useEffect(() => {
+    fetchGroceries()
+  }, [fetchGroceries])
+
   const stats = useMemo(
     () => ({
-      total: data.length,
+      total: totalRows,
       inStock: data.filter(i => i.stock_status === 'In Stock').length,
       lowStock: data.filter(i => i.stock_status === 'Low Stock').length,
       outOfStock: data.filter(i => i.stock_status === 'Out of Stock').length
     }),
-    [data]
+    [data, totalRows]
   )
 
-  const filteredData = useMemo(() => {
-    return data.filter(item => (filterStatus ? item.stock_status === filterStatus : true))
-  }, [data, filterStatus])
-
-  // Handlers
   const handleOpenDrawer = (item: GroceryItem | null) => {
     setEditingItem(item)
     setIsDrawerOpen(true)
@@ -175,38 +221,63 @@ const GroceryDashboard = () => {
     setIsDrawerOpen(false)
   }
 
-  const handleSaveItem = (itemData: GroceryItem) => {
-    if (editingItem) {
-      setData(data.map(i => (i.id === itemData.id ? { ...itemData, updated_at: new Date().toISOString() } : i)))
-    } else {
-      setData([
-        {
-          ...itemData,
-          id: (data.length > 0 ? Math.max(...data.map(i => i.id)) : 0) + 1,
-          created_at: new Date().toISOString()
-        },
-        ...data
-      ])
+  const handleSaveItem = async (formItem: GroceryItem) => {
+    const isEdit = !!editingItem
+    const body = {
+      groceryId: isEdit ? editingItem!.id : 0,
+      restaurantId: [1],
+      itemName: formItem.name,
+      description: formItem.description ?? '',
+      quantity: Number(formItem.stock_quantity),
+      type: formItem.type,
+      storeId: Number(formItem.store_id),
+      priority: Number(formItem.priority ?? 5),
+      itemLowerValue: Number(formItem.item_lower_value)
     }
 
-    handleCloseDrawer()
+    try {
+      const res: any = await post(groceryEndpoints.saveGrocery, body)
+
+      if (res?.status === 'success') {
+        toast.success(res.message || `Grocery ${isEdit ? 'updated' : 'created'} successfully`)
+        handleCloseDrawer()
+        await fetchGroceries()
+      } else {
+        toast.error(res?.message || 'Failed to save grocery item')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.message || 'Failed to save grocery item')
+    }
   }
 
-  const handleDeleteConfirm = () => {
-    if (deletingItem) {
-      setData(data.filter(i => i.id !== deletingItem.id))
-      setDeletingItem(null)
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return
+
+    try {
+      const res: any = await del(groceryEndpoints.deleteGrocery(deletingItem.id))
+
+      if (res?.status === 'success') {
+        toast.success(res.message || 'Grocery item deleted successfully')
+        setDeletingItem(null)
+        await fetchGroceries()
+      } else {
+        toast.error(res?.message || 'Failed to delete grocery item')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err?.message || 'Failed to delete grocery item')
     }
   }
 
   const handleExportSelected = (itemsToExport: GroceryItemWithAction[]) => {
     if (itemsToExport.length === 0) return
-    const headers = ['id', 'name', 'stock_quantity', 'unit', 'stock_status', 'type', 'store_name', 'location']
+    const headers = ['id', 'name', 'stock_quantity', 'stock_status', 'type', 'store_name', 'location']
 
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
-      
-return `"${String(value).replace(/"/g, '""')}"`
+
+      return `"${String(value).replace(/"/g, '""')}"`
     }
 
     const rows = itemsToExport.map(item =>
@@ -224,7 +295,6 @@ return `"${String(value).replace(/"/g, '""')}"`
     URL.revokeObjectURL(url)
   }
 
-  // Column Definitions
   const columnHelper = createColumnHelper<GroceryItemWithAction>()
 
   const columns = useMemo<ColumnDef<GroceryItemWithAction, any>[]>(
@@ -251,27 +321,21 @@ return `"${String(value).replace(/"/g, '""')}"`
       columnHelper.accessor('stock_status', {
         header: 'Status',
         cell: info => {
-          const status = info.getValue() as GroceryItem['stock_status']
+          const status = info.getValue() as GroceryStockStatus
 
-          const stockStatusColors: Record<GroceryItem['stock_status'], ThemeColor> = {
+          const stockStatusColors: Record<GroceryStockStatus, ThemeColor> = {
             'In Stock': 'success',
             'Low Stock': 'warning',
             'Out of Stock': 'error'
           }
 
-          
-return <Chip label={status} color={stockStatusColors[status]} size='small' />
+          return <Chip label={status} color={stockStatusColors[status]} size='small' />
         }
       }),
-      columnHelper.accessor('stock_quantity', {
-        header: 'Quantity',
-        cell: info => `${info.getValue()} ${info.row.original.unit}`
-      }),
+      columnHelper.accessor('stock_quantity', { header: 'Quantity', cell: info => info.getValue() }),
       columnHelper.accessor('type', { header: 'Type', cell: info => info.getValue() }),
       columnHelper.accessor('store_name', { header: 'Store', cell: info => info.getValue() || 'N/A' }),
-
       columnHelper.accessor('location', { header: 'Location', cell: info => info.getValue() || 'N/A' }),
-
       columnHelper.display({
         id: 'actions',
         header: 'Actions',
@@ -295,13 +359,15 @@ return <Chip label={status} color={stockStatusColors[status]} size='small' />
   )
 
   const table = useReactTable({
-    data: filteredData,
+    data,
     columns,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, sorting, globalFilter },
-    initialState: { pagination: { pageSize: 10 } },
+    state: { rowSelection, sorting, globalFilter, pagination },
+    pageCount: Math.max(1, Math.ceil(totalRows / pagination.pageSize)),
+    manualPagination: true,
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
+    onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
@@ -313,7 +379,6 @@ return <Chip label={status} color={stockStatusColors[status]} size='small' />
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {/* Stat Cards Section */}
       <Grid container spacing={4}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
@@ -357,7 +422,6 @@ return <Chip label={status} color={stockStatusColors[status]} size='small' />
         </Grid>
       </Grid>
 
-      {/* Table Card */}
       <Card>
         <CardContent
           sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}
@@ -366,8 +430,8 @@ return <Chip label={status} color={stockStatusColors[status]} size='small' />
             <Typography>Show</Typography>
             <CustomTextField
               select
-              value={table.getState().pagination.pageSize}
-              onChange={e => table.setPageSize(Number(e.target.value))}
+              value={pagination.pageSize}
+              onChange={e => setPagination(p => ({ ...p, pageIndex: 0, pageSize: Number(e.target.value) }))}
               sx={{ width: 80 }}
             >
               <MenuItem value='10'>10</MenuItem>
@@ -427,7 +491,17 @@ return <Chip label={status} color={stockStatusColors[status]} size='small' />
                 </TableRow>
               ))}
             </TableHead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
+            {loading ? (
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                      <CircularProgress size={28} />
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            ) : table.getRowModel().rows.length === 0 ? (
               <TableBody>
                 <TableRow>
                   <TableCell colSpan={table.getVisibleFlatColumns().length} className='text-center'>

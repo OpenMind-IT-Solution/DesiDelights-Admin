@@ -1,24 +1,23 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
-// MUI Imports
 import Drawer from '@mui/material/Drawer'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
-import MenuItem from '@mui/material/MenuItem'
 import IconButton from '@mui/material/IconButton'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
+import MenuItem from '@mui/material/MenuItem'
 
-// Third-party Imports
 import { useForm, Controller } from 'react-hook-form'
 
-// Types
-import type { GroceryItem } from '@/types/apps/groceryTypes'
+import type { GroceryItem, GroceryStockStatus } from '@/types/apps/groceryTypes'
 
-// Custom Components
+import { post } from '@/services/apiService'
+import { storeEndpoints } from '@/services/endpoints/store'
+
 import CustomTextField from '@core/components/mui/TextField'
 
 type Props = {
@@ -28,61 +27,106 @@ type Props = {
   item: GroceryItem | null
 }
 
-// Add 'location' to the default values
-const defaultValues = {
-  name: '',
-  description: '',
-  unit: 'Kg',
-  type: 'Other' as GroceryItem['type'],
-  store_name: '',
-  location: '', // ADDED
-  priority: 5,
-  stock_quantity: 0
+type StoreOption = {
+  id: number
+  storeName: string
+  location: string
 }
 
-const getStockStatus = (quantity: number): GroceryItem['stock_status'] => {
+type FormValues = {
+  name: string
+  description: string
+  type: string
+  store_id: number | ''
+  priority: number
+  stock_quantity: number
+  item_lower_value: number
+}
+
+const defaultValues: FormValues = {
+  name: '',
+  description: '',
+  type: 'Other',
+  store_id: '',
+  priority: 5,
+  stock_quantity: 0,
+  item_lower_value: 10
+}
+
+const getStockStatus = (quantity: number, lower: number): GroceryStockStatus => {
   if (quantity <= 0) return 'Out of Stock'
-  if (quantity < 10) return 'Low Stock'
-  
-return 'In Stock'
+  if (quantity < lower) return 'Low Stock'
+
+  return 'In Stock'
 }
 
 const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
   const isEditMode = !!item
+  const [stores, setStores] = useState<StoreOption[]>([])
 
   const {
     control,
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm({
-    defaultValues
-  })
+  } = useForm<FormValues>({ defaultValues })
 
   useEffect(() => {
-    if (open) {
-      if (item) {
-        const formValues = {
-          ...defaultValues,
-          ...item,
-          description: item.description || '',
-          store_name: item.store_name || '',
-          location: item.location || '',
-          priority: item.priority || 5
-        }
+    if (!open) return
 
-        reset(formValues)
-      } else {
-        reset(defaultValues)
+    let cancelled = false
+
+    ;(async () => {
+      try {
+        const res: any = await post(storeEndpoints.storeDropdown, {})
+
+        if (!cancelled) setStores(Array.isArray(res?.data) ? res.data : [])
+      } catch (err) {
+        console.error('Failed to load stores', err)
+        if (!cancelled) setStores([])
       }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+
+    if (item) {
+      reset({
+        name: item.name ?? '',
+        description: item.description ?? '',
+        type: item.type ?? 'Other',
+        store_id: item.store_id ?? '',
+        priority: item.priority ?? 5,
+        stock_quantity: item.stock_quantity ?? 0,
+        item_lower_value: item.item_lower_value ?? 10
+      })
+    } else {
+      reset(defaultValues)
     }
   }, [item, open, reset])
 
-  const onSubmit = (formData: any) => {
-    const dataToSave = {
-      ...(item || {}),
-      ...formData,
-      stock_status: getStockStatus(formData.stock_quantity)
+  const onSubmit = (formData: FormValues) => {
+    const quantity = Number(formData.stock_quantity)
+    const lower = Number(formData.item_lower_value)
+    const selectedStore = stores.find(s => s.id === Number(formData.store_id))
+
+    const dataToSave: GroceryItem = {
+      id: item?.id ?? 0,
+      name: formData.name,
+      description: formData.description || null,
+      type: formData.type,
+      store_id: Number(formData.store_id),
+      store_name: selectedStore?.storeName ?? item?.store_name ?? null,
+      location: selectedStore?.location ?? item?.location ?? null,
+      priority: Number(formData.priority),
+      stock_quantity: quantity,
+      item_lower_value: lower,
+      stock_status: getStockStatus(quantity, lower)
     }
 
     onSave(dataToSave)
@@ -144,16 +188,18 @@ const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
               </Grid>
               <Grid item xs={12}>
                 <Controller
-                  name='unit'
+                  name='item_lower_value'
                   control={control}
+                  rules={{ required: 'Low-stock threshold is required', min: { value: 0, message: 'Must be 0 or more' } }}
                   render={({ field }) => (
-                    <CustomTextField select fullWidth label='Unit' {...field}>
-                      <MenuItem value='Kg'>Kg</MenuItem>
-                      <MenuItem value='L'>L</MenuItem>
-                      <MenuItem value='ml'>ml</MenuItem>
-                      <MenuItem value='Packet'>Packet</MenuItem>
-                      <MenuItem value='Piece'>Piece</MenuItem>
-                    </CustomTextField>
+                    <CustomTextField
+                      {...field}
+                      fullWidth
+                      type='number'
+                      label='Low Stock Threshold'
+                      helperText={errors.item_lower_value?.message ?? 'Quantity below this is marked Low Stock'}
+                      error={!!errors.item_lower_value}
+                    />
                   )}
                 />
               </Grid>
@@ -161,11 +207,46 @@ const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
                 <Controller
                   name='type'
                   control={control}
+                  rules={{ required: 'Type is required' }}
                   render={({ field }) => (
-                    <CustomTextField select fullWidth label='Type' {...field}>
-                      <MenuItem value='Dairy'>Dairy</MenuItem>
-                      <MenuItem value='Disposable'>Disposable</MenuItem>
-                      <MenuItem value='Other'>Other</MenuItem>
+                    <CustomTextField
+                      {...field}
+                      fullWidth
+                      label='Type'
+                      placeholder='e.g. Grain, Spice, Dairy'
+                      error={!!errors.type}
+                      helperText={errors.type?.message}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Controller
+                  name='store_id'
+                  control={control}
+                  rules={{ required: 'Store is required' }}
+                  render={({ field }) => (
+                    <CustomTextField
+                      select
+                      fullWidth
+                      label='Store'
+                      value={field.value === '' ? '' : String(field.value)}
+                      onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      error={!!errors.store_id}
+                      helperText={
+                        errors.store_id?.message ??
+                        (stores.length === 0 ? 'Loading stores...' : `${stores.length} stores available`)
+                      }
+                    >
+                      <MenuItem value=''>
+                        <em>Select a store</em>
+                      </MenuItem>
+                      {stores.map(store => (
+                        <MenuItem key={store.id} value={String(store.id)}>
+                          {store.storeName} — {store.location}
+                        </MenuItem>
+                      ))}
                     </CustomTextField>
                   )}
                 />
@@ -181,31 +262,23 @@ const GroceryFormDrawer = ({ open, onClose, onSave, item }: Props) => {
               </Grid>
               <Grid item xs={12}>
                 <Controller
-                  name='store_name'
+                  name='priority'
                   control={control}
-                  render={({ field }) => <CustomTextField {...field} fullWidth label='Store Name (Optional)' />}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name='location'
-                  control={control}
+                  rules={{
+                    required: 'Priority is required',
+                    min: { value: 1, message: 'Min 1' },
+                    max: { value: 10, message: 'Max 10' }
+                  }}
                   render={({ field }) => (
                     <CustomTextField
                       {...field}
                       fullWidth
-                      label='Location (Optional)'
-                      placeholder='e.g., Brussels, Belgium'
+                      type='number'
+                      label='Priority (1-10)'
+                      error={!!errors.priority}
+                      helperText={errors.priority?.message}
                     />
                   )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Controller
-                  name='priority'
-                  control={control}
-                  rules={{ min: 1, max: 10 }}
-                  render={({ field }) => <CustomTextField {...field} fullWidth type='number' label='Priority (1-10)' />}
                 />
               </Grid>
             </Grid>
