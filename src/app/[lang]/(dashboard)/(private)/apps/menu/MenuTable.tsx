@@ -40,6 +40,7 @@ import { CircularProgress } from '@mui/material'
 import AddMenuItemDrawer from './AddMenuItemDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TableFilters from './TableFilters'
+import { getImageUrl } from '@/utils/getImageUrl'
 
 type MenuItemWithAction = MenuItemType & { action?: string }
 type StatusType = { [key: string]: ThemeColor }
@@ -99,7 +100,6 @@ const MenuTable = () => {
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
-  const baseImgUrl = process.env.NEXT_PUBLIC_IMAGE_BASE_URL || ''
 
   const [filters, setFilters] = useState<FilterType>({
     status: 'All',
@@ -239,7 +239,7 @@ const MenuTable = () => {
         enableSorting: false,
         cell: ({ row }) => {
           const relativeImageUrl = row.original.menuImages?.[0]
-          const imageUrl = relativeImageUrl ? `${baseImgUrl}${relativeImageUrl}` : null
+          const imageUrl = getImageUrl(relativeImageUrl)
 
           return imageUrl ? (
             <Image
