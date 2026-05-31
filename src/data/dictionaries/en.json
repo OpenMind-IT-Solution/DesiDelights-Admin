@@ -106,6 +106,7 @@
     "restaurantManagement": "Restaurant Management",
     "userManagement": "User Management",
     "groceryManagement": "Grocery Management",
+    "bannerManagement": "Banner Management",
     "categoryManagement": "Category Management",
     "menuManagement": "Menu Management",
     "ordersManagement": "Orders Management",
