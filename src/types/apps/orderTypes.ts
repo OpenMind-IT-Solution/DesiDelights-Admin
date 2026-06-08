@@ -12,5 +12,6 @@ export type OrderType = {
   paymentStatus: 'paid' | 'unpaid' | 'refunded'
   orderType: 'delivery' | 'pickup'
   deliveryAddress: string
-  orderItems: OrderItemType[]
+  orderItems?: OrderItemType[]
+  items?: OrderItemType[]
 }

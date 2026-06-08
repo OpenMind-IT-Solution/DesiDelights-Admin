@@ -42,7 +42,7 @@ import type { ThemeColor } from '@core/types'
 // Component Imports
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
-import AddOrderDrawer from './AddOrderDrawer'
+import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
 import TableFilters from './TableFilters'
 import { post } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
@@ -115,8 +115,8 @@ const columnHelper = createColumnHelper<OrderTypeWithAction>()
 const OrderListTable = () => {
   const { data: session } = useSession()
   const [addOrderOpen, setAddOrderOpen] = useState(false)
-  const [editOrderOpen, setEditOrderOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState([])
   const [filteredData, setFilteredData] = useState(data)
@@ -136,35 +136,48 @@ const OrderListTable = () => {
     setFilteredData(data)
   }, [data])
 
-  const fetchOrders = async () => {
-    if (!session) return
-    setLoading(true)
-    setError(null)
-    try {
-      const res: any = await post(orderEndpoints.getOrders, {
-        search: globalFilter,
-        page: pagination.pageIndex + 1,
-        limit: pagination.pageSize,
-        status: []
-      })
-      setData(res.data.orders)
-      setFilteredData(res.data.orders)
-      setPagination(prev => ({ ...prev, total: res.data.total }))
-    } catch (err: any) {
-      console.error(err)
-      setError(err?.message || 'Failed to fetch orders')
-      setData([])
-      setTotalRows(0)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let active = true
+
+    const fetchOrders = async () => {
+      if (!session) return
+      setLoading(true)
+      setError(null)
+
+      try {
+        const res: any = await post(orderEndpoints.getOrders, {
+          search: globalFilter,
+          page: pagination.pageIndex + 1,
+          limit: pagination.pageSize,
+          status: []
+        })
+
+        if (!active) return
+
+        setData(res.data.orders)
+        setFilteredData(res.data.orders)
+        setPagination(prev => ({ ...prev, total: res.data.total }))
+      } catch (err: any) {
+        if (!active) return
+
+        console.error(err)
+        setError(err?.message || 'Failed to fetch orders')
+        setData([])
+        setTotalRows(0)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
     if (session) {
       fetchOrders()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    return () => {
+      active = false
+    }
   }, [session, globalFilter, pagination.pageIndex, pagination.pageSize])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
@@ -248,7 +261,7 @@ const OrderListTable = () => {
       }),
       columnHelper.accessor('totalAmount', {
         header: 'Total Amount',
-        cell: ({ row }) => <Typography>₹{row.original.totalAmount}</Typography>
+        cell: ({ row }) => <Typography>€{row.original.totalAmount}</Typography>
       }),
       columnHelper.accessor('paymentStatus', {
         header: 'Payment Status',
@@ -276,9 +289,10 @@ const OrderListTable = () => {
       }),
       columnHelper.accessor('orderItems', {
         header: 'Order Items',
-        cell: ({ row }) => (
-          <Typography>{Array.isArray(row.original.orderItems) ? row.original.orderItems.length : 0} items</Typography>
-        )
+        cell: ({ row }) => {
+          const orderItems = row.original.orderItems ?? row.original.items ?? []
+          return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '0 items'}</Typography>
+        }
       }),
       columnHelper.accessor('action', {
         header: 'Action',
@@ -287,7 +301,7 @@ const OrderListTable = () => {
             <IconButton
               onClick={() => {
                 setSelectedOrder(row.original)
-                setEditOrderOpen(true)
+                setDrawerOpen(true)
               }}
             >
               <i className='tabler-edit text-textSecondary' />
@@ -449,6 +463,15 @@ const OrderListTable = () => {
           onPageChange={(_, page) => table.setPageIndex(page)}
         />
       </Card>
+
+      <OrderItemsDrawer
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false)
+          setSelectedOrder(null)
+        }}
+        order={selectedOrder}
+      />
 
       {/* <AddOrderDrawer
         open={addOrderOpen || editOrderOpen}

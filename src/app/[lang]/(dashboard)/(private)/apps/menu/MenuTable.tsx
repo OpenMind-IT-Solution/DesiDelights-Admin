@@ -284,7 +284,7 @@ const MenuTable = () => {
           const offerPercentage = parseFloat(row.original.offer || '0')
 
           if (offerPercentage <= 0) {
-            return <Typography>₹{originalPrice}</Typography>
+            return <Typography>€{originalPrice}</Typography>
           }
 
           const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
@@ -293,7 +293,7 @@ const MenuTable = () => {
             <div className='flex items-center gap-3'>
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <Typography component='span' color='text.secondary'>
-                  ₹{originalPrice}
+                  €{originalPrice}
                 </Typography>
                 <span
                   style={{
@@ -309,7 +309,7 @@ const MenuTable = () => {
               </div>
 
               <Typography component='span' color='text.primary' className='font-medium'>
-                ₹{finalPrice}
+                €{finalPrice}
               </Typography>
             </div>
           )

@@ -9,6 +9,7 @@ import { Card, Tab } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 
 import AccountingReports from './AccountingReports';
+import GroceryReports from './GroceryReports';
 import InventoryReports from './InventoryReports';
 import OrderReports from './OrderReports';
 import PromotionReports from './PromotionReports';
@@ -48,8 +49,13 @@ return (
               label='Accounting Reports'
               onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
             />
-            {/* <Tab
+            <Tab
               value='5'
+              label='Grocery Reports'
+              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
+            />
+            {/* <Tab
+              value='6'
               label='Customer Reports'
               onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
             /> */}
@@ -76,7 +82,10 @@ return (
           <TabPanel value='4'>
             <AccountingReports />
           </TabPanel>
-          {/* <TabPanel value='5'>
+          <TabPanel value='5'>
+            <GroceryReports />
+          </TabPanel>
+          {/* <TabPanel value='6'>
             <CustomerReports />
           </TabPanel> */}
           <TabPanel value='6'>
