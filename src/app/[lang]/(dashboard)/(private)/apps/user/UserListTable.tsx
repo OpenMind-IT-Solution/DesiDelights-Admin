@@ -364,6 +364,7 @@ const UserListTable = () => {
   const table = useReactTable<UsersTypeWithAction>({
     data: data as UsersTypeWithAction[],
     columns,
+    autoResetPageIndex: false,
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },

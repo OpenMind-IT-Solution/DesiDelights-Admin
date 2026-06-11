@@ -117,7 +117,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
 
       formData.append('userId', String(userToEdit?.userId || 0))
       formData.append('fullName', values.fullName)
-      formData.append('username', values.username)
+      formData.append('userName', values.username)
       formData.append('email', values.email)
       formData.append('roleId', String(values.roleId))
       formData.append('status', String(values.status))

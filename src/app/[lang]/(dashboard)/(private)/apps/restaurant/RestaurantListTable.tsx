@@ -327,6 +327,7 @@ const RestaurantListTable = () => {
   const table = useReactTable({
     data,
     columns,
+    autoResetPageIndex: false,
     pageCount: Math.ceil(totalRows / pagination.pageSize),
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,

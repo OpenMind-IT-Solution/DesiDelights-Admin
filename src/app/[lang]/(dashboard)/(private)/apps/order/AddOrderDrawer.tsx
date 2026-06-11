@@ -17,6 +17,9 @@ import type { OrderType } from '@/types/apps/orderTypes'
 
 // Component Imports
 import CustomTextField from '@core/components/mui/TextField'
+import { put } from '@/services/apiService'
+import { orderEndpoints } from '@/services/endpoints/order'
+import { toast } from 'react-toastify'
 
 type Props = {
   open: boolean
@@ -24,6 +27,7 @@ type Props = {
   orderData?: OrderType[]
   setData: (data: OrderType[]) => void
   orderToEdit?: OrderType | null
+  onSuccess?: () => void
 }
 
 type FormValidateType = {
@@ -42,8 +46,25 @@ const initialData: FormValidateType = {
   deliveryAddress: ''
 }
 
+const parseDeliveryAddress = (address: string | null | undefined): string => {
+  if (!address) return ''
+  try {
+    const parsed = JSON.parse(address)
+    if (parsed && typeof parsed === 'object' && (parsed.customerName || parsed.customerPhone || parsed.customerNotes)) {
+      const parts: string[] = []
+      if (parsed.customerName) parts.push(parsed.customerName)
+      if (parsed.customerPhone) parts.push(parsed.customerPhone)
+      if (parsed.customerNotes) parts.push(`(${parsed.customerNotes})`)
+      return parts.join(' | ')
+    }
+  } catch {
+    // not JSON, return as-is
+  }
+  return address
+}
+
 const AddOrderDrawer = (props: Props) => {
-  const { open, handleClose, orderData, setData, orderToEdit } = props
+  const { open, handleClose, orderData, setData, orderToEdit, onSuccess } = props
 
   const {
     control,
@@ -51,36 +72,51 @@ const AddOrderDrawer = (props: Props) => {
     handleSubmit,
     formState: { errors }
   } = useForm<FormValidateType>({
-    defaultValues: orderToEdit || initialData
+    defaultValues: initialData
   })
 
   useEffect(() => {
-    resetForm(orderToEdit || initialData)
+    if (orderToEdit) {
+      resetForm({
+        ...orderToEdit,
+        deliveryAddress: parseDeliveryAddress(orderToEdit.deliveryAddress)
+      })
+    } else {
+      resetForm(initialData)
+    }
   }, [orderToEdit, resetForm, open])
 
-  const onSubmit = (data: FormValidateType) => {
-    const newOrder: OrderType = {
-      id: orderToEdit?.id ?? (orderData?.length ? orderData.length + 1 : 1),
-      orderType: data.orderType,
-      status: data.status,
-      paymentStatus: data.paymentStatus,
-      totalAmount: data.totalAmount,
-      deliveryAddress: data.deliveryAddress,
-      items: orderToEdit?.items || [] // could also add a form for items later
-    }
-
+  const onSubmit = async (data: FormValidateType) => {
     if (orderToEdit) {
-      const updatedOrders = (orderData ?? []).map(order =>
-        order.id === orderToEdit.id ? newOrder : order
-      )
-
-      setData(updatedOrders)
+      try {
+        await put(orderEndpoints.updateOrder(orderToEdit.id), {
+          status: data.status,
+          paymentStatus: data.paymentStatus,
+          orderType: data.orderType,
+          totalAmount: data.totalAmount,
+          ...(data.deliveryAddress && { deliveryAddress: data.deliveryAddress })
+        })
+        toast.success('Order updated successfully')
+        onSuccess?.()
+        handleClose()
+        resetForm(initialData)
+      } catch {
+        // toast is already shown by apiService
+      }
     } else {
+      const newOrder: OrderType = {
+        id: orderData?.length ? orderData.length + 1 : 1,
+        orderType: data.orderType,
+        status: data.status,
+        paymentStatus: data.paymentStatus,
+        totalAmount: data.totalAmount,
+        deliveryAddress: data.deliveryAddress,
+        items: []
+      }
       setData([newOrder, ...(orderData ?? [])])
+      handleClose()
+      resetForm(initialData)
     }
-
-    handleClose()
-    resetForm(initialData)
   }
 
   const handleReset = () => {
@@ -120,6 +156,7 @@ const AddOrderDrawer = (props: Props) => {
               >
                 <MenuItem value='delivery'>Delivery</MenuItem>
                 <MenuItem value='pickup'>Pickup</MenuItem>
+                <MenuItem value='pos'>POS</MenuItem>
               </CustomTextField>
             )}
           />
@@ -137,6 +174,8 @@ const AddOrderDrawer = (props: Props) => {
                 {...(errors.status && { error: true, helperText: 'This field is required.' })}
               >
                 <MenuItem value='pending'>Pending</MenuItem>
+                <MenuItem value='placed'>Placed</MenuItem>
+                <MenuItem value='confirmed'>Confirmed</MenuItem>
                 <MenuItem value='completed'>Completed</MenuItem>
                 <MenuItem value='cancelled'>Cancelled</MenuItem>
               </CustomTextField>
@@ -157,7 +196,9 @@ const AddOrderDrawer = (props: Props) => {
               >
                 <MenuItem value='paid'>Paid</MenuItem>
                 <MenuItem value='unpaid'>Unpaid</MenuItem>
+                <MenuItem value='pending'>Pending</MenuItem>
                 <MenuItem value='refunded'>Refunded</MenuItem>
+                <MenuItem value='cancelled'>Cancelled</MenuItem>
               </CustomTextField>
             )}
           />
@@ -181,14 +222,12 @@ const AddOrderDrawer = (props: Props) => {
           <Controller
             name='deliveryAddress'
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
-                label='Delivery Address'
+                label='Delivery Address / Customer Info'
                 placeholder='123 Main St, City, Country'
-                {...(errors.deliveryAddress && { error: true, helperText: 'This field is required.' })}
               />
             )}
           />
