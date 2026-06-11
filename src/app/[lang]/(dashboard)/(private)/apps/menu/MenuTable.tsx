@@ -370,6 +370,7 @@ const MenuTable = () => {
   const table = useReactTable({
     data: data,
     columns,
+    autoResetPageIndex: false,
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },

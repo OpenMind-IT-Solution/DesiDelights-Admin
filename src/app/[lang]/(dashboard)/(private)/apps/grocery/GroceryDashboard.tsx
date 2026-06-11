@@ -361,6 +361,7 @@ const GroceryDashboard = () => {
   const table = useReactTable({
     data,
     columns,
+    autoResetPageIndex: false,
     filterFns: { fuzzy: fuzzyFilter },
     state: { rowSelection, sorting, globalFilter, pagination },
     pageCount: Math.max(1, Math.ceil(totalRows / pagination.pageSize)),

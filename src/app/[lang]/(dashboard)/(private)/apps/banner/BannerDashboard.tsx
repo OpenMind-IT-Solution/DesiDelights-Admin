@@ -309,6 +309,7 @@ const BannerDashboard = () => {
   const table = useReactTable({
     data,
     columns,
+    autoResetPageIndex: false,
     state: { sorting, globalFilter, pagination },
     pageCount: Math.max(1, Math.ceil(totalRows / pagination.pageSize)),
     manualPagination: true,

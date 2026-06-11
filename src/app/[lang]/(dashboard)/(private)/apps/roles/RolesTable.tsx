@@ -251,6 +251,7 @@ const RolesTable = () => {
   const table = useReactTable({
     data: roles,
     columns,
+    autoResetPageIndex: false,
     state: { rowSelection, globalFilter, pagination },
     onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },

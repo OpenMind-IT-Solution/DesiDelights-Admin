@@ -24,6 +24,7 @@ import {
   ListItemSecondaryAction,
   ListItemText,
   Paper,
+  TextField,
   Typography,
   CircularProgress
 } from '@mui/material'
@@ -37,6 +38,7 @@ import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 import { post } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { posEndpoints } from '@/services/endpoints/pos'
 import {
   MinusCircleOutline,
   PlusCircleOutline,
@@ -60,6 +62,9 @@ const Pos = () => {
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerNotes, setCustomerNotes] = useState('')
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -194,11 +199,35 @@ const Pos = () => {
   }
 
   // Place order
-  const placeOrder = () => {
+  const placeOrder = async () => {
     if (cart.length === 0) return
 
-    const newOrderNumber = Math.floor(Math.random() * 10000) + 1
-    setOrderNumber(newOrderNumber)
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.tax,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      if (result.status === 'success') {
+        setOrderNumber(result.data.orderId)
+      } else {
+        setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+      }
+    } catch {
+      setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+    }
+
     setOrderPlaced(true)
     setShowReceipt(true)
   }
@@ -269,6 +298,9 @@ const Pos = () => {
         <p>Order #: ${orderNumber}</p>
         <p>Date: ${new Date().toLocaleDateString()}</p>
         <p>Time: ${new Date().toLocaleTimeString()}</p>
+        ${customerName ? `<p>Customer: ${customerName}</p>` : ''}
+        ${customerPhone ? `<p>Phone: ${customerPhone}</p>` : ''}
+        ${customerNotes ? `<p>Notes: ${customerNotes}</p>` : ''}
 
         <hr />
 
@@ -311,6 +343,9 @@ const Pos = () => {
     setOrderPlaced(false)
     setOrderNumber(null)
     setShowReceipt(false)
+    setCustomerName('')
+    setCustomerPhone('')
+    setCustomerNotes('')
   }
 
   return (
@@ -480,6 +515,37 @@ const Pos = () => {
                   </Typography>
                 </Box>
 
+                <Divider sx={{ my: 2 }} />
+                <Typography variant='subtitle2' gutterBottom color='text.secondary'>
+                  Customer Details (optional)
+                </Typography>
+                <TextField
+                  label='Customer Name'
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  fullWidth
+                  size='small'
+                  sx={{ mb: 1 }}
+                />
+                <TextField
+                  label='Phone Number'
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  fullWidth
+                  size='small'
+                  sx={{ mb: 1 }}
+                />
+                <TextField
+                  label='Notes'
+                  value={customerNotes}
+                  onChange={e => setCustomerNotes(e.target.value)}
+                  fullWidth
+                  size='small'
+                  multiline
+                  rows={2}
+                  sx={{ mb: 2 }}
+                />
+
                 <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
                   Place Order
                 </Button>
@@ -501,6 +567,21 @@ const Pos = () => {
             <Typography variant='body2' color='text.secondary'>
               Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
             </Typography>
+            {customerName && (
+              <Typography variant='body2' color='text.secondary'>
+                Customer: {customerName}
+              </Typography>
+            )}
+            {customerPhone && (
+              <Typography variant='body2' color='text.secondary'>
+                Phone: {customerPhone}
+              </Typography>
+            )}
+            {customerNotes && (
+              <Typography variant='body2' color='text.secondary'>
+                Notes: {customerNotes}
+              </Typography>
+            )}
           </Box>
           <List>
             {cart.map(item => (
