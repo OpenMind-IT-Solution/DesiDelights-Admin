@@ -1,130 +1,120 @@
-// React Imports
-import { useEffect, useState } from 'react'
+'use client'
+import { useEffect } from 'react'
 
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 
-// Third-party Imports
 import { Controller, useForm } from 'react-hook-form'
-
-// Component Imports
-import { MenuItem } from '@mui/material'
+import { toast } from 'react-toastify'
+import { useSession } from 'next-auth/react'
 
 import type { CouponProps } from '@/types/apps/couponTypes'
+import { post } from '@/services/apiService'
+import { couponEndpoints } from '@/services/endpoints/coupon'
 import CustomTextField from '@core/components/mui/TextField'
 
 type Props = {
   open: boolean
   handleClose: () => void
-  couponData?: CouponProps[]
-  setData: (data: CouponProps[]) => void
+  onSuccess: () => void
   couponToEdit?: CouponProps | null
 }
 
-type FormValidateType = {
-  id: number;
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  startDate: Date;
-  endDate: Date;
-  isActive: boolean;
-  usageCount: number;
-  maxUsage: number;
+type FormValues = {
+  code: string
+  discount: number
+  type: 'percentage' | 'fixed'
+  startDate: string
+  endDate: string
+  status: 'active' | 'inactive'
+  usageCount: number
+  maxUsage: number
 }
 
-const initialData = {
-  id: 0,
-  code: '',
-  discount: 0,
-  type: 'percentage',
-  startDate: new Date(),
-  endDate: new Date(),
-  isActive: true,
-  usageCount: 0,
-  maxUsage: 0
+const toDateInputValue = (dateStr: string | undefined) => {
+  if (!dateStr) return ''
+
+  return new Date(dateStr).toISOString().slice(0, 10)
 }
 
-// Ensure type is either "percentage" or "fixed"
-const allowedTypes = ["percentage", "fixed"] as const
+const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) => {
+  const { data: session } = useSession()
 
-type CouponType = typeof allowedTypes[number]
-
-const AddCouponDrawer = (props: Props) => {
-  // Props
-  const { open, handleClose, couponData, setData, couponToEdit } = props
-
-  // States
-  const [formData, setFormData] = useState<FormValidateType>(initialData)
-
-  console.log("🚀 ~ AddCouponDrawer ~ formData:", formData)
-
-  // Hooks
   const {
     control,
-    reset: resetForm,
+    reset,
     handleSubmit,
-    formState: { errors }
-  } = useForm<FormValidateType>({
+    formState: { errors, isSubmitting }
+  } = useForm<FormValues>({
     defaultValues: {
       code: '',
       discount: 0,
       type: 'percentage',
-      startDate: new Date(),
-      endDate: new Date(),
-      isActive: true,
+      startDate: '',
+      endDate: '',
+      status: 'active',
       usageCount: 0,
       maxUsage: 0
     }
   })
 
   useEffect(() => {
-    resetForm({
-      code: couponToEdit?.code ?? '',
-      discount: couponToEdit?.discount ?? 0,
-      type: couponToEdit?.type ?? 'percentage',
-      startDate: couponToEdit?.startDate ?? new Date(),
-      endDate: couponToEdit?.endDate ?? new Date(),
-      isActive: couponToEdit?.isActive ?? true,
-      usageCount: couponToEdit?.usageCount ?? 0,
-      maxUsage: couponToEdit?.maxUsage ?? 0
-    })
-  }, [couponToEdit, resetForm, open])
+    if (open) {
+      reset({
+        code: couponToEdit?.code ?? '',
+        discount: couponToEdit?.discount ?? 0,
+        type: couponToEdit?.type ?? 'percentage',
+        startDate: toDateInputValue(couponToEdit?.startDate),
+        endDate: toDateInputValue(couponToEdit?.endDate),
+        status: couponToEdit?.status === false ? 'inactive' : 'active',
+        usageCount: couponToEdit?.usageCount ?? 0,
+        maxUsage: couponToEdit?.maxUsage ?? 0
+      })
+    }
+  }, [couponToEdit, open, reset])
 
-  const onSubmit = (data: FormValidateType) => {
-    const newCoupon: CouponProps = {
-      id: couponToEdit?.id ?? (couponData?.length ? couponData.length + 1 : 1),
+  const onSubmit = async (data: FormValues) => {
+    const restaurantId =
+      typeof session?.user?.restaurantId === 'string'
+        ? JSON.parse(session.user.restaurantId)
+        : session?.user?.restaurantId || []
+
+    const payload = {
+      couponId: couponToEdit?.id ?? 0,
+      restaurantId,
       code: data.code,
-      discount: data.discount,
-      type: allowedTypes.includes(data.type as CouponType) ? (data.type as CouponType) : "percentage",
-      startDate: data.startDate,
-      endDate: data.endDate,
-      isActive: data.isActive,
-      usageCount: data.usageCount,
-      maxUsage: data.maxUsage
+      discount: Number(data.discount),
+      type: data.type,
+      startDate: new Date(data.startDate).toISOString(),
+      endDate: new Date(data.endDate).toISOString(),
+      expiryDate: new Date(data.endDate).toISOString(),
+      status: data.status === 'active',
+      usageCount: Number(data.usageCount),
+      maxUsage: Number(data.maxUsage)
     }
 
-    if (couponToEdit) {
-      const updatedCoupons = (couponData ?? []).map(coupon =>
-        coupon.id === couponToEdit.id ? newCoupon : coupon
-      )
+    try {
+      const result: any = await post(couponEndpoints.saveCoupon, payload)
 
-      setData(updatedCoupons)
-    } else {
-      setData([newCoupon, ...(couponData ?? [])])
+      if (result.status === 'success') {
+        toast.success(result?.message || (couponToEdit ? 'Coupon updated successfully.' : 'Coupon created successfully.'))
+        onSuccess()
+        handleClose()
+      } else {
+        toast.error(result?.message || 'Failed to save coupon.')
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save coupon.')
     }
-
-    handleClose()
-    setFormData(initialData)
-    resetForm()
   }
 
   const handleReset = () => {
     handleClose()
-    setFormData(initialData)
+    reset()
   }
 
   return (
@@ -137,14 +127,14 @@ const AddCouponDrawer = (props: Props) => {
       sx={{ '& .MuiDrawer-paper': { width: { xs: 300, sm: 400 } } }}
     >
       <div className='flex items-center justify-between plb-5 pli-6'>
-        <Typography variant='h5'>{couponToEdit ? 'Edit Restaurant' : 'Add New Restaurant'}</Typography>
+        <Typography variant='h5'>{couponToEdit ? 'Edit Coupon' : 'Add New Coupon'}</Typography>
         <IconButton size='small' onClick={handleReset}>
           <i className='tabler-x text-2xl text-textPrimary' />
         </IconButton>
       </div>
       <Divider />
       <div>
-        <form onSubmit={handleSubmit(data => onSubmit(data))} className='flex flex-col gap-6 p-6'>
+        <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6 p-6'>
           <Controller
             name='code'
             control={control}
@@ -154,7 +144,7 @@ const AddCouponDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 label='Coupon Code'
-                placeholder='COUPON CODE'
+                placeholder='SUMMER20'
                 {...(errors.code && { error: true, helperText: 'This field is required.' })}
               />
             )}
@@ -167,8 +157,7 @@ const AddCouponDrawer = (props: Props) => {
               <CustomTextField
                 select
                 fullWidth
-                id='select-billing'
-                label='Select Coupon Type'
+                label='Coupon Type'
                 {...field}
                 {...(errors.type && { error: true, helperText: 'This field is required.' })}
               >
@@ -185,66 +174,89 @@ const AddCouponDrawer = (props: Props) => {
               <CustomTextField
                 {...field}
                 fullWidth
+                type='number'
                 label='Discount'
-                placeholder='10%'
+                placeholder='10'
                 {...(errors.discount && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
+          />
+          <Controller
+            name='startDate'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='date'
+                label='Start Date'
+                InputLabelProps={{ shrink: true }}
+                {...(errors.startDate && { error: true, helperText: 'This field is required.' })}
+              />
+            )}
+          />
+          <Controller
+            name='endDate'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='date'
+                label='End Date'
+                InputLabelProps={{ shrink: true }}
+                {...(errors.endDate && { error: true, helperText: 'This field is required.' })}
               />
             )}
           />
           <Controller
             name='usageCount'
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
+                type='number'
                 label='Usage Count'
                 placeholder='0'
-                {...(errors.usageCount && { error: true, helperText: 'This field is required.' })}
               />
             )}
           />
           <Controller
             name='maxUsage'
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <CustomTextField
                 {...field}
                 fullWidth
+                type='number'
                 label='Max Usage'
-                placeholder='0'
-                {...(errors.maxUsage && { error: true, helperText: 'This field is required.' })}
+                placeholder='100'
               />
             )}
           />
-
           <Controller
-            name='isActive'
+            name='status'
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                id='select-status'
-                label='Select Status'
+                label='Status'
                 {...field}
-                {...(errors.isActive && { error: true, helperText: 'This field is required.' })}
               >
-                {/* <MenuItem value='pending'>Pending</MenuItem> */}
                 <MenuItem value='active'>Active</MenuItem>
                 <MenuItem value='inactive'>Inactive</MenuItem>
               </CustomTextField>
             )}
           />
-
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit'>
-              Submit
+            <Button variant='contained' type='submit' disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Submit'}
             </Button>
-            <Button variant='tonal' color='error' type='reset' onClick={() => handleReset()}>
+            <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
               Cancel
             </Button>
           </div>
