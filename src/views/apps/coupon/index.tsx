@@ -1,13 +1,10 @@
-// MUI Imports
 import Grid from '@mui/material/Grid2'
-
-import type { CouponProps } from '@/types/apps/couponTypes'
 import CouponListTable from './CouponListTable'
 
-const CouponList = ({ couponData }: { couponData: CouponProps[] }) => {
+const CouponList = () => {
   return (
     <Grid size={{ xs: 12 }}>
-      <CouponListTable tableData={couponData} />
+      <CouponListTable />
     </Grid>
   )
 }
