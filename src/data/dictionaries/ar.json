@@ -104,6 +104,7 @@
     "disabledMenu": "قائمة المعوقين",
     "groceryList": "قائمة البقالة ",
     "bannerManagement": "إدارة البانرات",
-    "posModule": "POS Management"
+    "posModule": "POS Management",
+    "deliverySettings": "إعدادات التوصيل"
   }
 }
