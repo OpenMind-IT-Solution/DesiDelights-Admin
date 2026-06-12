@@ -63,6 +63,9 @@ return true
           >
             <MenuItem value=''>Select Status</MenuItem>
             <MenuItem value='pending'>Pending</MenuItem>
+            <MenuItem value='placed'>Placed</MenuItem>
+            <MenuItem value='confirmed'>Confirmed</MenuItem>
+            <MenuItem value='out_for_delivery'>Out for Delivery</MenuItem>
             <MenuItem value='completed'>Completed</MenuItem>
             <MenuItem value='cancelled'>Cancelled</MenuItem>
           </CustomTextField>

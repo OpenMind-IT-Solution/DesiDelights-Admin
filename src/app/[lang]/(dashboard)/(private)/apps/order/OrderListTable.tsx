@@ -43,6 +43,7 @@ import type { ThemeColor } from '@core/types'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
+import AddOrderDrawer from './AddOrderDrawer'
 import TableFilters from './TableFilters'
 import { post } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
@@ -143,6 +144,7 @@ const OrderListTable = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalRows, setTotalRows] = useState(0)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
@@ -195,7 +197,7 @@ const OrderListTable = () => {
     return () => {
       active = false
     }
-  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize])
+  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize, refreshKey])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
     if (ordersToExport.length === 0) return
@@ -269,7 +271,7 @@ const OrderListTable = () => {
         cell: ({ row }) => (
           <Chip
             variant='tonal'
-            label={row.original.status}
+            label={row.original.status?.replace(/_/g, ' ')}
             size='small'
             color={orderStatusObj[row.original.status] || 'default'}
             className='capitalize'
@@ -489,20 +491,16 @@ const OrderListTable = () => {
           setSelectedOrder(null)
         }}
         order={selectedOrder}
+        onSaved={() => setRefreshKey(k => k + 1)}
       />
 
-      {/* <AddOrderDrawer
-        open={addOrderOpen || editOrderOpen}
+      <AddOrderDrawer
+        open={addOrderOpen}
         handleClose={() => {
           setAddOrderOpen(false)
-          setEditOrderOpen(false)
-          setSelectedOrder(null)
         }}
-        orderData={data}
-        setData={setData}
-        orderToEdit={selectedOrder}
-        onSuccess={fetchOrders}
-      /> */}
+        onSuccess={() => setRefreshKey(k => k + 1)}
+      />
 
       <DeleteConfirmationDialog
         open={deleteDialogOpen}
