@@ -1,4 +1,8 @@
 // MUI Imports
+import Link from 'next/link'
+
+import { useParams } from 'next/navigation'
+
 import Card from '@mui/material/Card'
 import CardMedia from '@mui/material/CardMedia'
 import CardContent from '@mui/material/CardContent'
@@ -7,8 +11,13 @@ import Button from '@mui/material/Button'
 
 // Type Imports
 import type { ProfileHeaderType } from '@/types/pages/profileTypes'
+import { getLocalizedUrl } from '@/utils/i18n'
+import type { Locale } from '@configs/i18n'
+
 
 const UserProfileHeader = ({ data }: { data?: ProfileHeaderType }) => {
+  const { lang: locale } = useParams()
+
   return (
     <Card>
       <CardMedia image={data?.coverImg} className='bs-[250px]' />
@@ -34,10 +43,12 @@ const UserProfileHeader = ({ data }: { data?: ProfileHeaderType }) => {
               </div>
             </div>
           </div>
-          <Button variant='contained' className='flex gap-2'>
-            <i className='tabler-user-check !text-base'></i>
-            <span>Connected</span>
-          </Button>
+          <Link href={getLocalizedUrl(`/pages/account-settings`, locale as Locale)} passHref legacyBehavior>
+            <Button variant='contained' className='flex gap-2 items-center'>
+              <i className='tabler-user-check !text-base' />
+              <span>Edit Profile</span>
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>

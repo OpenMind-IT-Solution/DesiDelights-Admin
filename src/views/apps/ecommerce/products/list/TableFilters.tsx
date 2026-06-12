@@ -50,8 +50,8 @@ const TableFilters = ({
 
   return (
     <CardContent>
-      <Grid container spacing={6}>
-        <Grid size={{ xs: 12, sm: 4 }}>
+      <Grid container spacing={4} direction='column-reverse'>
+        <Grid size={{ xs: 12}}>
           <CustomTextField
             select
             fullWidth
@@ -63,12 +63,12 @@ const TableFilters = ({
             }}
           >
             <MenuItem value=''>Select Status</MenuItem>
-            <MenuItem value='Scheduled'>Scheduled</MenuItem>
-            <MenuItem value='Published'>Publish</MenuItem>
-            <MenuItem value='Inactive'>Inactive</MenuItem>
+            <MenuItem value='Inactive'>High</MenuItem>
+            <MenuItem value='Scheduled'>Medium</MenuItem>
+            <MenuItem value='Published'>Low</MenuItem>
           </CustomTextField>
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12}}>
           <CustomTextField
             select
             fullWidth
@@ -79,7 +79,7 @@ const TableFilters = ({
               select: { displayEmpty: true }
             }}
           >
-            <MenuItem value=''>Select Category</MenuItem>
+            <MenuItem value=''>Select Type</MenuItem>
             <MenuItem value='Accessories'>Accessories</MenuItem>
             <MenuItem value='Home Decor'>Home Decor</MenuItem>
             <MenuItem value='Electronics'>Electronics</MenuItem>
@@ -88,7 +88,7 @@ const TableFilters = ({
             <MenuItem value='Games'>Games</MenuItem>
           </CustomTextField>
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12}}>
           <CustomTextField
             select
             fullWidth

@@ -49,7 +49,14 @@ export type ProductType = {
   qty: number
   status: string
   image: string
-  productBrand: string
+  StoreName: string
+}
+
+export type OrderItemType = {
+  id: number
+  name: string
+  quantity: number
+  price: number
 }
 
 export type OrderType = {
@@ -65,6 +72,7 @@ export type OrderType = {
   date: string
   time: string
   methodNumber: number
+  items?: OrderItemType[]
 }
 
 export type ECommerceType = {

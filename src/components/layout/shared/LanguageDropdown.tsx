@@ -46,10 +46,11 @@ const languageData: LanguageDataType[] = [
     langCode: 'fr',
     langName: 'French'
   },
-  {
-    langCode: 'ar',
-    langName: 'Arabic'
-  }
+
+  // {
+  //   langCode: 'ar',
+  //   langName: 'Arabic'
+  // }
 ]
 
 const LanguageDropdown = () => {

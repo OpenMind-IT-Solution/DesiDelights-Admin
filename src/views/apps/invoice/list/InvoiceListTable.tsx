@@ -167,7 +167,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         )
       },
       columnHelper.accessor('id', {
-        header: '#',
+        header: 'ID',
         cell: ({ row }) => (
           <Typography
             component={Link}

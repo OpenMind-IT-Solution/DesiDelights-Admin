@@ -1,18 +1,10 @@
-// Type Imports
-import type { ThemeColor } from '@core/types'
-
 export type UsersType = {
   id: number
-  role: string
+  roleId: string
+  roleName: string
   email: string
   status: string
-  avatar: string
-  company: string
-  country: string
-  contact: string
+  phoneNumber: string
   fullName: string
-  username: string
-  currentPlan: string
-  avatarColor?: ThemeColor
-  billing: string
+  userName: string
 }

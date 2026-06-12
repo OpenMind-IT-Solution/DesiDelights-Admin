@@ -188,7 +188,6 @@ const ProductListTable = ({ productData }: { productData?: ProductType[] }) => {
               <Typography className='font-medium' color='text.primary'>
                 {row.original.productName}
               </Typography>
-              <Typography variant='body2'>{row.original.productBrand}</Typography>
             </div>
           </div>
         )

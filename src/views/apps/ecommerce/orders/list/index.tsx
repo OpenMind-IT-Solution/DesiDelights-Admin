@@ -8,7 +8,7 @@ import type { OrderType } from '@/types/apps/ecommerceTypes'
 
 // Component Imports
 import OrderCard from './OrderCard'
-import OrderListTable from './OrderListTable'
+import CustomOrderListTable from './CustomOrderListTable'
 
 const OrderList = ({ orderData }: { orderData?: OrderType[] }) => {
   return (
@@ -17,7 +17,7 @@ const OrderList = ({ orderData }: { orderData?: OrderType[] }) => {
         <OrderCard />
       </Grid>
       <Grid size={{ xs: 12 }}>
-        <OrderListTable orderData={orderData} />
+        <CustomOrderListTable orderData={orderData} />
       </Grid>
     </Grid>
   )

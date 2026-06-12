@@ -32,6 +32,7 @@
     "chat": "محادثة",
     "calendar": "تقويم",
     "kanban": "كانبان",
+    "pos": "نقطة البيع",
     "invoice": "فاتورة",
     "preview": "معاينة",
     "edit": "يحرر",
@@ -100,6 +101,10 @@
     "menuLevels": "مستويات القائمة",
     "menuLevel2": "مستوى القائمة 2",
     "menuLevel3": "مستوى القائمة 3",
-    "disabledMenu": "قائمة المعوقين"
+    "disabledMenu": "قائمة المعوقين",
+    "groceryList": "قائمة البقالة ",
+    "bannerManagement": "إدارة البانرات",
+    "posModule": "POS Management",
+    "deliverySettings": "إعدادات التوصيل"
   }
 }

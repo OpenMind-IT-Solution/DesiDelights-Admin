@@ -1,0 +1,538 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import Image from 'next/image'
+import { toast } from 'react-toastify'
+
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import IconButton from '@mui/material/IconButton'
+import MenuItem from '@mui/material/MenuItem'
+import Menu from '@mui/material/Menu'
+import TablePagination from '@mui/material/TablePagination'
+import type { TextFieldProps } from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
+import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable
+} from '@tanstack/react-table'
+import classnames from 'classnames'
+
+import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
+import type { ThemeColor } from '@core/types'
+
+import { del, get, post } from '@/services/apiService'
+import { menuEndpoints } from '@/services/endpoints/menu'
+import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
+import tableStyles from '@core/styles/table.module.css'
+import { CircularProgress } from '@mui/material'
+import AddMenuItemDrawer from './AddMenuItemDrawer'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
+import TableFilters from './TableFilters'
+import { getImageUrl } from '@/utils/getImageUrl'
+
+type MenuItemWithAction = MenuItemType & { action?: string }
+type StatusType = { [key: string]: ThemeColor }
+
+type FilterType = {
+  status: 'All' | 'active' | 'inactive'
+  categoryId: string | null
+}
+
+const fuzzyFilter: FilterFn<MenuItemWithAction> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  addMeta({ itemRank })
+
+  return itemRank.passed
+}
+
+const DebouncedInput = (
+  props: {
+    value: string | number
+    onChange: (value: string | number) => void
+    debounce?: number
+  } & Omit<TextFieldProps, 'onChange'>
+) => {
+  const { value: initialValue, onChange, debounce = 500, ...rest } = props
+  const [value, setValue] = useState(initialValue)
+
+  useEffect(() => setValue(initialValue), [initialValue])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => onChange(value), debounce)
+
+    return () => clearTimeout(timeout)
+  }, [value, onChange, debounce])
+
+  return <CustomTextField {...rest} value={value} onChange={e => setValue(e.target.value)} />
+}
+
+const statusObj: StatusType = {
+  true: 'success',
+  false: 'secondary'
+}
+
+const columnHelper = createColumnHelper<MenuItemWithAction>()
+
+const MenuTable = () => {
+  const [addItemOpen, setAddItemOpen] = useState(false)
+  const [editItemOpen, setEditItemOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<MenuItemType | null>(null)
+  const [rowSelection, setRowSelection] = useState({})
+  const [data, setData] = useState<MenuItemWithAction[]>([])
+  const [totalRows, setTotalRows] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null)
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  const [filters, setFilters] = useState<FilterType>({
+    status: 'All',
+    categoryId: null
+  })
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10
+  })
+
+  const handleFilterOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleFilterClose = () => {
+    setAnchorEl(null)
+  }
+
+  const getData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const payload: Record<string, unknown> = {
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        search: globalFilter
+      }
+
+      if (filters.status !== 'All') {
+        payload.status = filters.status === 'active'
+      }
+
+      if (filters.categoryId) {
+        payload.categoryId = [filters.categoryId]
+      }
+
+      const result = await post(menuEndpoints.getMenu, payload) as {
+        status: string
+        message?: string
+        data?: { menuItems?: MenuItemType[]; total?: number }
+      }
+
+      if (result.status === 'success' && result.data) {
+        const formattedMenuItems = (result.data.menuItems || []).map(item => ({
+          ...item,
+          menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
+        }))
+
+        setData(formattedMenuItems)
+        setTotalRows(result.data.total ?? 0)
+      } else {
+        throw new Error(result.message || 'Failed to fetch menu items.')
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.'
+      setError(message)
+      setData([])
+      setTotalRows(0)
+    } finally {
+      setLoading(false)
+    }
+  }, [pagination, globalFilter, filters])
+
+  useEffect(() => {
+    getData()
+  }, [getData])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleEditClick = async (item: MenuItemType) => {
+    setLoading(true)
+
+    try {
+      const endpoint = menuEndpoints.getMenuById(item.id)
+      const result = await get(endpoint) as {
+        status: string
+        message?: string
+        Message?: string
+        data?: MenuItemType & { menuImages?: unknown }
+      }
+
+      if (result.status === 'success' && result.data) {
+        const itemData = result.data
+        const formattedItem = {
+          ...itemData,
+          menuImages: typeof itemData.menuImages === 'string' ? JSON.parse(itemData.menuImages as string) : itemData.menuImages
+        }
+
+        setSelectedItem(formattedItem as MenuItemType)
+        setEditItemOpen(true)
+      } else {
+        toast.error(result?.Message || result?.message || 'Failed to fetch item details.')
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred while fetching item details.'
+      toast.error(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (itemToDelete) {
+      try {
+        const endpoint = menuEndpoints.deleteMenu(itemToDelete.id)
+        const result = await del(endpoint) as { status: string; message?: string }
+
+        if (result.status === 'success') {
+          toast.success(result?.message || 'Menu item deleted successfully.')
+          await getData()
+        } else {
+          toast.error(result?.message || 'Failed to delete menu item.')
+        }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'An error occurred while deleting the item.'
+        toast.error(message)
+      }
+    }
+
+    setDeleteDialogOpen(false)
+    setItemToDelete(null)
+  }
+
+  const columns = useMemo<ColumnDef<MenuItemWithAction, unknown>[]>(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            indeterminate={table.getIsSomePageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            indeterminate={row.getIsSomeSelected()}
+            onChange={row.getToggleSelectedHandler()}
+          />
+        )
+      },
+      columnHelper.accessor('menuImages', {
+        header: 'Image',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const images = row.original.menuImages
+          const relativeImageUrl = Array.isArray(images) ? images[0] : undefined
+          const imageUrl = getImageUrl(relativeImageUrl)
+
+          return imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={row.original.name}
+              width={50}
+              height={50}
+              style={{ borderRadius: '8px', objectFit: 'cover' }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 50,
+                height: 50,
+                backgroundColor: '#f0f0f0',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <i className='tabler-photo-off' style={{ color: '#888' }} />
+            </div>
+          )
+        }
+      }),
+      columnHelper.accessor('name', {
+        header: 'Name',
+        cell: ({ row }) => (
+          <div className='flex flex-col'>
+            <Typography color='text.primary' className='font-medium'>
+              {row.original.name}
+            </Typography>
+            <Typography variant='body2'>{row.original.tag}</Typography>
+          </div>
+        )
+      }),
+      columnHelper.accessor('price', {
+        header: 'Price',
+        cell: ({ row }) => {
+          const originalPrice = row.original.price
+          const offerPercentage = parseFloat(row.original.offer || '0')
+
+          if (offerPercentage <= 0) {
+            return <Typography>€{originalPrice}</Typography>
+          }
+
+          const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
+
+          return (
+            <div className='flex items-center gap-3'>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <Typography component='span' color='text.secondary'>
+                  €{originalPrice}
+                </Typography>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '-5%',
+                    width: '110%',
+                    height: '1.5px',
+                    backgroundColor: 'red',
+                    transform: 'rotate(-15deg)'
+                  }}
+                />
+              </div>
+
+              <Typography component='span' color='text.primary' className='font-medium'>
+                €{finalPrice}
+              </Typography>
+            </div>
+          )
+        }
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        cell: ({ row }) => (
+          <Chip
+            variant='tonal'
+            label={row.original.status ? 'Active' : 'Inactive'}
+            size='small'
+            color={statusObj[String(row.original.status)]}
+            className='capitalize'
+          />
+        )
+      }),
+      columnHelper.accessor('offer', {
+        header: 'offer',
+        cell: ({ row }) => (
+          <Chip
+            variant='tonal'
+            label={`${row.original.offer || 0}%`}
+            size='small'
+            color={'warning'}
+            className='capitalize'
+          />
+        )
+      }),
+      columnHelper.accessor('action', {
+        header: 'Action',
+        cell: ({ row }) => (
+          <div className='flex items-center'>
+            <IconButton
+              onClick={() => {
+                handleEditClick(row.original)
+              }}
+            >
+              <i className='tabler-edit text-textSecondary' />
+            </IconButton>
+            <IconButton
+              onClick={() => {
+                setItemToDelete(row.original)
+                setDeleteDialogOpen(true)
+              }}
+              color='error'
+            >
+              <i className='tabler-trash' />
+            </IconButton>
+          </div>
+        ),
+        enableSorting: false
+      })
+    ],
+    []
+  )
+
+  const table = useReactTable({
+    data: data,
+    columns,
+    rowCount: totalRows,
+    autoResetPageIndex: false,
+    state: { pagination, globalFilter, rowSelection },
+    onPaginationChange: setPagination,
+    filterFns: { fuzzy: fuzzyFilter },
+    manualPagination: true,
+    manualSorting: true,
+    enableRowSelection: true,
+    globalFilterFn: fuzzyFilter,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
+  })
+
+  if (!mounted) {
+    return (
+      <Card>
+        <div className='flex justify-center items-center p-6'>
+          <CircularProgress />
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <>
+      <Card>
+        <div className='flex justify-between flex-col items-start md:flex-row md:items-center p-6 border-bs gap-4'>
+          <CustomTextField
+            select
+            value={table.getState().pagination.pageSize}
+            onChange={e => table.setPageSize(Number(e.target.value))}
+            className='max-sm:is-full sm:is-[70px]'
+          >
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={25}>25</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
+          </CustomTextField>
+          <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
+            <DebouncedInput
+              value={globalFilter ?? ''}
+              onChange={value => setGlobalFilter(String(value))}
+              placeholder='Search Menu'
+              className='max-sm:is-full'
+            />
+            <Button variant='contained' startIcon={<i className='tabler-filter' />} onClick={handleFilterOpen}>
+              Filters
+            </Button>
+            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleFilterClose}>
+              <TableFilters filters={filters} setFilters={setFilters} onClose={handleFilterClose} />
+            </Menu>
+            <Button
+              variant='contained'
+              startIcon={<i className='tabler-plus' />}
+              onClick={() => setAddItemOpen(!addItemOpen)}
+              className='max-sm:is-full'
+            >
+              Add New Item
+            </Button>
+          </div>
+        </div>
+        <div className='overflow-x-auto'>
+          <table className={tableStyles.table}>
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id}>
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className={classnames({
+                            'flex items-center': header.column.getIsSorted(),
+                            'cursor-pointer select-none': header.column.getCanSort()
+                          })}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <i className='tabler-chevron-up text-xl' />,
+                            desc: <i className='tabler-chevron-down text-xl' />
+                          }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
+                        </div>
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                    <CircularProgress />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center text-red-500'>
+                    {error}
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length > 0 ? (
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                    No data available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <TablePagination
+          component={() => <TablePaginationComponent table={table} />}
+          count={totalRows}
+          rowsPerPage={pagination.pageSize}
+          page={pagination.pageIndex}
+          onPageChange={(_, page) => table.setPageIndex(page)}
+          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
+        />
+      </Card>
+      <AddMenuItemDrawer
+        open={addItemOpen || editItemOpen}
+        handleClose={() => {
+          setAddItemOpen(false)
+          setEditItemOpen(false)
+          setSelectedItem(null)
+        }}
+        itemToEdit={selectedItem}
+        refetchData={getData}
+      />
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        itemName={itemToDelete?.name}
+        itemType='Menu Item'
+      />
+    </>
+  )
+}
+
+export default MenuTable

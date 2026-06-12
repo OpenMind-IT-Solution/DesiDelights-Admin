@@ -11,17 +11,17 @@ import Grid from '@mui/material/Grid2'
 import type { PricingPlanType } from '@/types/pages/pricingTypes'
 
 // Component Imports
-import UserLeftOverview from '@views/apps/user/view/user-left-overview'
-import UserRight from '@views/apps/user/view/user-right'
 
 // Data Imports
 import { getPricingData } from '@/app/server/actions'
+import UserLeftOverview from './user-left-overview'
+import UserRight from './user-right'
 
-const OverViewTab = dynamic(() => import('@views/apps/user/view/user-right/overview'))
-const SecurityTab = dynamic(() => import('@views/apps/user/view/user-right/security'))
-const BillingPlans = dynamic(() => import('@views/apps/user/view/user-right/billing-plans'))
-const NotificationsTab = dynamic(() => import('@views/apps/user/view/user-right/notifications'))
-const ConnectionsTab = dynamic(() => import('@views/apps/user/view/user-right/connections'))
+const OverViewTab = dynamic(() => import('./user-right/overview'))
+const SecurityTab = dynamic(() => import('./user-right/security'))
+const BillingPlans = dynamic(() => import('./user-right/billing-plans'))
+const NotificationsTab = dynamic(() => import('./user-right/notifications'))
+const ConnectionsTab = dynamic(() => import('./user-right/connections'))
 
 // Vars
 const tabContentList = (data?: PricingPlanType[]): { [key: string]: ReactElement } => ({
@@ -31,13 +31,6 @@ const tabContentList = (data?: PricingPlanType[]): { [key: string]: ReactElement
   notifications: <NotificationsTab />,
   connections: <ConnectionsTab />
 })
-
-/**
- * ! If you need data using an API call, uncomment the below API code, update the `process.env.API_URL` variable in the
- * ! `.env` file found at root of your project and also update the API endpoints like `/pages/pricing` in below example.
- * ! Also, remove the above server action import and the action itself from the `src/app/server/actions.ts` file to clean up unused code
- * ! because we've used the server action for getting our static data.
- */
 
 /* const getPricingData = async () => {
   // Vars

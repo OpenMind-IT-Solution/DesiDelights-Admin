@@ -1,0 +1,9 @@
+import OrderListTable from './OrderListTable'
+
+const OrderListApp = async () => {
+  // const orderData = await getOrderData()
+
+  return <OrderListTable /> //tableData={orderData}
+}
+
+export default OrderListApp

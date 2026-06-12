@@ -8,43 +8,44 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Card from '@mui/material/Card'
 import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Rating from '@mui/material/Rating'
 import TablePagination from '@mui/material/TablePagination'
-import Typography from '@mui/material/Typography'
 import type { TextFieldProps } from '@mui/material/TextField'
+import Typography from '@mui/material/Typography'
 
 // Third-party Imports
-import classnames from 'classnames'
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  useReactTable,
-  getFilteredRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
-  getFacetedMinMaxValues,
+  getFilteredRowModel,
   getPaginationRowModel,
-  getSortedRowModel
+  getSortedRowModel,
+  useReactTable
 } from '@tanstack/react-table'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
-import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import classnames from 'classnames'
 
 // Type Imports
+import { IconButton } from '@mui/material'
+
 import type { ReviewType } from '@/types/apps/ecommerceTypes'
 import type { Locale } from '@configs/i18n'
 
 // Component Imports
-import CustomAvatar from '@core/components/mui/Avatar'
-import OptionMenu from '@core/components/option-menu'
-import CustomTextField from '@core/components/mui/TextField'
 import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomAvatar from '@core/components/mui/Avatar'
+import CustomTextField from '@core/components/mui/TextField'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
@@ -234,7 +235,20 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
       columnHelper.accessor('actions', {
         header: 'Actions',
         cell: ({ row }) => (
-          <OptionMenu
+          <>
+          <IconButton>
+            <Link href={getLocalizedUrl('/apps/ecommerce/orders/details/5434', locale as Locale)} className='flex'>
+              <i className='tabler-eye text-textSecondary' />
+            </Link>
+          </IconButton>
+          <IconButton
+              onClick={() => {
+                setAllData(allData?.filter(review => review.id !== row.original.id))
+              }}
+            >
+              <i className='tabler-trash text-textSecondary' />
+            </IconButton>
+          {/* <OptionMenu
             iconButtonProps={{ size: 'medium' }}
             iconClassName='text-textSecondary'
             options={[
@@ -253,7 +267,8 @@ const ManageReviewsTable = ({ reviewsData }: { reviewsData?: ReviewType[] }) => 
                 }
               }
             ]}
-          />
+          /> */}
+          </>
         ),
         enableSorting: false
       })

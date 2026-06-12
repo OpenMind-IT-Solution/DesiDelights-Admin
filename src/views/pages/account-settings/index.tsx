@@ -29,7 +29,7 @@ const AccountSettings = ({ tabContentList }: { tabContentList: { [key: string]: 
             <Tab label='Account' icon={<i className='tabler-users' />} iconPosition='start' value='account' />
             <Tab label='Security' icon={<i className='tabler-lock' />} iconPosition='start' value='security' />
             <Tab
-              label='Billing & Plans'
+              label='Billing & Address'
               icon={<i className='tabler-bookmark' />}
               iconPosition='start'
               value='billing-plans'
@@ -40,7 +40,7 @@ const AccountSettings = ({ tabContentList }: { tabContentList: { [key: string]: 
               iconPosition='start'
               value='notifications'
             />
-            <Tab label='Connections' icon={<i className='tabler-link' />} iconPosition='start' value='connections' />
+            {/* <Tab label='Connections' icon={<i className='tabler-link' />} iconPosition='start' value='connections' /> */}
           </CustomTabList>
         </Grid>
         <Grid size={{ xs: 12 }}>

@@ -6,6 +6,7 @@ import InitColorSchemeScript from '@mui/material/InitColorSchemeScript'
 
 // Third-party Imports
 import 'react-perfect-scrollbar/dist/css/styles.css'
+import 'leaflet/dist/leaflet.css'
 
 // Type Imports
 import type { ChildrenType } from '@core/types'
@@ -29,9 +30,9 @@ import '@/app/globals.css'
 import '@assets/iconify-icons/generated-icons.css'
 
 export const metadata = {
-  title: 'Vuexy - MUI Next.js Admin Dashboard Template',
+  title: 'Desi Delights - Where Evert Bite Feels Like Family',
   description:
-    'Vuexy - MUI Next.js Admin Dashboard Template - is the most developer friendly & highly customizable Admin Dashboard Template based on MUI v5.'
+    'Desi Delights - Where Evert Bite Feels Like Family'
 }
 
 const RootLayout = async (props: ChildrenType & { params: Promise<{ lang: Locale }> }) => {

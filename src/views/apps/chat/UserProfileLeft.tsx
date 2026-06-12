@@ -170,7 +170,7 @@ const UserProfileLeft = (props: Props) => {
               </List>
             </div>
             <Button variant='contained' fullWidth className='mbs-auto' endIcon={<i className='tabler-logout' />}>
-              Logout
+              Logout 
             </Button>
           </div>
         </ScrollWrapper>

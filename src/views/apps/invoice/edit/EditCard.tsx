@@ -309,7 +309,7 @@ const EditCard = ({ invoiceData, id, data }: { invoiceData?: InvoiceType; id: st
                   <div className='flex items-center justify-between'>
                     <Typography>Total:</Typography>
                     <Typography className='font-medium' color='text.primary'>
-                      $1690
+                      ${invoiceData?.total?.toFixed(2) ?? '0.00'}
                     </Typography>
                   </div>
                 </div>
