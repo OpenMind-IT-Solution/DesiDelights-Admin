@@ -1,99 +1,42 @@
-"use client"
-import type { MouseEvent, SyntheticEvent } from 'react';
-import { useState } from 'react';
+'use client'
 
-import TabContext from '@mui/lab/TabContext';
-import TabList from '@mui/lab/TabList';
-import TabPanel from '@mui/lab/TabPanel';
-import { Card, Tab } from '@mui/material';
-import Grid from '@mui/material/Grid2';
+import type { SyntheticEvent } from 'react'
+import { useState } from 'react'
+import TabContext from '@mui/lab/TabContext'
+import TabList from '@mui/lab/TabList'
+import TabPanel from '@mui/lab/TabPanel'
+import { Card, Tab } from '@mui/material'
+import Grid from '@mui/material/Grid2'
 
-import AccountingReports from './AccountingReports';
-import GroceryReports from './GroceryReports';
-import InventoryReports from './InventoryReports';
-import OrderReports from './OrderReports';
-import PromotionReports from './PromotionReports';
-import RestaurantReports from './RestaurantReports';
-import SalesReports from './SalesReports';
+import SalesReportsSection from './SalesReportsSection'
+import OrderTypeReport from './OrderTypeReport'
+import InventoryConsumptionReport from './InventoryConsumptionReport'
+import GroceryReportsSection from './GroceryReportsSection'
+import InventoryReports from './InventoryReports'
 
 const ReportTab = () => {
-  const [value, setValue] = useState<string>('1')
+  const [value, setValue] = useState('1')
 
-  const handleChange = (event: SyntheticEvent, newValue: string) => {
+  const handleChange = (_event: SyntheticEvent, newValue: string) => {
     setValue(newValue)
   }
 
-  
-return (
+  return (
     <Grid size={{ xs: 12 }}>
       <Card className='p-4'>
         <TabContext value={value}>
-          <TabList onChange={handleChange} aria-label='nav tabs example'>
-            <Tab
-              value='1'
-              label='Sales Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            <Tab
-              value='2'
-              label='Inventory Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            <Tab
-              value='3'
-              label='Order Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            <Tab
-              value='4'
-              label='Accounting Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            <Tab
-              value='5'
-              label='Grocery Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            {/* <Tab
-              value='6'
-              label='Customer Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            /> */}
-            <Tab
-              value='6'
-              label='Restaurant Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
-            <Tab
-              value='7'
-              label='Promotion Reports'
-              onClick={(e: MouseEvent<HTMLElement>) => e.preventDefault()}
-            />
+          <TabList onChange={handleChange} variant='scrollable' scrollButtons='auto' aria-label='report tabs'>
+            <Tab value='1' label='Sales Reports' />
+            <Tab value='2' label='Order Type' />
+            <Tab value='3' label='Inventory Consumption' />
+            <Tab value='4' label='Grocery' />
+            <Tab value='5' label='Inventory' />
           </TabList>
-          <TabPanel value='1'>
-            <SalesReports />
-          </TabPanel>
-          <TabPanel value='2'>
-            <InventoryReports />
-          </TabPanel>
-          <TabPanel value='3'>
-            <OrderReports />
-          </TabPanel>
-          <TabPanel value='4'>
-            <AccountingReports />
-          </TabPanel>
-          <TabPanel value='5'>
-            <GroceryReports />
-          </TabPanel>
-          {/* <TabPanel value='6'>
-            <CustomerReports />
-          </TabPanel> */}
-          <TabPanel value='6'>
-            <RestaurantReports />
-          </TabPanel>
-          <TabPanel value='7'>
-            <PromotionReports />
-          </TabPanel>
+          <TabPanel value='1'><SalesReportsSection /></TabPanel>
+          <TabPanel value='2'><OrderTypeReport /></TabPanel>
+          <TabPanel value='3'><InventoryConsumptionReport /></TabPanel>
+          <TabPanel value='4'><GroceryReportsSection /></TabPanel>
+          <TabPanel value='5'><InventoryReports /></TabPanel>
         </TabContext>
       </Card>
     </Grid>

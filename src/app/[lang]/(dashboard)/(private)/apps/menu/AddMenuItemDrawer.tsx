@@ -36,6 +36,11 @@ type FormValidateType = {
   categoryId: number | null
 }
 
+type CategoryOption = {
+  id: number
+  name: string
+}
+
 const Dropzone = styled('div')(({ theme }) => ({
   border: `2px dashed ${theme.palette.divider}`,
   padding: theme.spacing(6),
@@ -52,7 +57,7 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const [files, setFiles] = useState<(File | string)[]>([])
   const [loading, setLoading] = useState(false)
-  const [categoryIds, setCategoryIds] = useState<{ id: number; name: string }[]>([])
+  const [categoryIds, setCategoryIds] = useState<CategoryOption[]>([])
 
   const {
     control,
@@ -129,19 +134,37 @@ const AddMenuItemDrawer = (props: Props) => {
   }
 
   const getCategoryDropdown = async (restaurantId: number) => {
-    const resp = await post(categoriesEndpoints.categoryDropdown, { restaurantId: [restaurantId] })
-    setCategoryIds(resp.data)
+    try {
+      const resp = await post(categoriesEndpoints.categoryDropdown, { restaurantId: [restaurantId] }) as {
+        status: string
+        data?: CategoryOption[]
+      }
+
+      if (resp.status === 'success' && Array.isArray(resp.data)) {
+        setCategoryIds(resp.data)
+      } else {
+        setCategoryIds([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+      setCategoryIds([])
+    }
   }
 
   const onSubmit = async (data: FormValidateType) => {
     setLoading(true)
     const formData = new FormData()
+
     if (itemToEdit) {
-      // @ts-ignore
-      formData.append('menuItemId', itemToEdit.id)
+      formData.append('menuItemId', String(itemToEdit.id))
     }
+
     Object.entries(data).forEach(([key, value]) => {
-      formData.append(key, String(value))
+      if (value === null || value === undefined) {
+        formData.append(key, '')
+      } else {
+        formData.append(key, String(value))
+      }
     })
 
     const existingImages: string[] = []
@@ -156,8 +179,12 @@ const AddMenuItemDrawer = (props: Props) => {
 
     formData.append('menuImages', JSON.stringify(existingImages))
     formData.append('restaurantId', '1')
+
     try {
-      const result = await postFormData(menuEndpoints.saveMenu, formData)
+      const result = await postFormData(menuEndpoints.saveMenu, formData) as {
+        status: string
+        message?: string
+      }
 
       if (result.status === 'success') {
         toast.success(itemToEdit ? 'Item updated successfully!' : 'Item added successfully!')
@@ -166,8 +193,9 @@ const AddMenuItemDrawer = (props: Props) => {
       } else {
         toast.error(result.message || 'An error occurred.')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An unexpected error occurred.')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
