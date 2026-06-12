@@ -50,7 +50,7 @@ type FilterType = {
   categoryId: string | null
 }
 
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+const fuzzyFilter: FilterFn<MenuItemWithAction> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
 
   addMeta({ itemRank })
@@ -123,7 +123,7 @@ const MenuTable = () => {
     setError(null)
 
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         search: globalFilter
@@ -137,10 +137,14 @@ const MenuTable = () => {
         payload.categoryId = [filters.categoryId]
       }
 
-      const result: any = await post(menuEndpoints.getMenu, payload)
+      const result = await post(menuEndpoints.getMenu, payload) as {
+        status: string
+        message?: string
+        data?: { menuItems?: MenuItemType[]; total?: number }
+      }
 
-      if (result.status === 'success') {
-        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
+      if (result.status === 'success' && result.data) {
+        const formattedMenuItems = (result.data.menuItems || []).map(item => ({
           ...item,
           menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
         }))
@@ -150,8 +154,9 @@ const MenuTable = () => {
       } else {
         throw new Error(result.message || 'Failed to fetch menu items.')
       }
-    } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred.')
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.'
+      setError(message)
       setData([])
       setTotalRows(0)
     } finally {
@@ -172,22 +177,28 @@ const MenuTable = () => {
 
     try {
       const endpoint = menuEndpoints.getMenuById(item.id)
-      const result = await get(endpoint)
+      const result = await get(endpoint) as {
+        status: string
+        message?: string
+        Message?: string
+        data?: MenuItemType & { menuImages?: unknown }
+      }
 
-      if (result.status === 'success') {
+      if (result.status === 'success' && result.data) {
         const itemData = result.data
         const formattedItem = {
           ...itemData,
-          menuImages: typeof itemData.menuImages === 'string' ? JSON.parse(itemData.menuImages) : itemData.menuImages
+          menuImages: typeof itemData.menuImages === 'string' ? JSON.parse(itemData.menuImages as string) : itemData.menuImages
         }
 
-        setSelectedItem(formattedItem)
+        setSelectedItem(formattedItem as MenuItemType)
         setEditItemOpen(true)
       } else {
-        toast.error(result?.Message || 'Failed to fetch item details.')
+        toast.error(result?.Message || result?.message || 'Failed to fetch item details.')
       }
-    } catch (error: any) {
-      toast.error(error.message || 'An error occurred while fetching item details.')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred while fetching item details.'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -197,7 +208,7 @@ const MenuTable = () => {
     if (itemToDelete) {
       try {
         const endpoint = menuEndpoints.deleteMenu(itemToDelete.id)
-        const result = await del(endpoint)
+        const result = await del(endpoint) as { status: string; message?: string }
 
         if (result.status === 'success') {
           toast.success(result?.message || 'Menu item deleted successfully.')
@@ -205,8 +216,9 @@ const MenuTable = () => {
         } else {
           toast.error(result?.message || 'Failed to delete menu item.')
         }
-      } catch (err: any) {
-        toast.error(err.message || 'An error occurred while deleting the item.')
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'An error occurred while deleting the item.'
+        toast.error(message)
       }
     }
 
@@ -214,7 +226,7 @@ const MenuTable = () => {
     setItemToDelete(null)
   }
 
-  const columns = useMemo<ColumnDef<MenuItemWithAction, any>[]>(
+  const columns = useMemo<ColumnDef<MenuItemWithAction, unknown>[]>(
     () => [
       {
         id: 'select',
@@ -238,7 +250,8 @@ const MenuTable = () => {
         header: 'Image',
         enableSorting: false,
         cell: ({ row }) => {
-          const relativeImageUrl = row.original.menuImages?.[0]
+          const images = row.original.menuImages
+          const relativeImageUrl = Array.isArray(images) ? images[0] : undefined
           const imageUrl = getImageUrl(relativeImageUrl)
 
           return imageUrl ? (
@@ -284,7 +297,7 @@ const MenuTable = () => {
           const offerPercentage = parseFloat(row.original.offer || '0')
 
           if (offerPercentage <= 0) {
-            return <Typography>₹{originalPrice}</Typography>
+            return <Typography>€{originalPrice}</Typography>
           }
 
           const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
@@ -293,7 +306,7 @@ const MenuTable = () => {
             <div className='flex items-center gap-3'>
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <Typography component='span' color='text.secondary'>
-                  ₹{originalPrice}
+                  €{originalPrice}
                 </Typography>
                 <span
                   style={{
@@ -309,7 +322,7 @@ const MenuTable = () => {
               </div>
 
               <Typography component='span' color='text.primary' className='font-medium'>
-                ₹{finalPrice}
+                €{finalPrice}
               </Typography>
             </div>
           )
@@ -370,6 +383,7 @@ const MenuTable = () => {
   const table = useReactTable({
     data: data,
     columns,
+    rowCount: totalRows,
     autoResetPageIndex: false,
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,

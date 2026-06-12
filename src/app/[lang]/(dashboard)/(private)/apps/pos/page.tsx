@@ -246,7 +246,7 @@ const Pos = () => {
       item => `
         <tr>
           <td>${item.name} x${item.quantity}</td>
-          <td style="text-align:right;">₹${item.total}</td>
+          <td style="text-align:right;">€${item.total}</td>
         </tr>
       `
     )
@@ -313,15 +313,15 @@ const Pos = () => {
         <table>
           <tr>
             <td>Subtotal</td>
-            <td style="text-align:right;">₹${orderSummary.subtotal.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.subtotal.toFixed(2)}</td>
           </tr>
           <tr>
             <td>Tax (18%)</td>
-            <td style="text-align:right;">₹${orderSummary.tax.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.tax.toFixed(2)}</td>
           </tr>
           <tr class="bold">
             <td>Total</td>
-            <td style="text-align:right;">₹${orderSummary.total.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.total.toFixed(2)}</td>
           </tr>
         </table>
 
@@ -433,7 +433,7 @@ const Pos = () => {
                           {item.name}
                         </Typography>
                         <Typography variant='h6' color='primary'>
-                          ₹{item.price}
+                          €{item.price}
                         </Typography>
                       </Box>
                       <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
@@ -472,7 +472,7 @@ const Pos = () => {
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity}`} />
+                      <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton size='small' onClick={() => removeFromCart(item.id)}>
@@ -502,16 +502,16 @@ const Pos = () => {
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Subtotal:</Typography>
-                  <Typography>₹{orderSummary.subtotal.toFixed(2)}</Typography>
+                  <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tax (18%):</Typography>
-                  <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
+                  <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
-                    ₹{orderSummary.total.toFixed(2)}
+                    €{orderSummary.total.toFixed(2)}
                   </Typography>
                 </Box>
 
@@ -586,7 +586,7 @@ const Pos = () => {
           <List>
             {cart.map(item => (
               <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity} = ₹${item.total}`} />
+                <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity} = €${item.total}`} />
               </ListItem>
             ))}
           </List>
@@ -594,15 +594,15 @@ const Pos = () => {
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Subtotal:</Typography>
-            <Typography>₹{orderSummary.subtotal.toFixed(2)}</Typography>
+            <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Tax (18%):</Typography>
-            <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
+            <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
-            <Typography variant='h6'>₹{orderSummary.total.toFixed(2)}</Typography>
+            <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
           </Box>
         </DialogContent>
         <DialogActions>

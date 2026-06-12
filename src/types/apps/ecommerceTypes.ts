@@ -52,6 +52,13 @@ export type ProductType = {
   StoreName: string
 }
 
+export type OrderItemType = {
+  id: number
+  name: string
+  quantity: number
+  price: number
+}
+
 export type OrderType = {
   id: number
   order: string
@@ -65,6 +72,7 @@ export type OrderType = {
   date: string
   time: string
   methodNumber: number
+  items?: OrderItemType[]
 }
 
 export type ECommerceType = {
