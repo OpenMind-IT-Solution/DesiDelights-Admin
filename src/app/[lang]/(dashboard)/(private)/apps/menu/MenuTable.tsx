@@ -384,6 +384,7 @@ const MenuTable = () => {
     data: data,
     columns,
     rowCount: totalRows,
+    autoResetPageIndex: false,
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },

@@ -118,6 +118,7 @@
     "paymentGetway": "Payment Gateway",
     "locationManagement": "Location Management",
     "restaurantProfile": "Restaurant Profile",
-    "posModule": "POS Management"
+    "posModule": "POS Management",
+    "deliverySettings": "Delivery Settings"
   }
 }

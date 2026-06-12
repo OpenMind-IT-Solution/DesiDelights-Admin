@@ -70,6 +70,23 @@ type OrderStatusType = {
 // Styled Components
 // const Icon = styled('i')({})
 
+const parseDeliveryAddress = (address: string | null | undefined): string => {
+  if (!address) return '-'
+  try {
+    const parsed = JSON.parse(address)
+    if (parsed && typeof parsed === 'object' && (parsed.customerName || parsed.customerPhone || parsed.customerNotes)) {
+      const parts: string[] = []
+      if (parsed.customerName) parts.push(parsed.customerName)
+      if (parsed.customerPhone) parts.push(parsed.customerPhone)
+      if (parsed.customerNotes) parts.push(`(${parsed.customerNotes})`)
+      return parts.join(' | ')
+    }
+  } catch {
+    // not JSON
+  }
+  return address
+}
+
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
   addMeta({ itemRank })
@@ -283,7 +300,7 @@ const OrderListTable = () => {
         header: 'Delivery Address',
         cell: ({ row }) => (
           <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {row.original.deliveryAddress}
+            {parseDeliveryAddress(row.original.deliveryAddress)}
           </Typography>
         )
       }),
@@ -326,6 +343,7 @@ const OrderListTable = () => {
   const table = useReactTable({
     data: filteredData as OrderType[],
     columns,
+    autoResetPageIndex: false,
     filterFns: { fuzzy: fuzzyFilter },
     state: { rowSelection, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
@@ -483,6 +501,7 @@ const OrderListTable = () => {
         orderData={data}
         setData={setData}
         orderToEdit={selectedOrder}
+        onSuccess={fetchOrders}
       /> */}
 
       <DeleteConfirmationDialog

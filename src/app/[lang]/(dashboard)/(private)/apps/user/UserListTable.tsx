@@ -321,15 +321,17 @@ const UserListTable = () => {
                 <i className='tabler-eye text-textSecondary' />
               </Link>
             </IconButton> */}
-            <IconButton
-              onClick={() => {
-                setUserToDelete(row.original)
-                setDeleteDialogOpen(true)
-              }}
-              color='error'
-            >
-              <i className='tabler-trash' />
-            </IconButton>
+            {!(row.original.roleName === 'Super Admin' && session?.user?.role !== 'Super Admin') && (
+              <IconButton
+                onClick={() => {
+                  setUserToDelete(row.original)
+                  setDeleteDialogOpen(true)
+                }}
+                color='error'
+              >
+                <i className='tabler-trash' />
+              </IconButton>
+            )}
           </div>
         ),
         enableSorting: false
@@ -364,6 +366,7 @@ const UserListTable = () => {
   const table = useReactTable<UsersTypeWithAction>({
     data: data as UsersTypeWithAction[],
     columns,
+    autoResetPageIndex: false,
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,
     filterFns: { fuzzy: fuzzyFilter },

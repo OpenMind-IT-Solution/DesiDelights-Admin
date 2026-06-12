@@ -1,40 +1,39 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
-// MUI Imports
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
+import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 
-// Third-party Imports
 import { Chip } from '@mui/material'
 import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import { rankItem } from '@tanstack/match-sorter-utils'
-import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import type { ColumnDef, FilterFn, PaginationState } from '@tanstack/react-table'
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFacetedMinMaxValues,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
+import { useSession } from 'next-auth/react'
+import { toast } from 'react-toastify'
 
 import type { ThemeColor } from '@/@core/types'
 import type { CouponProps } from '@/types/apps/couponTypes'
-import TablePaginationComponent from '@components/TablePaginationComponent'
+import { del, get, post } from '@/services/apiService'
+import { couponEndpoints } from '@/services/endpoints/coupon'
+import DeleteConfirmationDialog from '@/app/[lang]/(dashboard)/(private)/apps/category/DeleteConfirmationDialog'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
-import DeleteConfirmationDialog from '@/app/[lang]/(dashboard)/(private)/apps/category/DeleteConfirmationDialog'
 import AddCouponDrawer from './AddCouponDrawer'
 
 declare module '@tanstack/table-core' {
@@ -72,7 +71,6 @@ const DebouncedInput = ({
   onChange: (value: string | number) => void
   debounce?: number
 } & Omit<TextFieldProps, 'onChange'>) => {
-  // States
   const [value, setValue] = useState(initialValue)
 
   useEffect(() => {
@@ -93,28 +91,112 @@ const DebouncedInput = ({
 
 const columnHelper = createColumnHelper<CouponTypeWithAction>()
 
-const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
+const couponStatusObj: CouponStatusType = {
+  active: 'success',
+  inactive: 'secondary',
+  expired: 'error'
+}
+
+const CouponListTable = () => {
+  const { data: session } = useSession()
+
   const [addCouponOpen, setAddCouponOpen] = useState(false)
-  const [editCouponOpen, setEditCouponOpen] = useState(false)
-  const [selectedCoupon, setSelectedCoupon] = useState<CouponTypeWithAction | null>(null)
+  const [selectedCoupon, setSelectedCoupon] = useState<CouponProps | null>(null)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState<CouponProps[]>(tableData)
-  const [filteredData, setFilteredData] = useState(data)
+  const [data, setData] = useState<CouponProps[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<CouponProps | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalRows, setTotalRows] = useState(0)
 
-  // Hooks
-  // const { lang: locale } = useParams()
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10
+  })
+
+  const getData = useCallback(
+    async (options: { isExport?: boolean } = {}) => {
+      if (!session) return
+      setLoading(true)
+      setError(null)
+      const { isExport = false } = options
+
+      try {
+        const result: any = await post(couponEndpoints.getCoupons, {
+          page: pagination.pageIndex + 1,
+          limit: isExport ? 100000 : pagination.pageSize,
+          search: globalFilter,
+          restaurantId:
+            typeof session?.user?.restaurantId === 'string'
+              ? JSON.parse(session.user.restaurantId)
+              : session?.user?.restaurantId || []
+        })
+
+        if (isExport) {
+          handleDownload(result.data.coupons || [])
+        } else {
+          setData(result.data.coupons || [])
+          setTotalRows(result.data.total ?? 0)
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to fetch data')
+        setData([])
+        setTotalRows(0)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [pagination, globalFilter, session]
+  )
 
   useEffect(() => {
-    setFilteredData(data)
-  }, [data])
+    if (session) {
+      getData()
+    }
+  }, [getData, session])
 
-  const handleDownloadSelected = (selectedCoupons: CouponTypeWithAction[], allCoupons: CouponTypeWithAction[]) => {
-    const couponsToExport = selectedCoupons.length > 0 ? selectedCoupons : allCoupons
+  const handleEditClick = async (coupon: CouponProps) => {
+    setLoading(true)
+    try {
+      const result = await get(couponEndpoints.getCouponById(coupon.id))
 
-    if (couponsToExport.length === 0) return
+      if (result.status === 'success') {
+        setSelectedCoupon(result.data)
+        setAddCouponOpen(true)
+      } else {
+        toast.error(result?.message || 'Failed to fetch coupon details.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch coupon details.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (itemToDelete) {
+      try {
+        const result = await del(couponEndpoints.deleteCoupon(itemToDelete.id))
+
+        if (result.ResponseStatus === 'success' || result.status === 'success') {
+          toast.success(result?.message || 'Coupon deleted successfully.')
+          await getData()
+        } else {
+          toast.error(result?.message || 'Failed to delete coupon.')
+        }
+      } catch (err) {
+        console.error('Failed to delete coupon', err)
+      }
+    }
+
+    setDeleteDialogOpen(false)
+    setItemToDelete(null)
+  }
+
+  const handleDownload = (couponsToExport: CouponProps[]) => {
+    if (!couponsToExport || couponsToExport.length === 0) return
     const headers = Object.keys(couponsToExport[0])
 
     const escapeCSV = (value: unknown): string => {
@@ -125,7 +207,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
     }
 
     const rows = couponsToExport.map(coupon =>
-      headers.map(header => escapeCSV(coupon[header as keyof CouponTypeWithAction]))
+      headers.map(header => escapeCSV(coupon[header as keyof CouponProps]))
     )
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -138,66 +220,37 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
     URL.revokeObjectURL(url)
   }
 
-  const couponStatusObj: CouponStatusType = {
-    active: 'success',
-    inactive: 'secondary',
-    expired: 'error'
-  }
-
-  const handleConfirmDelete = () => {
-    if (itemToDelete) {
-      setData((prev: CouponProps[] | undefined) =>
-        (prev ?? []).filter((item: CouponProps) => item.id !== itemToDelete.id)
-      )
-    }
-
-    setDeleteDialogOpen(false)
-    setItemToDelete(null)
-  }
-
   const columns = useMemo<ColumnDef<CouponTypeWithAction, any>[]>(
     () => [
       {
         id: 'select',
-        header: ({ table }) => {
-          const pageRows = table.getRowModel().rows
-          const allPageSelected = pageRows.length > 0 && pageRows.every(row => row.getIsSelected())
-          const somePageSelected = pageRows.some(row => row.getIsSelected()) && !allPageSelected
-
-          const toggleAllPageSelected = () => {
-            if (allPageSelected) {
-              pageRows.forEach(row => row.toggleSelected(false))
-            } else {
-              pageRows.forEach(row => row.toggleSelected(true))
-            }
-          }
-
-          return (
-            <Checkbox checked={allPageSelected} indeterminate={somePageSelected} onChange={toggleAllPageSelected} />
-          )
-        },
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllRowsSelected()}
+            indeterminate={table.getIsSomeRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ),
         cell: ({ row }) => (
           <Checkbox
-            {...{
-              checked: row.getIsSelected(),
-              disabled: !row.getCanSelect(),
-              indeterminate: row.getIsSomeSelected(),
-              onChange: row.getToggleSelectedHandler()
-            }}
+            checked={row.getIsSelected()}
+            disabled={!row.getCanSelect()}
+            indeterminate={row.getIsSomeSelected()}
+            onChange={row.getToggleSelectedHandler()}
           />
         )
       },
       columnHelper.accessor('code', {
         header: 'Code',
-        cell: ({ row }: { row: any }) => <span>{row.original.code}</span>
+        cell: ({ row }) => <span>{row.original.code}</span>
       }),
       columnHelper.accessor('discount', {
         header: 'Discount',
-        cell: ({ row }: { row: any }) => <span>{row.original.discount}</span>
+        cell: ({ row }) => <span>{row.original.discount}</span>
       }),
       columnHelper.accessor('type', {
         header: 'Type',
-        cell: ({ row }: { row: any }) => <span className='capitalize'>{row.original.type}</span>
+        cell: ({ row }) => <span className='capitalize'>{row.original.type}</span>
       }),
       columnHelper.accessor('startDate', {
         header: 'Start Date',
@@ -207,45 +260,40 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
         header: 'End Date',
         cell: ({ row }) => <span>{new Date(row.original.endDate).toLocaleDateString()}</span>
       }),
-      columnHelper.accessor('isActive', {
+      columnHelper.accessor('status', {
         header: 'Status',
-        cell: ({ row }: { row: any }) => {
+        cell: ({ row }) => {
           const currentDate = new Date()
           const endDate = new Date(row.original.endDate)
-          let status: 'active' | 'inactive' | 'expired'
+          let statusKey: 'active' | 'inactive' | 'expired'
           let label: string
 
           if (endDate < currentDate) {
-            status = 'expired'
+            statusKey = 'expired'
             label = 'Expired'
           } else {
-            status = row.original.isActive ? 'active' : 'inactive'
-            label = row.original.isActive ? 'Active' : 'Inactive'
+            statusKey = row.original.status ? 'active' : 'inactive'
+            label = row.original.status ? 'Active' : 'Inactive'
           }
 
           return (
-            <Chip variant='tonal' label={label} size='small' className='capitalize' color={couponStatusObj[status]} />
+            <Chip variant='tonal' label={label} size='small' className='capitalize' color={couponStatusObj[statusKey]} />
           )
         }
       }),
       columnHelper.accessor('usageCount', {
         header: 'Usage Count',
-        cell: ({ row }: { row: any }) => <span>{row.original.usageCount}</span>
+        cell: ({ row }) => <span>{row.original.usageCount}</span>
       }),
       columnHelper.accessor('maxUsage', {
         header: 'Max Usage',
-        cell: ({ row }: { row: any }) => <span>€{row.original.maxUsage}</span>
+        cell: ({ row }) => <span>{row.original.maxUsage}</span>
       }),
       columnHelper.accessor('action', {
         header: 'Action',
-        cell: ({ row }: { row: any }) => (
+        cell: ({ row }) => (
           <div className='flex items-center'>
-            <IconButton
-              onClick={() => {
-                setSelectedCoupon(row.original)
-                setEditCouponOpen(true)
-              }}
-            >
+            <IconButton onClick={() => handleEditClick(row.original)}>
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
             <IconButton
@@ -261,24 +309,18 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
         enableSorting: false
       })
     ],
-    [data, filteredData]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
   )
 
   const table = useReactTable({
-    data: filteredData as CouponProps[],
+    data,
     columns,
-    filterFns: {
-      fuzzy: fuzzyFilter
-    },
-    state: {
-      rowSelection,
-      globalFilter
-    },
-    initialState: {
-      pagination: {
-        pageSize: 10
-      }
-    },
+    filterFns: { fuzzy: fuzzyFilter },
+    state: { rowSelection, globalFilter, pagination },
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    manualSorting: true,
     enableRowSelection: true,
     globalFilterFn: fuzzyFilter,
     onRowSelectionChange: setRowSelection,
@@ -286,10 +328,7 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues()
+    getPaginationRowModel: getPaginationRowModel()
   })
 
   return (
@@ -318,20 +357,14 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
               variant='tonal'
               startIcon={<i className='tabler-upload' />}
               className='max-sm:is-full'
-              onClick={() => {
-                const selectedRows = table.getSelectedRowModel().rows
-                const selectedUsers = selectedRows.map(row => row.original)
-                const allUsers = table.getFilteredRowModel().rows.map(row => row.original)
-
-                handleDownloadSelected(selectedUsers, allUsers)
-              }}
+              onClick={() => getData({ isExport: true })}
             >
               Export
             </Button>
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
-              onClick={() => setAddCouponOpen(!addCouponOpen)}
+              onClick={() => setAddCouponOpen(true)}
               className='max-sm:is-full'
             >
               Add New Coupon
@@ -346,74 +379,77 @@ const CouponListTable = ({ tableData }: { tableData: CouponProps[] }) => {
                   {headerGroup.headers.map(header => (
                     <th key={header.id}>
                       {header.isPlaceholder ? null : (
-                        <>
-                          <div
-                            className={classnames({
-                              'flex items-center': header.column.getIsSorted(),
-                              'cursor-pointer select-none': header.column.getCanSort()
-                            })}
-                            onClick={header.column.getToggleSortingHandler()}
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {{
-                              asc: <i className='tabler-chevron-up text-xl' />,
-                              desc: <i className='tabler-chevron-down text-xl' />
-                            }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
-                          </div>
-                        </>
+                        <div
+                          className={classnames({
+                            'flex items-center': header.column.getIsSorted(),
+                            'cursor-pointer select-none': header.column.getCanSort()
+                          })}
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {{
+                            asc: <i className='tabler-chevron-up text-xl' />,
+                            desc: <i className='tabler-chevron-down text-xl' />
+                          }[header.column.getIsSorted() as 'asc' | 'desc'] ?? null}
+                        </div>
                       )}
                     </th>
                   ))}
                 </tr>
               ))}
             </thead>
-            {table.getFilteredRowModel().rows.length === 0 ? (
-              <tbody>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center'>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center p-4'>
+                    <CircularProgress />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center text-red-500 p-4'>
+                    {error}
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length === 0 ? (
+                <tr>
+                  <td colSpan={table.getVisibleFlatColumns().length} className='text-center p-4'>
                     No data available
                   </td>
                 </tr>
-              </tbody>
-            ) : (
-              <tbody>
-                {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
-                  .map(row => {
-                    return (
-                      <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                        ))}
-                      </tr>
-                    )
-                  })}
-              </tbody>
-            )}
+              ) : (
+                table.getRowModel().rows.map(row => (
+                  <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
-          count={table.getFilteredRowModel().rows.length}
-          rowsPerPage={table.getState().pagination.pageSize}
-          page={table.getState().pagination.pageIndex}
-          onPageChange={(_, page) => {
-            table.setPageIndex(page)
-          }}
+          component='div'
+          count={totalRows}
+          rowsPerPage={pagination.pageSize}
+          page={pagination.pageIndex}
+          onPageChange={(_, page) => table.setPageIndex(page)}
+          onRowsPerPageChange={e => table.setPageSize(Number(e.target.value))}
+          rowsPerPageOptions={[10, 25, 50]}
         />
       </Card>
+
       <AddCouponDrawer
-        open={addCouponOpen || editCouponOpen}
+        open={addCouponOpen}
         handleClose={() => {
           setAddCouponOpen(false)
-          setEditCouponOpen(false)
           setSelectedCoupon(null)
         }}
-        couponData={data}
-        setData={setData}
+        onSuccess={getData}
         couponToEdit={selectedCoupon}
       />
+
       <DeleteConfirmationDialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
