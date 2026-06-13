@@ -244,10 +244,13 @@ const Pos = () => {
   // Print receipt
   const printReceipt = () => {
     const receiptWindow = window.open('', '_blank', 'width=350,height=600')
+
     if (!receiptWindow) {
       console.error('Unable to open print window')
-      return
+      
+return
     }
+
     const itemsHtml = cart
       .map(
         item => `
@@ -258,6 +261,7 @@ const Pos = () => {
       `
       )
       .join('')
+
     receiptWindow.document.write(`
     <html>
       <head>
