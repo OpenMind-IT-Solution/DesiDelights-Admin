@@ -10,8 +10,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '123 Main Street, Springfield',
     items: [
-      { name: 'Pizza Margherita', quantity: 2, price: 120 },
-      { name: 'Coke 500ml', quantity: 1, price: 30 }
+      { id: 1, name: 'Pizza Margherita', quantity: 2, price: 120 },
+      { id: 2, name: 'Coke 500ml', quantity: 1, price: 30 }
     ]
   },
   {
@@ -22,9 +22,9 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '45 Park Avenue, New York',
     items: [
-      { name: 'Veg Burger', quantity: 3, price: 90 },
-      { name: 'French Fries', quantity: 2, price: 60 },
-      { name: 'Iced Tea', quantity: 1, price: 50.5 }
+      { id: 3, name: 'Veg Burger', quantity: 3, price: 90 },
+      { id: 4, name: 'French Fries', quantity: 2, price: 60 },
+      { id: 5, name: 'Iced Tea', quantity: 1, price: 50.5 }
     ]
   },
   {
@@ -44,8 +44,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '221B Baker Street, London',
     items: [
-      { name: 'Chicken Wrap', quantity: 2, price: 150 },
-      { name: 'Mineral Water', quantity: 1, price: 25.75 }
+      { id: 6, name: 'Chicken Wrap', quantity: 2, price: 150 },
+      { id: 7, name: 'Mineral Water', quantity: 1, price: 25.75 }
     ]
   },
   {
@@ -56,7 +56,7 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '1600 Pennsylvania Ave NW, Washington, DC',
     items: [
-      { name: 'Pasta Alfredo', quantity: 1, price: 150 }
+      { id: 8, name: 'Pasta Alfredo', quantity: 1, price: 150 }
     ]
   },
   {
@@ -67,8 +67,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '12 King Street, Toronto',
     items: [
-      { name: 'Caesar Salad', quantity: 2, price: 70 },
-      { name: 'Orange Juice', quantity: 2, price: 35 }
+      { id: 9, name: 'Caesar Salad', quantity: 2, price: 70 },
+      { id: 10, name: 'Orange Juice', quantity: 2, price: 35 }
     ]
   },
   {
@@ -79,8 +79,8 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '5 Oxford Road, Manchester',
     items: [
-      { name: 'Grilled Cheese Sandwich', quantity: 2, price: 40 },
-      { name: 'Lemonade', quantity: 1, price: 15.5 }
+      { id: 11, name: 'Grilled Cheese Sandwich', quantity: 2, price: 40 },
+      { id: 12, name: 'Lemonade', quantity: 1, price: 15.5 }
     ]
   },
   {
@@ -91,8 +91,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '88 Market Street, San Francisco',
     items: [
-      { name: 'BBQ Ribs', quantity: 2, price: 180 },
-      { name: 'Coleslaw', quantity: 2, price: 30 }
+      { id: 13, name: 'BBQ Ribs', quantity: 2, price: 180 },
+      { id: 14, name: 'Coleslaw', quantity: 2, price: 30 }
     ]
   },
   {
@@ -112,8 +112,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '100 Palm Avenue, Los Angeles',
     items: [
-      { name: 'Fish Tacos', quantity: 3, price: 85 },
-      { name: 'Churros', quantity: 2, price: 37.75 }
+      { id: 15, name: 'Fish Tacos', quantity: 3, price: 85 },
+      { id: 16, name: 'Churros', quantity: 2, price: 37.75 }
     ]
   },
   {
@@ -124,7 +124,7 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '9 Broadway, New York',
     items: [
-      { name: 'Cheeseburger', quantity: 4, price: 90 }
+      { id: 17, name: 'Cheeseburger', quantity: 4, price: 90 }
     ]
   },
   {
@@ -135,8 +135,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '76 Harbor Lane, Boston',
     items: [
-      { name: 'Lobster Roll', quantity: 2, price: 180 },
-      { name: 'Iced Coffee', quantity: 2, price: 25 }
+      { id: 18, name: 'Lobster Roll', quantity: 2, price: 180 },
+      { id: 19, name: 'Iced Coffee', quantity: 2, price: 25 }
     ]
   },
   {
@@ -147,8 +147,8 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '21 Sunset Blvd, Los Angeles',
     items: [
-      { name: 'Club Sandwich', quantity: 3, price: 75 },
-      { name: 'Smoothie', quantity: 1, price: 30.5 }
+      { id: 20, name: 'Club Sandwich', quantity: 3, price: 75 },
+      { id: 21, name: 'Smoothie', quantity: 1, price: 30.5 }
     ]
   },
   {
@@ -159,7 +159,7 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '11 Orchard Road, Singapore',
     items: [
-      { name: 'Pad Thai', quantity: 2, price: 95 }
+      { id: 22, name: 'Pad Thai', quantity: 2, price: 95 }
     ]
   },
   {
@@ -179,8 +179,8 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '200 Lakeview Dr, Chicago',
     items: [
-      { name: 'Pepperoni Pizza', quantity: 2, price: 140 },
-      { name: 'Garlic Bread', quantity: 1, price: 30.25 }
+      { id: 23, name: 'Pepperoni Pizza', quantity: 2, price: 140 },
+      { id: 24, name: 'Garlic Bread', quantity: 1, price: 30.25 }
     ]
   },
   {
@@ -191,8 +191,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '66 Elm Street, Boston',
     items: [
-      { name: 'Pancakes', quantity: 3, price: 40 },
-      { name: 'Maple Syrup', quantity: 1, price: 30.5 }
+      { id: 25, name: 'Pancakes', quantity: 3, price: 40 },
+      { id: 26, name: 'Maple Syrup', quantity: 1, price: 30.5 }
     ]
   },
   {
@@ -203,7 +203,7 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '12 Park Lane, London',
     items: [
-      { name: 'Butter Chicken', quantity: 2, price: 110 }
+      { id: 27, name: 'Butter Chicken', quantity: 2, price: 110 }
     ]
   },
   {
@@ -214,7 +214,7 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '34 Beach Road, Miami',
     items: [
-      { name: 'Grilled Salmon', quantity: 2, price: 200 }
+      { id: 28, name: 'Grilled Salmon', quantity: 2, price: 200 }
     ]
   },
   {
@@ -234,8 +234,8 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '18 Rose Street, Edinburgh',
     items: [
-      { name: 'Lasagna', quantity: 2, price: 150 },
-      { name: 'Garlic Knots', quantity: 1, price: 30.75 }
+      { id: 29, name: 'Lasagna', quantity: 2, price: 150 },
+      { id: 30, name: 'Garlic Knots', quantity: 1, price: 30.75 }
     ]
   },
   {
@@ -246,7 +246,7 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '7 Pine Avenue, Cape Town',
     items: [
-      { name: 'Steak', quantity: 2, price: 135 }
+      { id: 31, name: 'Steak', quantity: 2, price: 135 }
     ]
   },
   {
@@ -257,7 +257,7 @@ export const db: OrderType[] = [
     orderType: 'delivery',
     deliveryAddress: '3 Sunset Street, San Diego',
     items: [
-      { name: 'Sushi Roll', quantity: 5, price: 29 }
+      { id: 32, name: 'Sushi Roll', quantity: 5, price: 29 }
     ]
   },
   {
@@ -268,7 +268,7 @@ export const db: OrderType[] = [
     orderType: 'pickup',
     deliveryAddress: '44 High Street, Auckland',
     items: [
-      { name: 'Ramen', quantity: 3, price: 66 }
+      { id: 33, name: 'Ramen', quantity: 3, price: 66 }
     ]
   },
   {

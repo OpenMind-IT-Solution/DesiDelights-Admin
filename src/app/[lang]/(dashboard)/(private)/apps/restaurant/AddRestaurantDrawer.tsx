@@ -80,6 +80,7 @@ const AddRestaurantDrawer = (props: Props) => {
   // Handle form submission for both add and edit
   const onSubmit = async (data: FormData) => {
     setLoading(true)
+
     try {
       // Construct the payload to match the API's requirements
       const payload = {
@@ -103,10 +104,12 @@ const AddRestaurantDrawer = (props: Props) => {
       } else {
         // Handle API error responses (e.g., validation errors)
         console.error('API Error:', result.message)
+
         // Optionally, add an error toast notification here
       }
     } catch (error) {
       console.error('Failed to save restaurant:', error)
+
       // Optionally, add a generic error toast notification here
     } finally {
       setLoading(false)

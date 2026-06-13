@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import { createColumnHelper } from '@tanstack/react-table'
+
+import { Box, Card, CardContent, Typography } from '@mui/material'
+
 import type { GroceryWastageReport, GroceryStockItem } from '@/types/apps/reportTypes'
 import { useReport, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
 import ReportFilters from './list/ReportFilters'
 import ReportTable from './list/ReportTable'
-import { Box, Card, CardContent, Typography } from '@mui/material'
 
 const columnHelper = createColumnHelper<GroceryStockItem>()
 

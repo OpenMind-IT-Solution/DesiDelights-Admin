@@ -23,6 +23,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Grid from '@mui/material/Grid'
 import CircularProgress from '@mui/material/CircularProgress'
 
+import { toast } from 'react-toastify'
+
 import type { Category } from '@/types/apps/categoryTypes'
 
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
@@ -31,7 +33,6 @@ import CategoryForm from './CategoryForm'
 import CustomTextField from '@/@core/components/mui/TextField'
 import { post, get, del } from '@/services/apiService' // Import the 'del' method
 import { categoriesEndpoints } from '@/services/endpoints/category'
-import { toast } from 'react-toastify'
 
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -69,8 +70,8 @@ const CategoryManagementView = () => {
   // State for API and filtering
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [totalRows, setTotalRows] = useState(0)
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 15 })
+  const [, setTotalRows] = useState(0)
+  const [pagination] = useState({ pageIndex: 0, pageSize: 15 })
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState<Category['status'] | ''>('')
@@ -168,6 +169,7 @@ const CategoryManagementView = () => {
   const handleFormSave = async (formData: Category | Omit<Category, 'id'>) => {
     setLoading(true)
     const isEditMode = 'id' in formData
+
     const body = {
       categoryId: isEditMode ? formData.id : 0,
       restaurantId: [1],
@@ -181,9 +183,11 @@ const CategoryManagementView = () => {
 
       if (result.status === 'success') {
         toast.success(result.message || `Category ${isEditMode ? 'updated' : 'created'} successfully!`)
+
         if (isEditMode) {
           setSelectedCategory(formData as Category)
         }
+
         setFormMode('hidden')
         await getCategories()
       } else {

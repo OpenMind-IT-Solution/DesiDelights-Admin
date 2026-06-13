@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import Image from 'next/image'
+
 import { toast } from 'react-toastify'
 
 import Button from '@mui/material/Button'
@@ -28,6 +29,8 @@ import {
 } from '@tanstack/react-table'
 import classnames from 'classnames'
 
+import { CircularProgress } from '@mui/material'
+
 import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
 import type { ThemeColor } from '@core/types'
 
@@ -36,7 +39,6 @@ import { menuEndpoints } from '@/services/endpoints/menu'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
-import { CircularProgress } from '@mui/material'
 import AddMenuItemDrawer from './AddMenuItemDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TableFilters from './TableFilters'
@@ -105,6 +107,7 @@ const MenuTable = () => {
     status: 'All',
     categoryId: null
   })
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
@@ -156,6 +159,7 @@ const MenuTable = () => {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred.'
+
       setError(message)
       setData([])
       setTotalRows(0)
@@ -177,6 +181,7 @@ const MenuTable = () => {
 
     try {
       const endpoint = menuEndpoints.getMenuById(item.id)
+
       const result = await get(endpoint) as {
         status: string
         message?: string
@@ -186,6 +191,7 @@ const MenuTable = () => {
 
       if (result.status === 'success' && result.data) {
         const itemData = result.data
+
         const formattedItem = {
           ...itemData,
           menuImages: typeof itemData.menuImages === 'string' ? JSON.parse(itemData.menuImages as string) : itemData.menuImages
@@ -198,6 +204,7 @@ const MenuTable = () => {
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An error occurred while fetching item details.'
+
       toast.error(message)
     } finally {
       setLoading(false)
@@ -218,6 +225,7 @@ const MenuTable = () => {
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'An error occurred while deleting the item.'
+
         toast.error(message)
       }
     }
@@ -226,7 +234,7 @@ const MenuTable = () => {
     setItemToDelete(null)
   }
 
-  const columns = useMemo<ColumnDef<MenuItemWithAction, unknown>[]>(
+  const columns = useMemo<ColumnDef<MenuItemWithAction, any>[]>(
     () => [
       {
         id: 'select',
@@ -506,7 +514,7 @@ const MenuTable = () => {
           </table>
         </div>
         <TablePagination
-          component={() => <TablePaginationComponent table={table} />}
+          component={() => <TablePaginationComponent table={table as any} />}
           count={totalRows}
           rowsPerPage={pagination.pageSize}
           page={pagination.pageIndex}

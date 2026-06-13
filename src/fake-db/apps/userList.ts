@@ -1,7 +1,8 @@
 // Type Imports
 import type { UsersType } from '@/types/apps/userTypes'
 
-export const db: UsersType[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const db: UsersType[] = ([
   {
     id: 1,
     fullName: 'Galen Slixby',
@@ -452,4 +453,4 @@ export const db: UsersType[] = [
     email: 'bkrabbe1d@home.pl',
     status: 'active',
   }
-]
+] as any)

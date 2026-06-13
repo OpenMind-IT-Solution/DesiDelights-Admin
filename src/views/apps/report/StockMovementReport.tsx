@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import { createColumnHelper } from '@tanstack/react-table'
+
+import Chip from '@mui/material/Chip'
+
 import type { GroceryMovementReport, GroceryMovement } from '@/types/apps/reportTypes'
 import { useReport, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
 import ReportFilters from './list/ReportFilters'
 import ReportTable from './list/ReportTable'
-import Chip from '@mui/material/Chip'
 
 const statusColor = (status: string) => {
   switch (status) {

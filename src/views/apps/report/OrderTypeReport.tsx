@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Card, CardContent, Typography, CircularProgress } from '@mui/material'
+
 import { createColumnHelper } from '@tanstack/react-table'
+
 import type { OrderTypeReportData } from '@/types/apps/reportTypes'
 import { useReport, formatCurrency, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
@@ -28,7 +29,8 @@ const OrderTypeReport = () => {
 
   const stats = useMemo(() => {
     if (!data?.summary) return []
-    return Object.entries(data.summary).map(([key, val]) => ({
+    
+return Object.entries(data.summary).map(([key, val]) => ({
       label: val.label,
       count: val.count,
       revenue: val.revenue,

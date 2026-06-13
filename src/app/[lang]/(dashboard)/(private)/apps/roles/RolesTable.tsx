@@ -9,7 +9,6 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
-import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
 
@@ -26,6 +25,8 @@ import {
 } from '@tanstack/react-table'
 import classnames from 'classnames'
 
+import { toast } from 'react-toastify'
+
 import type { ThemeColor } from '@core/types'
 import type { ModulePermissions, RoleType } from './AddRoleDrawer'
 
@@ -37,10 +38,8 @@ import { del, get, post } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 
 import tableStyles from '@core/styles/table.module.css'
-import { toast } from 'react-toastify'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
-const Icon = styled('i')({})
 
 const roleStatusObj: Record<RoleType['status'], ThemeColor> = {
   active: 'success',
@@ -65,7 +64,9 @@ const DebouncedInput = ({
 
   useEffect(() => {
     const timeout = setTimeout(() => onChange(value), debounce)
-    return () => clearTimeout(timeout)
+
+    
+return () => clearTimeout(timeout)
   }, [value, debounce, onChange])
 
   return <CustomTextField {...props} value={value} onChange={e => setValue(e.target.value)} />
@@ -73,8 +74,10 @@ const DebouncedInput = ({
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const columnHelper = createColumnHelper<RoleType>()
@@ -136,6 +139,7 @@ const RolesTable = () => {
 
   const handleEditRole = async (role: RoleType) => {
     setLoading(true)
+
     try {
       const endpoint = roleEndpoints.getRoleById(role.id)
       const result: any = await get(endpoint)
@@ -144,6 +148,7 @@ const RolesTable = () => {
         const r = result.data
 
         const permissionMap: ModulePermissions = {}
+
         r.permission.forEach((p: any) => {
           permissionMap[p.moduleName] = {
             moduleId: p.moduleId,
@@ -192,6 +197,7 @@ const RolesTable = () => {
     try {
       const endpoint = roleEndpoints.deleteRole(roleToDelete.id)
       const res: any = await del(endpoint)
+
       if (res?.status === 'success') {
         setRoles(prev => prev.filter(r => r.id !== roleToDelete.id))
         toast.success(res?.message || 'Role deleted successfully')

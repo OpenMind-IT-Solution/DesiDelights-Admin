@@ -1,22 +1,27 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+
 import dynamic from 'next/dynamic'
+
 import { useSession } from 'next-auth/react'
-import { post } from '@/services/apiService'
+
 import type { ApexOptions } from 'apexcharts'
 import { useTheme } from '@mui/material/styles'
 import {
-  Box, Card, CardContent, CardHeader, Chip, CircularProgress, Grid, Table, TableBody,
+  Box, Card, CardContent, CardHeader, Chip, CircularProgress, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Typography
 } from '@mui/material'
+
+import Grid from '@mui/material/Grid2'
+
+import { post } from '@/services/apiService'
 import type {
   GroceryDashboardSummary, GroceryStockSummary, GroceryInventoryValue,
   TrendReport, TopConsumedReport
 } from '@/types/apps/reportTypes'
 import { reportEndpoints } from '@/services/endpoints/report'
 import { formatCurrency, formatNumber, getDatePreset } from './common'
-import { KpiCardGrid } from './list/KpiCards'
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
@@ -33,15 +38,13 @@ const StockSummaryDashboard = () => {
   const [consumptionTrend, setConsumptionTrend] = useState<TrendReport | null>(null)
   const [topConsumed, setTopConsumed] = useState<TopConsumedReport | null>(null)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
-  const [errors, setErrors] = useState<Record<string, string | null>>({})
-
   const triggerLoading = (key: string) => setLoading(prev => ({ ...prev, [key]: true }))
-  const clearError = (key: string) => setErrors(prev => ({ ...prev, [key]: null }))
   const doneLoading = (key: string) => setLoading(prev => ({ ...prev, [key]: false }))
 
   const fetchAll = async (range: typeof filter) => {
     if (!session) return
     const payload = { startDate: range.startDate, endDate: range.endDate }
+
     const fetches = [
       { key: 'dashboard', ep: reportEndpoints.groceryDashboardSummary, setter: setDashboard },
       { key: 'stock', ep: reportEndpoints.groceryStockSummary, setter: setStockSummary },
@@ -50,11 +53,12 @@ const StockSummaryDashboard = () => {
       { key: 'consumptionTrend', ep: reportEndpoints.groceryConsumptionTrend, setter: setConsumptionTrend },
       { key: 'topConsumed', ep: reportEndpoints.groceryTopConsumedIngredients, setter: setTopConsumed },
     ]
+
     fetches.forEach(({ key, ep, setter }) => {
       triggerLoading(key)
       post(ep, payload)
-        .then((res: any) => { setter(res.data); clearError(key) })
-        .catch((e: any) => setErrors(p => ({ ...p, [key]: e.message })))
+        .then((res: any) => { setter(res.data) })
+        .catch(() => {})
         .finally(() => doneLoading(key))
     })
   }
@@ -68,6 +72,7 @@ const StockSummaryDashboard = () => {
   const handlePreset = (preset: string) => {
     setActivePreset(preset)
     const r = getDatePreset(preset)
+
     setFilter(r)
     fetchAll(r)
   }
@@ -106,18 +111,23 @@ const StockSummaryDashboard = () => {
   const trendSeries = useMemo(() => {
     if (!purchaseTrend?.trend && !consumptionTrend?.trend) return []
     const series = []
+
     if (purchaseTrend?.trend) {
       series.push({ name: 'Purchases', data: purchaseTrend.trend.map(t => ({ x: new Date(t.date).getTime(), y: t.quantity })) })
     }
+
     if (consumptionTrend?.trend) {
       series.push({ name: 'Consumption', data: consumptionTrend.trend.map(t => ({ x: new Date(t.date).getTime(), y: t.quantity })) })
     }
-    return series
+
+    
+return series
   }, [purchaseTrend, consumptionTrend])
 
   const valueTrendSeries = useMemo(() => {
     if (!inventoryValue?.monthlyTrend) return []
-    return [{
+    
+return [{
       name: 'Items Count',
       data: inventoryValue.monthlyTrend.map(t => ({ x: new Date(t.date).getTime(), y: t.count }))
     }]
@@ -125,7 +135,8 @@ const StockSummaryDashboard = () => {
 
   const topConsumedSeries = useMemo(() => {
     if (!topConsumed?.items) return []
-    return [{
+    
+return [{
       name: 'Quantity',
       data: topConsumed.items.map(i => i.totalQuantity)
     }]

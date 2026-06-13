@@ -1,13 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createColumnHelper } from '@tanstack/react-table'
+
+import { createColumnHelper, type Row } from '@tanstack/react-table'
+
+import Chip from '@mui/material/Chip'
+
 import type { GroceryStockReport, GroceryStockItem } from '@/types/apps/reportTypes'
 import { useReport, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
 import ReportFilters from './list/ReportFilters'
 import ReportTable from './list/ReportTable'
-import Chip from '@mui/material/Chip'
 
 const columnHelper = createColumnHelper<GroceryStockItem>()
 
@@ -16,7 +19,7 @@ const columns = [
   columnHelper.accessor('type', { header: 'Type' }),
   columnHelper.accessor('quantity', { header: 'Current Qty', cell: info => formatNumber(info.getValue()) }),
   columnHelper.accessor('itemLowerValue', { header: 'Min Qty', cell: info => formatNumber(info.getValue()) }),
-  { id: 'deficit', header: 'Deficit', cell: ({ row }) => formatNumber(Math.max(0, row.original.itemLowerValue - row.original.quantity)) },
+  { id: 'deficit', header: 'Deficit', cell: ({ row }: { row: Row<GroceryStockItem> }) => formatNumber(Math.max(0, row.original.itemLowerValue - row.original.quantity)) },
   columnHelper.accessor('storeName', { header: 'Store' }),
   columnHelper.accessor('status', { header: 'Status', cell: () => <Chip label='Low Stock' color='warning' size='small' /> })
 ]

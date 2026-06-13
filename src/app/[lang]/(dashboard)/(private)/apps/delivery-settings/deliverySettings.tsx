@@ -34,6 +34,7 @@ const DeliverySettings: React.FC = () => {
     try {
       setLoading(true)
       const res = await get(restaurantEndpoints.getDeliverySetting(RESTAURANT_ID))
+
       if (res?.data && typeof res.data.isDeliveryEnabled === 'boolean') {
         setIsDeliveryEnabled(res.data.isDeliveryEnabled)
       }
