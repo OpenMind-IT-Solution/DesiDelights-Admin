@@ -4,11 +4,13 @@ import { Box, Card, CardContent, Skeleton, Typography } from '@mui/material'
 
 import { formatCurrency, formatNumber } from '../common'
 
+type PaletteColorKey = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info'
+
 type KpiCardProps = {
   title: string
   value: string | number
   icon: string
-  color: string
+  color: PaletteColorKey
   subtitle?: string
   trend?: { value: string; direction: 'up' | 'down' | 'neutral' }
   loading?: boolean

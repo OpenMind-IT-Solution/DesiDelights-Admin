@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react'
 
 import type { ApexOptions } from 'apexcharts'
 import { useTheme } from '@mui/material/styles'
+import type { Theme } from '@mui/material'
 import {
   Box, Card, CardContent, CardHeader, Chip, CircularProgress, MenuItem, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Typography
@@ -44,7 +45,7 @@ const cardSx = {
   '&:hover': {
     boxShadow: '0 12px 40px rgba(0,0,0,0.08)',
     transform: 'translateY(-1px)',
-    borderColor: t => t.palette.divider
+    borderColor: (t: Theme) => t.palette.divider
   }
 }
 
