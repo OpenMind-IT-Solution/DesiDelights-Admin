@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+
 import { useSession } from 'next-auth/react'
+
+import { Box, Card, CardContent, CircularProgress, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+
 import { post } from '@/services/apiService'
 import { groceryEndpoints } from '@/services/endpoints/grocery'
 import type { GroceryItem, GroceryStockStatus } from '@/types/apps/groceryTypes'
-import { Box, Card, CardContent, CircularProgress, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import StatCard from './list/StatCard'
 
 const GroceryReports = () => {

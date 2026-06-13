@@ -75,9 +75,11 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
 
     const fetchOrderDetail = async () => {
       setItemsLoading(true)
+
       try {
         const result: any = await get(orderEndpoints.getOrderById(order.id))
         const raw: any[] = result?.data?.orderItems ?? []
+
         setItems(
           raw.map((it: any, i: number) => ({
             rowId: i + 1,
@@ -89,8 +91,10 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
         )
       } catch (err) {
         console.error('Failed to fetch order details', err)
+
         // fall back to whatever the list row already has
         const raw: any[] = (order as any).orderItems ?? (order as any).items ?? []
+
         setItems(
           raw.map((it: any, i: number) => ({
             rowId: i + 1,
@@ -111,17 +115,21 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
   // Fetch menu catalogue once
   useEffect(() => {
     if (menuOptions.length > 0) return
+
     const fetchMenu = async () => {
       setMenuLoading(true)
+
       try {
         const result: any = await post(menuEndpoints.getMenu, { status: true })
         const raw = result?.data?.menuItems || result?.data || []
+
         const formatted = raw.map((m: any) => ({
           id: m.id,
           name: m.name,
           price: Number(m.price || 0),
           status: m.status
         }))
+
         setMenuOptions(formatted.filter((m: any) => m.status !== false))
       } catch (err) {
         console.error('Failed to fetch menu', err)
@@ -129,6 +137,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
         setMenuLoading(false)
       }
     }
+
     fetchMenu()
   }, [])
 
@@ -147,8 +156,10 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
   const handleAddItem = () => {
     if (!selectedMenuItem) return
     const quantity = Number(newItemQuantity)
+
     if (quantity < 1) return
     const nextRowId = items.length > 0 ? Math.max(...items.map(it => it.rowId)) + 1 : 1
+
     setItems(prev => [
       ...prev,
       { rowId: nextRowId, menuItemId: selectedMenuItem.id, name: selectedMenuItem.name, price: selectedMenuItem.price, quantity }
@@ -161,6 +172,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
   const handleSave = async () => {
     if (!order?.id) return
     setSaving(true)
+
     try {
       await put(orderEndpoints.updateOrder(order.id), {
         status: orderStatus,
@@ -235,9 +247,12 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
               <Typography variant='subtitle2' color='text.secondary' sx={{ mb: 1 }}>Delivery Address</Typography>
               {(() => {
                 if (!order?.deliveryAddress) return <Typography variant='body1'>-</Typography>
+
                 try {
                   const addr = JSON.parse(order.deliveryAddress)
-                  return (
+
+                  
+return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       {addr.customerName && <Typography variant='body2'><strong>Name:</strong> {addr.customerName}</Typography>}
                       {addr.customerPhone && <Typography variant='body2'><strong>Phone:</strong> {addr.customerPhone}</Typography>}

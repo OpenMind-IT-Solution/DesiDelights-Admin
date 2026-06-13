@@ -67,6 +67,7 @@ const PaymentSettings: React.FC = () => {
     try {
       setLoading(true)
       const res = await get(paymentSettingEndpoints.get)
+
       if (res?.data) setConfig(res.data)
     } catch {
       toast.error('Failed to load payment settings')
@@ -78,19 +79,25 @@ const PaymentSettings: React.FC = () => {
   const handleSave = async () => {
     if (config.publishableKey && !config.publishableKey.startsWith('pk_')) {
       toast.error('Publishable key must start with pk_')
-      return
+      
+return
     }
+
     if (newSecretKey && !newSecretKey.startsWith('sk_')) {
       toast.error('Secret key must start with sk_')
-      return
+      
+return
     }
+
     if (newWebhookSecret && !newWebhookSecret.startsWith('whsec_')) {
       toast.error('Webhook secret must start with whsec_')
-      return
+      
+return
     }
 
     try {
       setSaving(true)
+
       const payload: Record<string, any> = {
         restaurantId: [1],
         provider: 'stripe',

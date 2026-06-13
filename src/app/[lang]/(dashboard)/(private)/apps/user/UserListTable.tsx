@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Next Imports
-import Link from 'next/link'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
@@ -38,8 +37,9 @@ import { toast } from 'react-toastify'
 
 import { useSession } from 'next-auth/react'
 
+import { Menu } from '@mui/material'
+
 import type { UsersType } from '@/types/apps/userTypes'
-import type { Locale } from '@configs/i18n'
 import type { ThemeColor } from '@core/types'
 
 import CustomTextField from '@core/components/mui/TextField'
@@ -47,12 +47,9 @@ import AddUserDrawer from './AddUserDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TableFilters from './TableFilters'
 
-import { getLocalizedUrl } from '@/utils/i18n'
-
 import { del, get, post } from '@/services/apiService'
 import { userEndpoints } from '@/services/endpoints/user'
 import tableStyles from '@core/styles/table.module.css'
-import { Menu } from '@mui/material'
 
 type UsersTypeWithAction = UsersType & {
   action?: string
@@ -129,7 +126,6 @@ const UserListTable = () => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<UsersTypeWithAction | null>(null)
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false) // State for filter popover
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

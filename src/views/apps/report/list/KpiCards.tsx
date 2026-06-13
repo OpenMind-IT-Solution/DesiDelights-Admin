@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, Card, CardContent, CircularProgress, Typography } from '@mui/material'
+
 import { formatCurrency, formatNumber } from '../common'
 
 const KpiCard = ({ title, value, icon, color, loading }: {

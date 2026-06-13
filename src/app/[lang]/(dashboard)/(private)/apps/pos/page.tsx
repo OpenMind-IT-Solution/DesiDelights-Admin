@@ -30,6 +30,15 @@ import {
 } from '@mui/material'
 
 // Type Imports
+import {
+  MinusCircleOutline,
+  PlusCircleOutline,
+  Printer,
+  Receipt,
+  ShoppingOutline,
+  TrashCanOutline
+} from 'mdi-material-ui'
+
 import type { Category } from '@/types/apps/categoryTypes'
 import type { MenuItem } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
@@ -39,14 +48,6 @@ import { post } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
-import {
-  MinusCircleOutline,
-  PlusCircleOutline,
-  Printer,
-  Receipt,
-  ShoppingOutline,
-  TrashCanOutline
-} from 'mdi-material-ui'
 import { getImageUrl } from '@/utils/getImageUrl'
 
 const TAX_RATE = 0.18 // 18% GST
@@ -74,7 +75,9 @@ const Pos = () => {
         limit: 1000, // Fetch all categories
         status: true // Only active categories
       }
+
       const result: any = await post(categoriesEndpoints.getCategories, body)
+
       if (result.status === 'success') {
         const formattedCategories = (result.data.categories || []).map((cat: any) => ({
           id: cat.id,
@@ -82,6 +85,7 @@ const Pos = () => {
           description: cat.description,
           status: cat.status ? 'active' : 'inactive'
         }))
+
         setCategories(formattedCategories)
       } else {
         throw new Error(result.message || 'Failed to fetch categories')
@@ -99,12 +103,15 @@ const Pos = () => {
         limit: 1000, // Fetch all menu items
         status: true // Only active items
       }
+
       const result: any = await post(menuEndpoints.getMenu, payload)
+
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
           ...item,
           menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
         }))
+
         setMenuItems(formattedMenuItems)
       } else {
         throw new Error(result.message || 'Failed to fetch menu items')
@@ -122,6 +129,7 @@ const Pos = () => {
       await Promise.all([fetchCategories(), fetchMenuItems()])
       setLoading(false)
     }
+
     fetchData()
   }, [fetchCategories, fetchMenuItems])
 
@@ -238,7 +246,8 @@ const Pos = () => {
 
   if (!receiptWindow) {
     console.error('Unable to open print window')
-    return
+    
+return
   }
 
   const itemsHtml = cart

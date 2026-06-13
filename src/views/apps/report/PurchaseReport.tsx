@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
 import { createColumnHelper } from '@tanstack/react-table'
+
 import type { GroceryPurchaseReport, GroceryPurchase } from '@/types/apps/reportTypes'
 import { useReport, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'

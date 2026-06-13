@@ -1,20 +1,26 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+
 import dynamic from 'next/dynamic'
+
 import { useSession } from 'next-auth/react'
-import { post } from '@/services/apiService'
+
 import type { ApexOptions } from 'apexcharts'
 import { useTheme } from '@mui/material/styles'
 import {
-  Box, Card, CardContent, CardHeader, Chip, CircularProgress, Grid, MenuItem, Table, TableBody,
+  Box, Card, CardContent, CardHeader, Chip, CircularProgress, MenuItem, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Typography
 } from '@mui/material'
+
+import Grid from '@mui/material/Grid2'
+
+import { post } from '@/services/apiService'
 import CustomTextField from '@core/components/mui/TextField'
 import type {
-  SalesSummary, RevenueTrendData, OrderTypeBreakdownData,
-  TopProductsData, CustomerAnalyticsData, HourlySalesData,
-  RecentOrdersData, InventoryInsightsData, ProfitReportData
+  DateRange, SalesSummary, RevenueTrendData, OrderTypeBreakdownData,
+  TopProductsData, CustomerAnalyticsData, CategoryAnalyticsData, PaymentMethodData,
+  HourlySalesData, RecentOrdersData, InventoryInsightsData, ProfitReportData
 } from '@/types/apps/reportTypes'
 import { reportEndpoints } from '@/services/endpoints/report'
 import { formatCurrency, formatNumber, getDatePreset } from './common'
@@ -58,7 +64,9 @@ const SalesReports = () => {
   const fetchAll = async (range: DateRange, extras?: Record<string, string>) => {
     if (!session) return
     const payload: Record<string, unknown> = { startDate: range.startDate, endDate: range.endDate }
+
     if (extras) Object.assign(payload, extras)
+
     const fetches = [
       { key: 'summary', ep: reportEndpoints.salesSummary, setter: setSummary },
       { key: 'revenue', ep: reportEndpoints.revenueTrend, setter: setRevenueTrend },
@@ -70,6 +78,7 @@ const SalesReports = () => {
       { key: 'hourly', ep: reportEndpoints.hourlySales, setter: setHourlySales },
       { key: 'profit', ep: reportEndpoints.profit, setter: setProfit },
     ]
+
     fetches.forEach(({ key, ep, setter }) => {
       triggerLoading(key)
       post(ep, payload).then((res: any) => { setter(res.data); clearError(key) }).catch((e: any) => { setErrors(p => ({ ...p, [key]: e.message })) }).finally(() => doneLoading(key))
@@ -91,6 +100,7 @@ const SalesReports = () => {
     setActivePreset(preset)
     setExtraFilters({})
     const r = getDatePreset(preset)
+
     setFilter(r)
     fetchAll(r, {})
   }
@@ -166,17 +176,23 @@ const SalesReports = () => {
               sx={{ minWidth: 130 }} onChange={e => {
                 const val = e.target.value
                 const newFilters = { ...extraFilters, paymentMethod: val }
+
                 setExtraFilters(newFilters)
-                if (val) setExtraFilters(newFilters); else { const { paymentMethod: _, ...rest } = extraFilters; setExtraFilters(rest) }
+
+                if (val) setExtraFilters(newFilters); else { setExtraFilters(Object.fromEntries(Object.entries(extraFilters).filter(([k]) => k !== 'paymentMethod'))) }
+
                 fetchAll(filter, val ? { ...extraFilters, paymentMethod: val } : extraFilters)
               }}>
               <MenuItem value=''>All</MenuItem>
-              {filterOptions.paymentMethods.map(p => <MenuItem key={p} value={p} sx={{ textTransform: 'capitalize' }}>{p}</MenuItem>)}
+              <MenuItem value='stripe'>Stripe</MenuItem>
+              {filterOptions.paymentMethods.filter(p => p.toLowerCase() !== 'stripe').map(p => <MenuItem key={p} value={p} sx={{ textTransform: 'capitalize' }}>{p}</MenuItem>)}
             </CustomTextField>
             <CustomTextField select size='small' value={extraFilters.orderType || ''} label='Type'
               sx={{ minWidth: 120 }} onChange={e => {
                 const val = e.target.value
-                const newFilters = val ? { ...extraFilters, orderType: val } : (() => { const { orderType: _, ...rest } = extraFilters; return rest })()
+
+                const newFilters = val ? { ...extraFilters, orderType: val } : Object.fromEntries(Object.entries(extraFilters).filter(([k]) => k !== 'orderType'))
+
                 setExtraFilters(newFilters)
                 fetchAll(filter, newFilters)
               }}>
@@ -186,7 +202,9 @@ const SalesReports = () => {
             <CustomTextField select size='small' value={extraFilters.categoryId || ''} label='Category'
               sx={{ minWidth: 150 }} onChange={e => {
                 const val = e.target.value
-                const newFilters = val ? { ...extraFilters, categoryId: val } : (() => { const { categoryId: _, ...rest } = extraFilters; return rest })()
+
+                const newFilters = val ? { ...extraFilters, categoryId: val } : Object.fromEntries(Object.entries(extraFilters).filter(([k]) => k !== 'categoryId'))
+
                 setExtraFilters(newFilters)
                 fetchAll(filter, newFilters)
               }}>

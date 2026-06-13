@@ -1,14 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
+
 import dynamic from 'next/dynamic'
+
 import type { ApexOptions } from 'apexcharts'
 import { useTheme } from '@mui/material/styles'
+
+import { Box, Card, CardContent, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+
+import Grid from '@mui/material/Grid2'
+
 import type { GroceryInventoryValue } from '@/types/apps/reportTypes'
 import { useReport, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
 import ReportFilters from './list/ReportFilters'
-import { Box, Card, CardContent, CircularProgress, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
@@ -19,7 +25,6 @@ const InventoryValueReport = () => {
   useEffect(() => { fetch() }, [fetch])
 
   const primaryColor = theme.palette.primary.main
-  const infoColor = theme.palette.info.main
 
   const barOptions: ApexOptions = useMemo(() => ({
     chart: { type: 'bar', toolbar: { show: false } },
@@ -33,7 +38,8 @@ const InventoryValueReport = () => {
 
   const valueTrendSeries = useMemo(() => {
     if (!data?.monthlyTrend) return []
-    return [{
+    
+return [{
       name: 'Items',
       data: data.monthlyTrend.map(t => ({ x: new Date(t.date).getTime(), y: t.count }))
     }]

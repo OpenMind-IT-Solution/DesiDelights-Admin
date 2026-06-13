@@ -84,10 +84,12 @@ export type NotificationsType = {
 
 const getRelativeTime = (dateStr: string): string => {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
+
   if (diff < 60) return `${diff}s ago`
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return new Date(dateStr).toLocaleDateString()
+  
+return new Date(dateStr).toLocaleDateString()
 }
 
 const getSeenIds = (): number[] => {
@@ -100,6 +102,7 @@ const getSeenIds = (): number[] => {
 
 const addSeenId = (id: number) => {
   const ids = getSeenIds()
+
   if (!ids.includes(id)) {
     localStorage.setItem(SEEN_KEY, JSON.stringify([...ids, id]))
   }
@@ -142,7 +145,7 @@ const getAvatar = (
 const NotificationDropdown = () => {
   const [open, setOpen] = useState(false)
   const [notificationsState, setNotificationsState] = useState<NotificationsType[]>([])
-  const [notifPermission, setNotifPermission] = useState<NotificationPermission>('default')
+  const [, setNotifPermission] = useState<NotificationPermission>('default')
 
   const notificationCount = notificationsState.filter(n => !n.read).length
   const readAll = notificationsState.length > 0 && notificationsState.every(n => n.read)
@@ -173,15 +176,18 @@ const NotificationDropdown = () => {
     if (!permissionAsked.current && 'Notification' in window && Notification.permission === 'default') {
       permissionAsked.current = true
       const result = await Notification.requestPermission()
+
       setNotifPermission(result)
     }
 
     // Unlock AudioContext using this same gesture
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+
     if (AudioCtx) {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new AudioCtx()
       }
+
       if (audioCtxRef.current.state === 'suspended') {
         await audioCtxRef.current.resume()
       }
@@ -190,6 +196,7 @@ const NotificationDropdown = () => {
 
   const playAlertSound = useCallback(() => {
     const ctx = audioCtxRef.current
+
     if (!ctx || ctx.state !== 'running') return
 
     const pulses = [
@@ -229,11 +236,13 @@ const NotificationDropdown = () => {
   const fetchOrders = useCallback(async () => {
     try {
       const result = await get(orderEndpoints.newOrders) as any
+
       if (result?.status === 'success') {
         const seenIds = getSeenIds()
         const orders: any[] = result.data?.orders || []
 
         const incomingIds = orders.map((o: any) => o.id as number)
+
         const newOrders = !isFirstFetch.current
           ? orders.filter((o: any) => !knownOrderIds.current.has(o.id))
           : []
@@ -255,6 +264,7 @@ const NotificationDropdown = () => {
           read: seenIds.includes(order.id),
           orderId: order.id
         }))
+
         setNotificationsState(mapped)
       }
     } catch {
@@ -265,18 +275,23 @@ const NotificationDropdown = () => {
   useEffect(() => {
     fetchOrders()
     const interval = setInterval(fetchOrders, POLL_INTERVAL)
-    return () => clearInterval(interval)
+
+    
+return () => clearInterval(interval)
   }, [fetchOrders])
 
   useEffect(() => {
     const adjustPopoverHeight = () => {
       if (ref.current) {
         const availableHeight = window.innerHeight - 100
+
         ref.current.style.height = `${Math.min(availableHeight, 550)}px`
       }
     }
+
     window.addEventListener('resize', adjustPopoverHeight)
-    return () => window.removeEventListener('resize', adjustPopoverHeight)
+    
+return () => window.removeEventListener('resize', adjustPopoverHeight)
   }, [])
 
   const handleClose = () => setOpen(false)
@@ -290,6 +305,7 @@ const NotificationDropdown = () => {
     // mark as read
     if (!notification.read) {
       const updated = [...notificationsState]
+
       updated[index] = { ...updated[index], read: true }
       setNotificationsState(updated)
       if (notification.orderId) addSeenId(notification.orderId)
@@ -304,6 +320,7 @@ const NotificationDropdown = () => {
     e.stopPropagation()
     const updated = [...notificationsState]
     const removed = updated.splice(index, 1)[0]
+
     if (removed.orderId) addSeenId(removed.orderId)
     setNotificationsState(updated)
   }
@@ -311,8 +328,10 @@ const NotificationDropdown = () => {
   const readAllNotifications = () => {
     const updated = notificationsState.map(n => {
       if (n.orderId) addSeenId(n.orderId)
-      return { ...n, read: !readAll }
+      
+return { ...n, read: !readAll }
     })
+
     setNotificationsState(updated)
   }
 
@@ -456,10 +475,13 @@ const NotificationDropdown = () => {
                                 onClick={e => {
                                   e.stopPropagation()
                                   const updated = [...notificationsState]
+
                                   updated[index] = { ...updated[index], read: !read }
+
                                   if (notification.orderId) {
                                     if (!read) addSeenId(notification.orderId)
                                   }
+
                                   setNotificationsState(updated)
                                 }}
                                 className={classnames('mbs-1 mie-1', { 'invisible group-hover:visible': read })}

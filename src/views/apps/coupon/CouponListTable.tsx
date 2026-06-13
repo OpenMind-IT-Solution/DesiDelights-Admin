@@ -159,6 +159,7 @@ const CouponListTable = () => {
 
   const handleEditClick = async (coupon: CouponProps) => {
     setLoading(true)
+
     try {
       const result = await get(couponEndpoints.getCouponById(coupon.id))
 
@@ -209,6 +210,7 @@ const CouponListTable = () => {
     const rows = couponsToExport.map(coupon =>
       headers.map(header => escapeCSV(coupon[header as keyof CouponProps]))
     )
+
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)

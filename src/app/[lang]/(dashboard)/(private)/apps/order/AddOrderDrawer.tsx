@@ -28,7 +28,6 @@ import {
 import MenuItem from '@mui/material/MenuItem'
 import { toast } from 'react-toastify'
 
-import type { OrderType } from '@/types/apps/orderTypes'
 import { get, post } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { orderEndpoints } from '@/services/endpoints/order'
@@ -85,32 +84,39 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
     const fetchWalkIn = async () => {
       try {
         const res: any = await get(orderEndpoints.walkInCustomer)
+
         if (res?.data?.id) setCustomerId(String(res.data.id))
       } catch { /* walk-in not seeded, leave blank */ }
     }
+
     fetchWalkIn()
   }, [open])
 
   // Fetch menu once
   useEffect(() => {
     if (menuOptions.length > 0) return
+
     const fetchMenu = async () => {
       setMenuLoading(true)
+
       try {
         const res: any = await post(menuEndpoints.getMenu, { status: true })
         const raw = res?.data?.menuItems || res?.data || []
+
         setMenuOptions(
           raw.filter((m: any) => m.status !== false)
             .map((m: any) => ({ id: m.id, name: m.name, price: Number(m.price || 0) }))
         )
       } catch { /* ignore */ } finally { setMenuLoading(false) }
     }
+
     fetchMenu()
   }, [])
 
   const handleAddItem = () => {
     if (!selectedMenuItem || Number(newQty) < 1) return
     const nextRowId = items.length > 0 ? Math.max(...items.map(i => i.rowId)) + 1 : 1
+
     setItems(prev => [...prev, {
       rowId: nextRowId,
       menuItemId: selectedMenuItem.id,
@@ -136,9 +142,12 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
     if (items.length === 0) {
       toast.error('Add at least one item')
       setConfirmOpen(false)
-      return
+      
+return
     }
+
     setSaving(true)
+
     try {
       await post(orderEndpoints.adminCreateOrder, {
         customerId: Number(customerId),
