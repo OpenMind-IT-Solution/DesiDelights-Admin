@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Box, Card, CardContent, CircularProgress, Typography } from '@mui/material'
+
 import { createColumnHelper } from '@tanstack/react-table'
+
 import type { CategorySalesData, CategorySale } from '@/types/apps/reportTypes'
 import { useReport, formatCurrency, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'

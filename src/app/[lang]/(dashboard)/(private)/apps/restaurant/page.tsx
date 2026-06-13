@@ -10,4 +10,5 @@ const RestaurantList = () => {
     </Grid>
   )
 }
+
 export default RestaurantList

@@ -54,6 +54,7 @@ const handleResponse = async (response: Response) => {
       throw new Error('Unauthorized. Token missing or expired')
     } else {
       const errorResponse = await response.json().catch(() => ({}))
+
       const message =
         errorResponse?.errors ||
         errorResponse?.message ||

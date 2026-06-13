@@ -1,4 +1,5 @@
 import Grid from '@mui/material/Grid2'
+
 import CouponListTable from './CouponListTable'
 
 const CouponList = () => {

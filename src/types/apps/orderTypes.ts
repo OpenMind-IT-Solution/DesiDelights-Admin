@@ -7,7 +7,7 @@ export type OrderItemType = {
 
 export type OrderType = {
   id: number
-  status: 'pending' | 'completed' | 'cancelled'
+  status: 'pending' | 'placed' | 'confirmed' | 'out_for_delivery' | 'completed' | 'cancelled'
   totalAmount: number
   paymentStatus: 'paid' | 'unpaid' | 'refunded'
   orderType: 'delivery' | 'pickup'

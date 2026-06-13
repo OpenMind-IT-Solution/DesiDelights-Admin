@@ -1,8 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Box, Card, CardContent, Typography, CircularProgress, Grid } from '@mui/material'
+
+import { Box, Card, CardContent, Typography, CircularProgress } from '@mui/material'
+
+import Grid from '@mui/material/Grid2'
 import { createColumnHelper } from '@tanstack/react-table'
+
 import type { RefundReportData } from '@/types/apps/reportTypes'
 import { useReport, formatCurrency, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'

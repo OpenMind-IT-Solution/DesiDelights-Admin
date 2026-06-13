@@ -38,6 +38,7 @@ const TableFilters = ({ filters, setFilters, onClose }: Props) => {
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true)
+
       try {
         const result: any = await post(categoriesEndpoints.getCategories, {
           status: [true],

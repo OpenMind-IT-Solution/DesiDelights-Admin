@@ -7,4 +7,7 @@ export type UsersType = {
   phoneNumber: string
   fullName: string
   userName: string
+  role?: string
+  username?: string
+  contact?: string
 }

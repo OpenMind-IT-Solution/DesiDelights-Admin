@@ -1,5 +1,5 @@
 // React Imports
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 // MUI Imports
 import {
@@ -25,11 +25,14 @@ import { useFormik } from 'formik'
 import * as Yup from 'yup'
 
 // Component Imports
+import { toast } from 'react-toastify'
+
+import { useSession } from 'next-auth/react'
+
 import CustomTextField from '@core/components/mui/TextField'
 import { post } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
-import { toast } from 'react-toastify'
-import { useSession } from 'next-auth/react'
+
 import { RequiredLabel } from '@/components/RequierdLabel'
 
 type PermissionFlag = 'all' | 'view' | 'create' | 'edit' | 'delete'
@@ -113,9 +116,12 @@ const RoleDrawer = (props: Props) => {
     onSubmit: async values => {
       try {
         setLoading(true)
+
         const permissionArray = Object.entries(values.permissions).map(([moduleName, perms]) => {
           const { moduleId, view, create, edit, delete: del } = perms
-          return {
+
+          
+return {
             moduleId,
             moduleName,
             view,

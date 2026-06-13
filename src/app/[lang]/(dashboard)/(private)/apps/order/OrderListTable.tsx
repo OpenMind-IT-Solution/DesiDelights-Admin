@@ -36,6 +36,8 @@ import {
 import classnames from 'classnames'
 
 // Type Imports
+import { useSession } from 'next-auth/react'
+
 import type { OrderType } from '@/types/apps/orderTypes'
 import type { ThemeColor } from '@core/types'
 
@@ -43,11 +45,10 @@ import type { ThemeColor } from '@core/types'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
-import TableFilters from './TableFilters'
+import AddOrderDrawer from './AddOrderDrawer'
 import { post } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 import tableStyles from '@core/styles/table.module.css'
-import { useSession } from 'next-auth/react'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
@@ -72,25 +73,33 @@ type OrderStatusType = {
 
 const parseDeliveryAddress = (address: string | null | undefined): string => {
   if (!address) return '-'
+
   try {
     const parsed = JSON.parse(address)
+
     if (parsed && typeof parsed === 'object' && (parsed.customerName || parsed.customerPhone || parsed.customerNotes)) {
       const parts: string[] = []
+
       if (parsed.customerName) parts.push(parsed.customerName)
       if (parsed.customerPhone) parts.push(parsed.customerPhone)
       if (parsed.customerNotes) parts.push(`(${parsed.customerNotes})`)
-      return parts.join(' | ')
+      
+return parts.join(' | ')
     }
   } catch {
     // not JSON
   }
-  return address
+
+  
+return address
 }
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -139,14 +148,17 @@ const OrderListTable = () => {
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [totalRows, setTotalRows] = useState(0)
+  const [, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
+  const [, setLoading] = useState(true)
+  const [, setError] = useState<string | null>(null)
+  const [, setTotalRows] = useState(0)
+  const [refreshKey, setRefreshKey] = useState(0)
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
   })
+
   const { lang: locale } = useParams()
 
   useEffect(() => {
@@ -195,7 +207,7 @@ const OrderListTable = () => {
     return () => {
       active = false
     }
-  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize])
+  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize, refreshKey])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
     if (ordersToExport.length === 0) return
@@ -204,16 +216,20 @@ const OrderListTable = () => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = ordersToExport.map(order =>
       headers.map(header => escapeCSV(order[header as keyof OrderTypeWithAction]))
     )
+
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'orders-export.csv'
     link.click()
@@ -269,7 +285,7 @@ const OrderListTable = () => {
         cell: ({ row }) => (
           <Chip
             variant='tonal'
-            label={row.original.status}
+            label={row.original.status?.replace(/_/g, ' ')}
             size='small'
             color={orderStatusObj[row.original.status] || 'default'}
             className='capitalize'
@@ -308,7 +324,9 @@ const OrderListTable = () => {
         header: 'Order Items',
         cell: ({ row }) => {
           const orderItems = row.original.orderItems ?? row.original.items ?? []
-          return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '0 items'}</Typography>
+
+          
+return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '0 items'}</Typography>
         }
       }),
       columnHelper.accessor('action', {
@@ -489,20 +507,16 @@ const OrderListTable = () => {
           setSelectedOrder(null)
         }}
         order={selectedOrder}
+        onSaved={() => setRefreshKey(k => k + 1)}
       />
 
-      {/* <AddOrderDrawer
-        open={addOrderOpen || editOrderOpen}
+      <AddOrderDrawer
+        open={addOrderOpen}
         handleClose={() => {
           setAddOrderOpen(false)
-          setEditOrderOpen(false)
-          setSelectedOrder(null)
         }}
-        orderData={data}
-        setData={setData}
-        orderToEdit={selectedOrder}
-        onSuccess={fetchOrders}
-      /> */}
+        onSuccess={() => setRefreshKey(k => k + 1)}
+      />
 
       <DeleteConfirmationDialog
         open={deleteDialogOpen}

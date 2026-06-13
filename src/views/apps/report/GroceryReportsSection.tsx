@@ -2,10 +2,12 @@
 
 import type { SyntheticEvent } from 'react'
 import { useState } from 'react'
+
 import TabContext from '@mui/lab/TabContext'
 import TabList from '@mui/lab/TabList'
 import TabPanel from '@mui/lab/TabPanel'
 import { Tab } from '@mui/material'
+
 import StockSummaryDashboard from './StockSummaryDashboard'
 import PurchaseReport from './PurchaseReport'
 import ConsumptionReport from './ConsumptionReport'

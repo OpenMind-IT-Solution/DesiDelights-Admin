@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
+
 import Image from 'next/image'
+
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -11,6 +13,7 @@ import { styled } from '@mui/material/styles'
 import { useDropzone } from 'react-dropzone'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
+
 import { post, postFormData } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
@@ -86,6 +89,7 @@ const AddMenuItemDrawer = (props: Props) => {
 
   useEffect(() => {
     getCategoryDropdown(1)
+
     if (itemToEdit) {
       resetForm({
         id: itemToEdit.id || 0,
@@ -195,6 +199,7 @@ const AddMenuItemDrawer = (props: Props) => {
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An unexpected error occurred.'
+
       toast.error(message)
     } finally {
       setLoading(false)

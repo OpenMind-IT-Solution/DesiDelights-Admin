@@ -1,18 +1,28 @@
 'use client'
 
-import { useMemo } from 'react'
 import Card from '@mui/material/Card'
 import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
-import type { ColumnDef } from '@tanstack/react-table'
-import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
+import { rankItem } from '@tanstack/match-sorter-utils'
+import type { ColumnDef, FilterFn } from '@tanstack/react-table'
+import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import classnames from 'classnames'
-import TablePaginationComponent from '@components/TablePaginationComponent'
-import tableStyles from '@core/styles/table.module.css'
+
 import { CircularProgress } from '@mui/material'
 
+import TablePaginationComponent from '@components/TablePaginationComponent'
+import tableStyles from '@core/styles/table.module.css'
+
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  addMeta({ itemRank })
+
+  return itemRank.passed
+}
+
 type ReportTableProps<T> = {
-  columns: ColumnDef<T, unknown>[]
+  columns: ColumnDef<T, any>[]
   data: T[]
   total: number
   page: number
@@ -31,6 +41,7 @@ const ReportTable = <T extends Record<string, unknown>>({
     data: data as T[],
     columns,
     rowCount: total,
+    filterFns: { fuzzy: fuzzyFilter },
     state: { pagination: { pageIndex: page - 1, pageSize: limit } },
     manualPagination: true,
     getCoreRowModel: getCoreRowModel()
@@ -83,7 +94,7 @@ const ReportTable = <T extends Record<string, unknown>>({
         </table>
       </div>
       <TablePagination
-        component={() => <TablePaginationComponent table={table} />}
+        component={() => <TablePaginationComponent table={table as any} />}
         count={total}
         rowsPerPage={limit}
         page={page - 1}

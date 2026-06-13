@@ -1,14 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
+
 import dynamic from 'next/dynamic'
+
 import type { ApexOptions } from 'apexcharts'
 import { useTheme } from '@mui/material/styles'
+
+import { Box, Card, CardContent, CircularProgress, Typography } from '@mui/material'
+
 import type { GroceryFoodCostReport } from '@/types/apps/reportTypes'
 import { useReport, formatCurrency, formatNumber } from './common'
 import { reportEndpoints } from '@/services/endpoints/report'
 import ReportFilters from './list/ReportFilters'
-import { Box, Card, CardContent, CircularProgress, Typography } from '@mui/material'
 
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
@@ -20,7 +24,6 @@ const FoodCostReport = () => {
 
   const primaryColor = theme.palette.primary.main
   const warningColor = theme.palette.warning.main
-  const successColor = theme.palette.success.main
 
   const dailyOptions: ApexOptions = useMemo(() => ({
     chart: { type: 'bar', toolbar: { show: false } },
@@ -35,7 +38,8 @@ const FoodCostReport = () => {
 
   const dailySeries = useMemo(() => {
     if (!data?.dailyBreakdown) return []
-    return [
+    
+return [
       { name: 'Revenue', data: data.dailyBreakdown.map(d => ({ x: new Date(d.date).getTime(), y: d.revenue })) },
       { name: 'Food Cost', data: data.dailyBreakdown.map(d => ({ x: new Date(d.date).getTime(), y: d.foodCost })) }
     ]
