@@ -180,6 +180,9 @@ export type RecentOrder = {
 
 export type RecentOrdersData = {
   orders: RecentOrder[]
+  total?: number
+  page?: number
+  limit?: number
 }
 
 export type InventoryInsightsData = {

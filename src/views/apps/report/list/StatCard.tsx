@@ -21,24 +21,41 @@ const StatCard = ({
     className={className}
     onClick={onClick}
     sx={{
-      border: 2,
-      borderColor: isSelected ? `${color}.main` : 'transparent',
       cursor: 'pointer',
-      transition: 'border-color 0.3s'
+      borderRadius: 2.5,
+      border: 2,
+      borderColor: isSelected ? `${color}.main` : 'divider',
+      bgcolor: isSelected ? t => `${t.palette[color].main}0D` : 'background.paper',
+      transition: 'all 0.2s ease',
+      boxShadow: isSelected ? t => `0 0 0 1px ${t.palette[color].main}` : 'none',
+      '&:hover': {
+        borderColor: t => t.palette[color].main,
+        boxShadow: t => `0 4px 20px ${t.palette[color].main}20`
+      }
     }}
   >
-    <CardContent>
+    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant='h5'>{value}</Typography>
-          <Typography color='text.secondary'>{title}</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Typography variant='h5' sx={{ fontWeight: 700 }}>{value}</Typography>
+          <Typography variant='body2' color='text.secondary'>{title}</Typography>
         </Box>
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', backgroundColor: `rgba(var(--mui-palette-${color}-mainChannel) / 0.1)` }}>
-          <i className={`${icon} text-3xl text-${color}`} />
+        <Box sx={{
+          p: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 2,
+          background: t => `linear-gradient(135deg, ${t.palette[color].main}, ${t.palette[color].dark})`,
+          boxShadow: t => `0 4px 12px ${t.palette[color].main}40`,
+          minWidth: 40,
+          minHeight: 40
+        }}>
+          <i className={`${icon} text-xl`} style={{ color: '#fff' }} />
         </Box>
       </Box>
     </CardContent>
   </Card>
 )
 
-export default StatCard;
+export default StatCard

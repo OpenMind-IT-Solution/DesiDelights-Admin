@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import {
+  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -12,6 +13,7 @@ import {
   Divider,
   Drawer,
   FormControl,
+  Grid,
   IconButton,
   InputLabel,
   Paper,
@@ -32,6 +34,8 @@ import { get, post } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { orderEndpoints } from '@/services/endpoints/order'
 
+const TAX_RATE = 0.18
+
 type Props = {
   open: boolean
   handleClose: () => void
@@ -47,14 +51,12 @@ interface LineItem {
 }
 
 const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
-  // Order fields
   const [orderType, setOrderType] = useState('delivery')
   const [status, setStatus] = useState('pending')
-  const [paymentStatus, setPaymentStatus] = useState('unpaid')
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [customerId, setCustomerId] = useState('')
+  const [customerId, setCustomerId] = useState<number | null>(null)
 
-  // Items
   const [items, setItems] = useState<LineItem[]>([])
   const [menuOptions, setMenuOptions] = useState<any[]>([])
   const [menuLoading, setMenuLoading] = useState(false)
@@ -66,16 +68,17 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
   const [saving, setSaving] = useState(false)
 
   const selectedMenuItem = menuOptions.find(m => m.id === newMenuItemId)
-  const calculateTotal = () => items.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  const tax = subtotal * TAX_RATE
+  const grandTotal = subtotal + tax
 
-  // Reset on open + pre-fill walk-in customer ID
   useEffect(() => {
     if (!open) return
     setOrderType('delivery')
     setStatus('pending')
-    setPaymentStatus('unpaid')
+    setPaymentMethod('Cash')
     setDeliveryAddress('')
-    setCustomerId('')
+    setCustomerId(null)
     setItems([])
     setShowAddForm(false)
     setNewMenuItemId('')
@@ -85,14 +88,13 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
       try {
         const res: any = await get(orderEndpoints.walkInCustomer)
 
-        if (res?.data?.id) setCustomerId(String(res.data.id))
-      } catch { /* walk-in not seeded, leave blank */ }
+        if (res?.data?.id) setCustomerId(Number(res.data.id))
+      } catch { /* ignore */ }
     }
 
     fetchWalkIn()
   }, [open])
 
-  // Fetch menu once
   useEffect(() => {
     if (menuOptions.length > 0) return
 
@@ -111,7 +113,7 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
     }
 
     fetchMenu()
-  }, [])
+  }, [menuOptions.length])
 
   const handleAddItem = () => {
     if (!selectedMenuItem || Number(newQty) < 1) return
@@ -142,17 +144,17 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
     if (items.length === 0) {
       toast.error('Add at least one item')
       setConfirmOpen(false)
-      
-return
+
+      return
     }
 
     setSaving(true)
 
     try {
       await post(orderEndpoints.adminCreateOrder, {
-        customerId: Number(customerId),
+        customerId: customerId || 0,
         status,
-        paymentStatus,
+        paymentStatus: paymentMethod,
         orderType,
         deliveryAddress: deliveryAddress || undefined,
         items: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, price: i.price }))
@@ -166,75 +168,78 @@ return
     }
   }
 
-  const cardStyle = {
-    padding: 16,
-    borderRadius: 16,
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.08)'
-  }
-
   return (
     <Drawer
       anchor='right'
       open={open}
       onClose={handleClose}
       PaperProps={{
-        sx: {
-          width: 520,
-          bgcolor: 'background.default',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          color: 'text.primary'
-        }
+        sx: { width: 520, bgcolor: 'background.default' }
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Header */}
-        <div style={{ padding: '24px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* ── Header ── */}
+        <Box sx={{ px: 5, pt: 5, pb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <Typography variant='h5' sx={{ fontWeight: 700, mb: 0.5 }}>Add New Order</Typography>
-            <Typography variant='body2' color='text.secondary'>Fill in details to create an order</Typography>
+            <Typography variant='h5' sx={{ fontWeight: 700, lineHeight: 1.2 }}>Add New Order</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+              Fill in details to create an order
+            </Typography>
           </div>
-          <IconButton onClick={handleClose} size='small' sx={{ color: 'text.primary' }}>
+          <IconButton onClick={handleClose} size='small' sx={{ color: 'text.secondary', mt: -0.5 }}>
             <i className='tabler-x' />
           </IconButton>
-        </div>
+        </Box>
 
-        <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ mx: 5 }} />
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
-          <div style={{ display: 'grid', gap: 16, marginBottom: 24 }}>
+        {/* ── Scrollable Body ── */}
+        <Box sx={{ flex: 1, overflowY: 'auto', px: 5, py: 4 }}>
+          {/* ── Order Details ── */}
+          <Typography
+            variant='subtitle2'
+            sx={{ fontWeight: 600, mb: 2, color: 'text.secondary', letterSpacing: 0.5, textTransform: 'uppercase', fontSize: 11 }}
+          >
+            Order Details
+          </Typography>
 
-            {/* Order Type */}
-            <div style={cardStyle}>
-              <Typography variant='subtitle2' color='text.secondary' sx={{ mb: 1.5 }}>Order Type</Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={6}>
               <FormControl fullWidth size='small'>
-                <Select value={orderType} onChange={e => setOrderType(e.target.value)}>
+                <InputLabel>Type</InputLabel>
+                <Select label='Type' value={orderType} onChange={e => setOrderType(e.target.value)}>
                   <MenuItem value='delivery'>Delivery</MenuItem>
                   <MenuItem value='pickup'>Pickup</MenuItem>
                   <MenuItem value='pos'>POS</MenuItem>
                 </Select>
               </FormControl>
-            </div>
-
-            {/* Delivery Address */}
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size='small'>
+                <InputLabel>Payment</InputLabel>
+                <Select label='Payment' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                  <MenuItem value='Cash'>Cash</MenuItem>
+                  <MenuItem value='Card'>Card</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
             {orderType === 'delivery' && (
-              <div style={cardStyle}>
-                <Typography variant='subtitle2' color='text.secondary' sx={{ mb: 1.5 }}>Delivery Address</Typography>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   size='small'
+                  label='Delivery Address'
                   placeholder='123 Main St, City'
                   value={deliveryAddress}
                   onChange={e => setDeliveryAddress(e.target.value)}
                 />
-              </div>
+              </Grid>
             )}
-
-            {/* Order Status */}
-            <div style={cardStyle}>
-              <Typography variant='subtitle2' color='text.secondary' sx={{ mb: 1.5 }}>Order Status</Typography>
+            <Grid item xs={6}>
               <FormControl fullWidth size='small'>
+                <InputLabel>Status</InputLabel>
                 <Select
+                  label='Status'
                   value={status}
                   onChange={e => setStatus(e.target.value)}
                   renderValue={(val: string) => val.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -247,114 +252,181 @@ return
                   <MenuItem value='cancelled'>Cancelled</MenuItem>
                 </Select>
               </FormControl>
-            </div>
+            </Grid>
+          </Grid>
 
-            {/* Payment Status */}
-            <div style={cardStyle}>
-              <Typography variant='subtitle2' color='text.secondary' sx={{ mb: 1.5 }}>Payment Status</Typography>
-              <FormControl fullWidth size='small'>
-                <Select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
-                  <MenuItem value='paid'>Paid</MenuItem>
-                  <MenuItem value='unpaid'>Unpaid</MenuItem>
-                  <MenuItem value='pending'>Pending</MenuItem>
-                  <MenuItem value='refunded'>Refunded</MenuItem>
-                  <MenuItem value='cancelled'>Cancelled</MenuItem>
-                </Select>
-              </FormControl>
-            </div>
-          </div>
+          <Divider sx={{ my: 4 }} />
 
-          {/* Items */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Typography variant='subtitle1' sx={{ fontWeight: 700 }}>Order Items</Typography>
-            <Button size='small' variant='tonal' onClick={() => setShowAddForm(v => !v)}>
-              {showAddForm ? 'Cancel' : '+ Add Item'}
+          {/* ── Order Items ── */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography
+              variant='subtitle2'
+              sx={{ fontWeight: 600, color: 'text.secondary', letterSpacing: 0.5, textTransform: 'uppercase', fontSize: 11 }}
+            >
+              Order Items
+              {items.length > 0 && (
+                <Typography component='span' variant='body2' color='text.secondary' sx={{ ml: 1, textTransform: 'none', letterSpacing: 0, fontWeight: 400, fontSize: 13 }}>
+                  ({items.length})
+                </Typography>
+              )}
+            </Typography>
+            <Button
+              size='small'
+              variant={showAddForm ? 'outlined' : 'contained'}
+              startIcon={<i className={showAddForm ? 'tabler-x' : 'tabler-plus'} />}
+              onClick={() => setShowAddForm(v => !v)}
+              sx={{ minWidth: 0, borderRadius: 2, textTransform: 'none', fontWeight: 600, fontSize: 13 }}
+            >
+              {showAddForm ? 'Cancel' : 'Add Item'}
             </Button>
-          </div>
+          </Box>
 
+          {/* ── Add Item Form ── */}
           {showAddForm && (
-            <div style={{ ...cardStyle, marginBottom: 16, display: 'grid', gap: 12 }}>
-              <FormControl fullWidth size='small'>
-                <InputLabel>Menu Item</InputLabel>
-                <Select
-                  label='Menu Item'
-                  value={newMenuItemId}
-                  onChange={e => setNewMenuItemId(Number(e.target.value) || '')}
-                  disabled={menuLoading}
-                >
-                  <MenuItem value=''>{menuLoading ? 'Loading…' : 'Select item'}</MenuItem>
-                  {menuOptions.map(m => (
-                    <MenuItem key={m.id} value={m.id}>{m.name} — €{m.price}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
-                <TextField label='Price' value={selectedMenuItem ? `€${selectedMenuItem.price}` : ''} size='small' disabled />
-                <TextField
-                  label='Qty'
-                  value={newQty}
-                  onChange={e => setNewQty(e.target.value)}
-                  size='small'
-                  type='number'
-                  inputProps={{ min: 1 }}
-                />
-                <Button
-                  variant='contained'
-                  sx={{ height: 40 }}
-                  onClick={handleAddItem}
-                  disabled={!selectedMenuItem || Number(newQty) < 1}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
+            <Paper
+              sx={{
+                p: 2.5,
+                mb: 2.5,
+                borderRadius: 2,
+                bgcolor: 'action.hover',
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: 'none'
+              }}
+            >
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth size='small'>
+                    <InputLabel>Menu Item</InputLabel>
+                    <Select
+                      label='Menu Item'
+                      value={newMenuItemId}
+                      onChange={e => setNewMenuItemId(Number(e.target.value) || '')}
+                      disabled={menuLoading}
+                    >
+                      <MenuItem value=''>{menuLoading ? 'Loading…' : 'Select item'}</MenuItem>
+                      {menuOptions.map(m => (
+                        <MenuItem key={m.id} value={m.id}>{m.name} — €{m.price}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    size='small'
+                    label='Unit Price'
+                    value={selectedMenuItem ? `€${selectedMenuItem.price}` : ''}
+                    disabled
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    fullWidth
+                    size='small'
+                    label='Qty'
+                    value={newQty}
+                    onChange={e => setNewQty(e.target.value)}
+                    type='number'
+                    inputProps={{ min: 1 }}
+                  />
+                </Grid>
+                <Grid item xs={3} sx={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <Button
+                    fullWidth
+                    variant='contained'
+                    onClick={handleAddItem}
+                    disabled={!selectedMenuItem || Number(newQty) < 1}
+                    sx={{ height: 40, borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+                  >
+                    Add
+                  </Button>
+                </Grid>
+              </Grid>
+            </Paper>
           )}
 
+          {/* ── Items Table ── */}
           <TableContainer
             component={Paper}
             sx={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'divider',
               boxShadow: 'none',
               overflowX: 'hidden'
             }}
           >
             <Table size='small' sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
-                <TableRow sx={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <TableCell sx={{ color: 'text.secondary', borderBottom: 'none', width: '34%' }}>Item</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', borderBottom: 'none', width: '16%' }} align='center'>Price</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', borderBottom: 'none', width: '26%' }} align='center'>Qty</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', borderBottom: 'none', width: '16%' }} align='center'>Total</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', borderBottom: 'none', width: '8%' }} align='center' />
+                <TableRow sx={{ bgcolor: 'action.hover' }}>
+                  <TableCell sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 12, borderBottom: 'none', width: '34%', py: 1.5 }}>Item</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 12, borderBottom: 'none', width: '16%', py: 1.5 }} align='center'>Price</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 12, borderBottom: 'none', width: '26%', py: 1.5 }} align='center'>Qty</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 12, borderBottom: 'none', width: '16%', py: 1.5 }} align='center'>Total</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 12, borderBottom: 'none', width: '8%', py: 1.5 }} align='center' />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {items.length > 0 ? (
                   items.map(item => (
-                    <TableRow key={item.rowId} sx={{ '&:last-child td': { borderBottom: 'none' } }}>
-                      <TableCell sx={{ py: 1.5 }}>
+                    <TableRow
+                      key={item.rowId}
+                      sx={{
+                        '&:last-child td': { borderBottom: 'none' },
+                        '&:hover': { bgcolor: 'action.hover' },
+                        transition: 'background 0.15s'
+                      }}
+                    >
+                      <TableCell sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
                         <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{item.name}</Typography>
                       </TableCell>
-                      <TableCell align='center' sx={{ py: 1.5 }}>
-                        <Typography fontSize={13}>€{item.price}</Typography>
+                      <TableCell align='center' sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Typography fontSize={13} color='text.secondary'>€{item.price.toFixed(2)}</Typography>
                       </TableCell>
-                      <TableCell align='center' sx={{ py: 1.5 }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 999, padding: '2px 6px' }}>
-                          <IconButton size='small' onClick={() => handleDecrease(item.rowId)} disabled={item.quantity <= 1} sx={{ color: 'text.primary', p: 0.5 }}>
+                      <TableCell align='center' sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            bgcolor: 'action.selected',
+                            borderRadius: 999,
+                            px: 0.5,
+                            py: 0.25
+                          }}
+                        >
+                          <IconButton
+                            size='small'
+                            onClick={() => handleDecrease(item.rowId)}
+                            disabled={item.quantity <= 1}
+                            sx={{ color: 'text.secondary', p: 0.5, '&.Mui-disabled': { opacity: 0.3 } }}
+                          >
                             <i className='tabler-minus' style={{ fontSize: 12 }} />
                           </IconButton>
-                          <Typography sx={{ minWidth: 20, textAlign: 'center', fontSize: 13 }}>{item.quantity}</Typography>
-                          <IconButton size='small' onClick={() => handleIncrease(item.rowId)} sx={{ color: 'text.primary', p: 0.5 }}>
+                          <Typography sx={{ minWidth: 22, textAlign: 'center', fontSize: 13, fontWeight: 600 }}>
+                            {item.quantity}
+                          </Typography>
+                          <IconButton
+                            size='small'
+                            onClick={() => handleIncrease(item.rowId)}
+                            sx={{ color: 'text.secondary', p: 0.5 }}
+                          >
                             <i className='tabler-plus' style={{ fontSize: 12 }} />
                           </IconButton>
-                        </div>
+                        </Box>
                       </TableCell>
-                      <TableCell align='center' sx={{ py: 1.5 }}>
-                        <Typography fontSize={13}>€{(item.price * item.quantity).toFixed(2)}</Typography>
+                      <TableCell align='center' sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <Typography fontSize={13} fontWeight={600}>
+                          €{(item.price * item.quantity).toFixed(2)}
+                        </Typography>
                       </TableCell>
-                      <TableCell align='center' sx={{ py: 1.5 }}>
-                        <IconButton size='small' onClick={() => handleDelete(item.rowId)} sx={{ color: 'error.main', p: 0.5 }}>
+                      <TableCell align='center' sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                        <IconButton
+                          size='small'
+                          onClick={() => handleDelete(item.rowId)}
+                          sx={{ color: 'error.main', p: 0.5 }}
+                        >
                           <i className='tabler-trash' style={{ fontSize: 14 }} />
                         </IconButton>
                       </TableCell>
@@ -362,47 +434,111 @@ return
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align='center' sx={{ py: 6 }}>
-                      <Typography color='text.secondary' fontSize={13}>No items added yet</Typography>
+                    <TableCell colSpan={5} align='center' sx={{ py: 5 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <i className='tabler-shopping-cart-off' style={{ fontSize: 28, opacity: 0.3 }} />
+                        <Typography color='text.disabled' fontSize={13}>No items added yet</Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
           </TableContainer>
-        </div>
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+          {/* ── Order Summary ── */}
+          {items.length > 0 && (
+            <Box sx={{ mt: 2.5, display: 'flex', justifyContent: 'flex-end' }}>
+              <Paper
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: 'action.hover',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  boxShadow: 'none',
+                  minWidth: 240
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant='body2' color='text.secondary'>Items ({items.length})</Typography>
+                  <Typography variant='body2' fontWeight={600}>€{subtotal.toFixed(2)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
+                  <Typography variant='body2' color='text.secondary'>€{tax.toFixed(2)}</Typography>
+                </Box>
+                <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
+                  <Typography variant='subtitle1' fontWeight={700} color='primary'>€{grandTotal.toFixed(2)}</Typography>
+                </Box>
+              </Paper>
+            </Box>
+          )}
+        </Box>
 
-        {/* Footer */}
-        <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Typography variant='subtitle2' color='text.secondary'>Total</Typography>
-            <Typography variant='h5' sx={{ fontWeight: 700 }}>€{calculateTotal()}</Typography>
-          </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Button variant='outlined' onClick={handleClose} sx={{ color: 'text.primary', borderColor: 'rgba(255,255,255,0.12)' }}>
+        <Divider sx={{ mx: 5 }} />
+
+        {/* ── Sticky Footer ── */}
+        <Box sx={{ px: 5, py: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant='caption' color='text.disabled' sx={{ display: 'block', lineHeight: 1 }}>
+              {items.length > 0 ? 'Grand Total' : 'Total'}
+            </Typography>
+            <Typography variant='h5' sx={{ fontWeight: 700, lineHeight: 1.3, color: items.length > 0 ? 'primary.main' : 'text.primary' }}>
+              €{items.length > 0 ? grandTotal.toFixed(2) : '0.00'}
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Button variant='tonal' onClick={handleClose} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}>
               Cancel
             </Button>
-            <Button variant='contained' sx={{ px: 3 }} onClick={() => setConfirmOpen(true)} disabled={saving}>
+            <Button
+              variant='contained'
+              onClick={() => setConfirmOpen(true)}
+              disabled={saving || items.length === 0}
+              sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, px: 3 }}
+            >
               Create Order
             </Button>
-          </div>
-        </div>
+          </Box>
+        </Box>
 
-        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-          <DialogTitle>Confirm Create</DialogTitle>
+        {/* ── Confirm Dialog ── */}
+        <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth='xs' fullWidth>
+          <DialogTitle sx={{ pb: 1 }}>Confirm Order</DialogTitle>
           <DialogContent>
-            <Typography>Create this order with {items.length} item(s) totalling €{calculateTotal()}?</Typography>
+            <Box sx={{ '& > :not(:last-child)': { mb: 0.5 } }}>
+              <Typography variant='body2' color='text.secondary'>
+                Create this order with <strong>{items.length}</strong> item(s)?
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260, mt: 2 }}>
+                <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
+                <Typography variant='body2'>€{subtotal.toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
+                <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
+                <Typography variant='body2'>€{tax.toFixed(2)}</Typography>
+              </Box>
+              <Divider sx={{ my: 1 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
+                <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
+                <Typography variant='subtitle2' fontWeight={700} color='primary'>€{grandTotal.toFixed(2)}</Typography>
+              </Box>
+            </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setConfirmOpen(false)} color='secondary' variant='outlined'>Cancel</Button>
-            <Button onClick={handleSave} color='primary' variant='contained' disabled={saving}>
-              {saving ? <CircularProgress size={16} color='inherit' /> : 'Create'}
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button onClick={() => setConfirmOpen(false)} color='secondary' variant='tonal' sx={{ borderRadius: 2, textTransform: 'none' }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} variant='contained' disabled={saving} sx={{ borderRadius: 2, textTransform: 'none' }}>
+              {saving ? <CircularProgress size={18} color='inherit' sx={{ mr: 1 }} /> : null}
+              {saving ? 'Creating…' : 'Create'}
             </Button>
           </DialogActions>
         </Dialog>
-      </div>
+      </Box>
     </Drawer>
   )
 }
