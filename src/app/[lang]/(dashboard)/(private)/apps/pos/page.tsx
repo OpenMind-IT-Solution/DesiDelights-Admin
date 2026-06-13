@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // MUI Imports
 import {
@@ -11,6 +11,7 @@ import {
   CardContent,
   CardMedia,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -25,8 +26,7 @@ import {
   ListItemText,
   Paper,
   TextField,
-  Typography,
-  CircularProgress
+  Typography
 } from '@mui/material'
 
 // Type Imports
@@ -66,6 +66,7 @@ const Pos = () => {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
+  const logoUrl = getImageUrl('/assets/logo.png')
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -242,41 +243,55 @@ const Pos = () => {
 
   // Print receipt
   const printReceipt = () => {
-  const receiptWindow = window.open('', '_blank', 'width=350,height=600')
+    const receiptWindow = window.open('', '_blank', 'width=350,height=600')
 
-  if (!receiptWindow) {
-    console.error('Unable to open print window')
-    
+    if (!receiptWindow) {
+      console.error('Unable to open print window')
+      
 return
-  }
+    }
 
-  const itemsHtml = cart
-    .map(
-      item => `
+    const itemsHtml = cart
+      .map(
+        item => `
         <tr>
           <td>${item.name} x${item.quantity}</td>
           <td style="text-align:right;">€${item.total}</td>
         </tr>
       `
-    )
-    .join('')
+      )
+      .join('')
 
-  receiptWindow.document.write(`
+    receiptWindow.document.write(`
     <html>
       <head>
+        <base href="${window.location.origin}" />
         <title>Receipt</title>
         <style>
           body {
-            font-family: monospace;
             width: 280px;
-            margin: 0 auto;
-            padding: 10px;
-            font-size: 12px;
+            margin: 0 auto 10px;
+            padding: 5px;
+            font-size: 15px;
           }
           .center { text-align: center; }
           img {
             width: 90px;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+          }
+          .details-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin: 0 0 5px;
+          }
+          .detail-item {
+            flex: 1 1 130px;
+            min-width: 130px;
+            font-size: 14px;
+          }
+          .notes {
+            margin: 0 0 8px;
           }
           table {
             width: 100%;
@@ -295,30 +310,29 @@ return
           }
         </style>
       </head>
-      <body onload="window.print(); window.close();">
+      <body>
         <div class="center">
-          <img src="/logo.png" alt="Logo" />
-          <h3>DESI DELIGHTS</h3>
-          <p>info@desidelights.be</p>
-          <p>+32 XXX XXX XXX</p>
+          <img src='${logoUrl}' alt="Logo" width='90'/>
+          <h4 style="margin: 2px 0; line-height: normal;">Quick Bites, Happy vibes</h4>
+          <p style="margin: 2px 0; line-height: normal;">Insta: @desidelights.be</p>
+          <p style="margin: 2px 0; line-height: normal;">(+32) 4568 63496</p>
           <hr />
         </div>
-
-        <p>Order #: ${orderNumber}</p>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-        <p>Time: ${new Date().toLocaleTimeString()}</p>
-        ${customerName ? `<p>Customer: ${customerName}</p>` : ''}
-        ${customerPhone ? `<p>Phone: ${customerPhone}</p>` : ''}
-        ${customerNotes ? `<p>Notes: ${customerNotes}</p>` : ''}
-
+        <div class="details-row">
+          <div class="detail-item">Order #: ${orderNumber}</div>
+          <div class="detail-item">Date: ${new Date().toLocaleDateString()}</div>
+          <div class="detail-item">Time: ${new Date().toLocaleTimeString()}</div>
+        </div>
+        ${customerName && `<p style="margin: 0; line-height: 1.4;">Customer: ${customerName}</p>`}
+        ${
+          customerNotes &&
+          `<p style="margin: 0; line-height: 1.4;" class="notes"><strong>Notes:</strong> ${customerNotes}</p>`
+        }
         <hr />
-
         <table>
           ${itemsHtml}
         </table>
-
         <hr />
-
         <table>
           <tr>
             <td>Subtotal</td>
@@ -333,18 +347,27 @@ return
             <td style="text-align:right;">€${orderSummary.total.toFixed(2)}</td>
           </tr>
         </table>
-
         <hr />
-
         <div class="center">
           <p>Thank you for dining with us!</p>
         </div>
+        <script>
+          (function(){
+            const img = document.querySelector('img');
+            const doPrint = () => { setTimeout(() => { window.print(); window.close(); }, 100); };
+            if (!img) { doPrint(); return; }
+            if (img.complete) { doPrint(); return; }
+            img.addEventListener('load', doPrint);
+            img.addEventListener('error', doPrint);
+            // fallback timeout
+            setTimeout(doPrint, 4000);
+          })();
+        </script>
       </body>
     </html>
   `)
-
-  receiptWindow.document.close()
-}
+    receiptWindow.document.close()
+  }
 
   // Reset for new order
   const newOrder = () => {
