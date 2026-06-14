@@ -81,7 +81,7 @@ const CategoryManagementView = () => {
     try {
       const body = {
         search: debouncedSearchTerm,
-        status: statusFilter ? [statusFilter === 'active'] : [],
+        status: statusFilter ? [statusFilter === 'active'] : null,
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         restaurantId: [1]
