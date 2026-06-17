@@ -54,6 +54,7 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
   const [orderType, setOrderType] = useState('delivery')
   const [status, setStatus] = useState('pending')
   const [paymentMethod, setPaymentMethod] = useState('Cash')
+  const [paymentStatus, setPaymentStatus] = useState('pending')
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [customerId, setCustomerId] = useState<number | null>(null)
 
@@ -77,6 +78,7 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
     setOrderType('delivery')
     setStatus('pending')
     setPaymentMethod('Cash')
+    setPaymentStatus('pending')
     setDeliveryAddress('')
     setCustomerId(null)
     setItems([])
@@ -154,7 +156,7 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
       await post(orderEndpoints.adminCreateOrder, {
         customerId: customerId || 0,
         status,
-        paymentStatus: paymentMethod,
+        paymentStatus,
         orderType,
         deliveryAddress: deliveryAddress || undefined,
         items: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, price: i.price }))
@@ -216,8 +218,8 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
-                <InputLabel>Payment</InputLabel>
-                <Select label='Payment' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                <InputLabel>Payment Method</InputLabel>
+                <Select label='Payment Method' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
                   <MenuItem value='Cash'>Cash</MenuItem>
                   <MenuItem value='Card'>Card</MenuItem>
                 </Select>
@@ -250,6 +252,18 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
                   <MenuItem value='out_for_delivery'>Out for Delivery</MenuItem>
                   <MenuItem value='completed'>Completed</MenuItem>
                   <MenuItem value='cancelled'>Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size='small'>
+                <InputLabel>Payment Status</InputLabel>
+                <Select label='Payment Status' value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
+                  <MenuItem value='pending'>Pending</MenuItem>
+                  <MenuItem value='paid'>Paid</MenuItem>
+                  <MenuItem value='unpaid'>Unpaid</MenuItem>
+                  <MenuItem value='failed'>Failed</MenuItem>
+                  <MenuItem value='refunded'>Refunded</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

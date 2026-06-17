@@ -57,6 +57,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
   const [orderStatus, setOrderStatus] = useState<string>('pending')
   const [orderType, setOrderType] = useState<string>('delivery')
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash')
+  const [paymentStatus, setPaymentStatus] = useState<string>('pending')
   const [deliveryAddress, setDeliveryAddress] = useState<string>('')
   const [itemsLoading, setItemsLoading] = useState(false)
 
@@ -80,8 +81,9 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
 
     setOrderStatus(order.status ?? 'pending')
     setOrderType(order.orderType ?? 'delivery')
-    setPaymentMethod((order as any).paymentStatus === 'Cash' || (order as any).paymentStatus === 'Card'
-      ? (order as any).paymentStatus
+    setPaymentStatus((order as any).paymentStatus ?? 'pending')
+    setPaymentMethod((order as any).paymentMethod === 'Cash' || (order as any).paymentMethod === 'Card'
+      ? (order as any).paymentMethod
       : 'Cash')
     setDeliveryAddress(typeof order.deliveryAddress === 'string' ? order.deliveryAddress : '')
     setShowAddForm(false)
@@ -188,7 +190,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
       await put(orderEndpoints.updateOrder(order.id), {
         status: orderStatus,
         orderType,
-        paymentStatus: paymentMethod,
+        paymentStatus,
         deliveryAddress: deliveryAddress || undefined,
         totalAmount: grandTotal,
         items: items.map(it => ({
@@ -258,8 +260,8 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
-                <InputLabel>Payment</InputLabel>
-                <Select label='Payment' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                <InputLabel>Payment Method</InputLabel>
+                <Select label='Payment Method' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
                   <MenuItem value='Cash'>Cash</MenuItem>
                   <MenuItem value='Card'>Card</MenuItem>
                 </Select>
@@ -292,6 +294,18 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
                   <MenuItem value='out_for_delivery'>Out for Delivery</MenuItem>
                   <MenuItem value='completed'>Completed</MenuItem>
                   <MenuItem value='cancelled'>Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size='small'>
+                <InputLabel>Payment Status</InputLabel>
+                <Select label='Payment Status' value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)}>
+                  <MenuItem value='pending'>Pending</MenuItem>
+                  <MenuItem value='paid'>Paid</MenuItem>
+                  <MenuItem value='unpaid'>Unpaid</MenuItem>
+                  <MenuItem value='failed'>Failed</MenuItem>
+                  <MenuItem value='refunded'>Refunded</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
