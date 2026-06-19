@@ -1,12 +1,8 @@
 'use client'
 
-import type { SyntheticEvent } from 'react'
 import { useState } from 'react'
 
-import TabContext from '@mui/lab/TabContext'
-import TabList from '@mui/lab/TabList'
-import TabPanel from '@mui/lab/TabPanel'
-import { Tab } from '@mui/material'
+import { Box, IconButton, Menu, MenuItem, Typography } from '@mui/material'
 
 import StockSummaryDashboard from './StockSummaryDashboard'
 import PurchaseReport from './PurchaseReport'
@@ -20,7 +16,7 @@ import WastageReport from './WastageReport'
 import FoodCostReport from './FoodCostReport'
 import InventoryValueReport from './InventoryValueReport'
 
-const groceryTabs = [
+const subReports = [
   { value: '1', label: 'Overview', component: StockSummaryDashboard },
   { value: '2', label: 'Purchase Report', component: PurchaseReport },
   { value: '3', label: 'Consumption Report', component: ConsumptionReport },
@@ -35,21 +31,42 @@ const groceryTabs = [
 ]
 
 const GroceryReportsSection = () => {
-  const [value, setValue] = useState('1')
+  const [active, setActive] = useState('1')
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
-  const handleChange = (_: SyntheticEvent, newValue: string) => setValue(newValue)
+  const current = subReports.find(r => r.value === active)
+
+  const ActiveComponent = current?.component ?? StockSummaryDashboard
 
   return (
-    <TabContext value={value}>
-      <TabList onChange={handleChange} variant='scrollable' scrollButtons='auto'>
-        {groceryTabs.map(t => <Tab key={t.value} value={t.value} label={t.label} />)}
-      </TabList>
-      {groceryTabs.map(t => (
-        <TabPanel key={t.value} value={t.value}>
-          <t.component />
-        </TabPanel>
-      ))}
-    </TabContext>
+    <>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, minHeight: 40 }}>
+        <Typography variant='h6' sx={{ fontWeight: 600, fontSize: '1rem' }}>
+          {current?.label ?? 'Overview'}
+        </Typography>
+        <IconButton size='small' onClick={e => setAnchorEl(e.currentTarget)}>
+          <i className='tabler-dots-vertical' />
+        </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          slotProps={{ paper: { sx: { maxHeight: 360, minWidth: 180 } } }}
+        >
+          {subReports.map(r => (
+            <MenuItem
+              key={r.value}
+              selected={active === r.value}
+              onClick={() => { setActive(r.value); setAnchorEl(null) }}
+              sx={{ fontSize: '0.875rem' }}
+            >
+              {r.label}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Box>
+      <ActiveComponent />
+    </>
   )
 }
 

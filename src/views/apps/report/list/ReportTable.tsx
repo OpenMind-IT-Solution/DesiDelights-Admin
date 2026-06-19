@@ -1,14 +1,14 @@
 'use client'
 
+import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
+import Skeleton from '@mui/material/Skeleton'
 import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
 import { rankItem } from '@tanstack/match-sorter-utils'
 import type { ColumnDef, FilterFn } from '@tanstack/react-table'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import classnames from 'classnames'
-
-import { CircularProgress } from '@mui/material'
 
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import tableStyles from '@core/styles/table.module.css'
@@ -34,6 +34,20 @@ type ReportTableProps<T> = {
   emptyMessage?: string
 }
 
+const SkeletonRows = ({ columns, rows = 5 }: { columns: number; rows?: number }) => (
+  <>
+    {Array.from({ length: rows }).map((_, r) => (
+      <tr key={`skel-${r}`}>
+        {Array.from({ length: columns }).map((_, c) => (
+          <td key={`skel-${r}-${c}`}>
+            <Skeleton variant='rounded' height={18} sx={{ maxWidth: c === 0 ? 160 : undefined }} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
+)
+
 const ReportTable = <T extends Record<string, unknown>>({
   columns, data, total, page, limit, onPageChange, onLimitChange, loading, error, emptyMessage = 'No data available'
 }: ReportTableProps<T>) => {
@@ -48,7 +62,7 @@ const ReportTable = <T extends Record<string, unknown>>({
   })
 
   return (
-    <Card>
+    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', overflow: 'hidden' }}>
       <div className='overflow-x-auto'>
         <table className={tableStyles.table}>
           <thead>
@@ -64,15 +78,14 @@ const ReportTable = <T extends Record<string, unknown>>({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={columns.length} className='text-center'>
-                  <CircularProgress sx={{ my: 4 }} />
-                </td>
-              </tr>
+              <SkeletonRows columns={columns.length} />
             ) : error ? (
               <tr>
-                <td colSpan={columns.length} className='text-center text-red-500'>
-                  {error}
+                <td colSpan={columns.length} className='text-center'>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 4 }}>
+                    <i className='tabler-alert-circle text-3xl' style={{ opacity: 0.5 }} />
+                    <Typography color='error' variant='body2'>{error}</Typography>
+                  </Box>
                 </td>
               </tr>
             ) : data.length > 0 ? (
@@ -86,7 +99,10 @@ const ReportTable = <T extends Record<string, unknown>>({
             ) : (
               <tr>
                 <td colSpan={columns.length} className='text-center'>
-                  <Typography color='text.secondary'>{emptyMessage}</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 4 }}>
+                    <i className='tabler-database-off text-3xl' style={{ opacity: 0.4 }} />
+                    <Typography color='text.secondary' variant='body2'>{emptyMessage}</Typography>
+                  </Box>
                 </td>
               </tr>
             )}
