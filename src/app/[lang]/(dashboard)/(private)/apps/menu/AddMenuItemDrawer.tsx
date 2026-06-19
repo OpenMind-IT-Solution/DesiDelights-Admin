@@ -316,7 +316,7 @@ const AddMenuItemDrawer = (props: Props) => {
           <Controller
             name='status'
             control={control}
-            rules={{ required: true }}
+            rules={{ validate: value => value === true || value === false || 'Status is required' }}
             render={({ field }) => (
               <CustomTextField
                 select

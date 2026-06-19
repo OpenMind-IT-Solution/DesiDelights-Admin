@@ -80,7 +80,7 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedCategories = (result.data.categories || []).map((cat: any) => ({
-          id: cat.id,
+          id: Number(cat.id),
           name: cat.name,
           description: cat.description,
           status: cat.status ? 'active' : 'inactive'
@@ -107,10 +107,18 @@ const Pos = () => {
       const result: any = await post(menuEndpoints.getMenu, payload)
 
       if (result.status === 'success') {
-        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
-          ...item,
-          menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
-        }))
+        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
+          const category =
+            typeof item.category === 'string'
+              ? JSON.parse(item.category)
+              : item.category
+
+          return {
+            ...item,
+            menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages,
+            category
+          }
+        })
 
         setMenuItems(formattedMenuItems)
       } else {
@@ -120,6 +128,18 @@ const Pos = () => {
       setError(err?.message || 'Failed to fetch menu items')
     }
   }, [])
+
+  const getMenuItemCategoryId = (item: MenuItem) => {
+    if (item.category?.id != null) {
+      return Number(item.category.id)
+    }
+
+    if ((item as any).categoryId != null) {
+      return Number((item as any).categoryId)
+    }
+
+    return null
+  }
 
   // Fetch data on mount
   useEffect(() => {
@@ -134,8 +154,8 @@ const Pos = () => {
   }, [fetchCategories, fetchMenuItems])
 
   // Filter menu items by category
-  const filteredMenuItems = selectedCategory
-    ? menuItems.filter(item => item.category?.id === selectedCategory)
+  const filteredMenuItems = selectedCategory !== null
+    ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory)
     : menuItems
 
   // Get active categories for filter
@@ -387,7 +407,7 @@ return
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? 'contained' : 'outlined'}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => setSelectedCategory(Number(category.id))}
                   size='small'
                 >
                   {category.name}
