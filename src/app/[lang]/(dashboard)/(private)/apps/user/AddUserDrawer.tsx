@@ -20,6 +20,8 @@ import { toast } from 'react-toastify'
 import * as yup from 'yup'
 
 // Component Imports
+import { useSession } from 'next-auth/react'
+
 import CustomTextField from '@core/components/mui/TextField'
 
 // Service & Endpoint Imports
@@ -27,7 +29,6 @@ import { RequiredLabel } from '@/components/RequierdLabel'
 import { post, postFormData } from '@/services/apiService'
 import { roleEndpoints } from '@/services/endpoints/role'
 import { userEndpoints } from '@/services/endpoints/user'
-import { useSession } from 'next-auth/react'
 import { getImageUrl } from '@/utils/getImageUrl'
 
 // Styled components for the image uploader
@@ -117,7 +118,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
 
       formData.append('userId', String(userToEdit?.userId || 0))
       formData.append('fullName', values.fullName)
-      formData.append('username', values.username)
+      formData.append('userName', values.username)
       formData.append('email', values.email)
       formData.append('roleId', String(values.roleId))
       formData.append('status', String(values.status))

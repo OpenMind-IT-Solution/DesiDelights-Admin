@@ -223,6 +223,7 @@ const GroceryDashboard = () => {
 
   const handleSaveItem = async (formItem: GroceryItem) => {
     const isEdit = !!editingItem
+
     const body = {
       groceryId: isEdit ? editingItem!.id : 0,
       restaurantId: [1],
@@ -361,6 +362,7 @@ const GroceryDashboard = () => {
   const table = useReactTable({
     data,
     columns,
+    autoResetPageIndex: false,
     filterFns: { fuzzy: fuzzyFilter },
     state: { rowSelection, sorting, globalFilter, pagination },
     pageCount: Math.max(1, Math.ceil(totalRows / pagination.pageSize)),

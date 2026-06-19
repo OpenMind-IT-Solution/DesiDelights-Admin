@@ -24,19 +24,12 @@ import {
   ListItemSecondaryAction,
   ListItemText,
   Paper,
+  TextField,
   Typography,
   CircularProgress
 } from '@mui/material'
 
 // Type Imports
-import type { Category } from '@/types/apps/categoryTypes'
-import type { MenuItem } from '@/types/apps/menuTypes'
-import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
-
-// API Imports
-import { post } from '@/services/apiService'
-import { categoriesEndpoints } from '@/services/endpoints/category'
-import { menuEndpoints } from '@/services/endpoints/menu'
 import {
   MinusCircleOutline,
   PlusCircleOutline,
@@ -45,6 +38,16 @@ import {
   ShoppingOutline,
   TrashCanOutline
 } from 'mdi-material-ui'
+
+import type { Category } from '@/types/apps/categoryTypes'
+import type { MenuItem } from '@/types/apps/menuTypes'
+import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
+
+// API Imports
+import { post } from '@/services/apiService'
+import { categoriesEndpoints } from '@/services/endpoints/category'
+import { menuEndpoints } from '@/services/endpoints/menu'
+import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
 const TAX_RATE = 0.18 // 18% GST
@@ -60,6 +63,9 @@ const Pos = () => {
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerNotes, setCustomerNotes] = useState('')
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -69,14 +75,17 @@ const Pos = () => {
         limit: 1000, // Fetch all categories
         status: true // Only active categories
       }
+
       const result: any = await post(categoriesEndpoints.getCategories, body)
+
       if (result.status === 'success') {
         const formattedCategories = (result.data.categories || []).map((cat: any) => ({
-          id: cat.id,
+          id: Number(cat.id),
           name: cat.name,
           description: cat.description,
           status: cat.status ? 'active' : 'inactive'
         }))
+
         setCategories(formattedCategories)
       } else {
         throw new Error(result.message || 'Failed to fetch categories')
@@ -94,12 +103,23 @@ const Pos = () => {
         limit: 1000, // Fetch all menu items
         status: true // Only active items
       }
+
       const result: any = await post(menuEndpoints.getMenu, payload)
+
       if (result.status === 'success') {
-        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => ({
-          ...item,
-          menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages
-        }))
+        const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
+          const category =
+            typeof item.category === 'string'
+              ? JSON.parse(item.category)
+              : item.category
+
+          return {
+            ...item,
+            menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages,
+            category
+          }
+        })
+
         setMenuItems(formattedMenuItems)
       } else {
         throw new Error(result.message || 'Failed to fetch menu items')
@@ -109,6 +129,18 @@ const Pos = () => {
     }
   }, [])
 
+  const getMenuItemCategoryId = (item: MenuItem) => {
+    if (item.category?.id != null) {
+      return Number(item.category.id)
+    }
+
+    if ((item as any).categoryId != null) {
+      return Number((item as any).categoryId)
+    }
+
+    return null
+  }
+
   // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -117,12 +149,13 @@ const Pos = () => {
       await Promise.all([fetchCategories(), fetchMenuItems()])
       setLoading(false)
     }
+
     fetchData()
   }, [fetchCategories, fetchMenuItems])
 
   // Filter menu items by category
-  const filteredMenuItems = selectedCategory
-    ? menuItems.filter(item => item.category?.id === selectedCategory)
+  const filteredMenuItems = selectedCategory !== null
+    ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory)
     : menuItems
 
   // Get active categories for filter
@@ -194,11 +227,35 @@ const Pos = () => {
   }
 
   // Place order
-  const placeOrder = () => {
+  const placeOrder = async () => {
     if (cart.length === 0) return
 
-    const newOrderNumber = Math.floor(Math.random() * 10000) + 1
-    setOrderNumber(newOrderNumber)
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.tax,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      if (result.status === 'success') {
+        setOrderNumber(result.data.orderId)
+      } else {
+        setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+      }
+    } catch {
+      setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+    }
+
     setOrderPlaced(true)
     setShowReceipt(true)
   }
@@ -209,7 +266,8 @@ const Pos = () => {
 
   if (!receiptWindow) {
     console.error('Unable to open print window')
-    return
+    
+return
   }
 
   const itemsHtml = cart
@@ -217,7 +275,7 @@ const Pos = () => {
       item => `
         <tr>
           <td>${item.name} x${item.quantity}</td>
-          <td style="text-align:right;">₹${item.total}</td>
+          <td style="text-align:right;">€${item.total}</td>
         </tr>
       `
     )
@@ -269,6 +327,9 @@ const Pos = () => {
         <p>Order #: ${orderNumber}</p>
         <p>Date: ${new Date().toLocaleDateString()}</p>
         <p>Time: ${new Date().toLocaleTimeString()}</p>
+        ${customerName ? `<p>Customer: ${customerName}</p>` : ''}
+        ${customerPhone ? `<p>Phone: ${customerPhone}</p>` : ''}
+        ${customerNotes ? `<p>Notes: ${customerNotes}</p>` : ''}
 
         <hr />
 
@@ -281,15 +342,15 @@ const Pos = () => {
         <table>
           <tr>
             <td>Subtotal</td>
-            <td style="text-align:right;">₹${orderSummary.subtotal.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.subtotal.toFixed(2)}</td>
           </tr>
           <tr>
             <td>Tax (18%)</td>
-            <td style="text-align:right;">₹${orderSummary.tax.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.tax.toFixed(2)}</td>
           </tr>
           <tr class="bold">
             <td>Total</td>
-            <td style="text-align:right;">₹${orderSummary.total.toFixed(2)}</td>
+            <td style="text-align:right;">€${orderSummary.total.toFixed(2)}</td>
           </tr>
         </table>
 
@@ -311,6 +372,9 @@ const Pos = () => {
     setOrderPlaced(false)
     setOrderNumber(null)
     setShowReceipt(false)
+    setCustomerName('')
+    setCustomerPhone('')
+    setCustomerNotes('')
   }
 
   return (
@@ -343,7 +407,7 @@ const Pos = () => {
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? 'contained' : 'outlined'}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => setSelectedCategory(Number(category.id))}
                   size='small'
                 >
                   {category.name}
@@ -398,7 +462,7 @@ const Pos = () => {
                           {item.name}
                         </Typography>
                         <Typography variant='h6' color='primary'>
-                          ₹{item.price}
+                          €{item.price}
                         </Typography>
                       </Box>
                       <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
@@ -437,7 +501,7 @@ const Pos = () => {
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity}`} />
+                      <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton size='small' onClick={() => removeFromCart(item.id)}>
@@ -467,18 +531,49 @@ const Pos = () => {
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Subtotal:</Typography>
-                  <Typography>₹{orderSummary.subtotal.toFixed(2)}</Typography>
+                  <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tax (18%):</Typography>
-                  <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
+                  <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
-                    ₹{orderSummary.total.toFixed(2)}
+                    €{orderSummary.total.toFixed(2)}
                   </Typography>
                 </Box>
+
+                <Divider sx={{ my: 2 }} />
+                <Typography variant='subtitle2' gutterBottom color='text.secondary'>
+                  Customer Details (optional)
+                </Typography>
+                <TextField
+                  label='Customer Name'
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  fullWidth
+                  size='small'
+                  sx={{ mb: 1 }}
+                />
+                <TextField
+                  label='Phone Number'
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  fullWidth
+                  size='small'
+                  sx={{ mb: 1 }}
+                />
+                <TextField
+                  label='Notes'
+                  value={customerNotes}
+                  onChange={e => setCustomerNotes(e.target.value)}
+                  fullWidth
+                  size='small'
+                  multiline
+                  rows={2}
+                  sx={{ mb: 2 }}
+                />
 
                 <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
                   Place Order
@@ -501,11 +596,26 @@ const Pos = () => {
             <Typography variant='body2' color='text.secondary'>
               Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
             </Typography>
+            {customerName && (
+              <Typography variant='body2' color='text.secondary'>
+                Customer: {customerName}
+              </Typography>
+            )}
+            {customerPhone && (
+              <Typography variant='body2' color='text.secondary'>
+                Phone: {customerPhone}
+              </Typography>
+            )}
+            {customerNotes && (
+              <Typography variant='body2' color='text.secondary'>
+                Notes: {customerNotes}
+              </Typography>
+            )}
           </Box>
           <List>
             {cart.map(item => (
               <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText primary={item.name} secondary={`₹${item.price} x ${item.quantity} = ₹${item.total}`} />
+                <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity} = €${item.total}`} />
               </ListItem>
             ))}
           </List>
@@ -513,15 +623,15 @@ const Pos = () => {
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Subtotal:</Typography>
-            <Typography>₹{orderSummary.subtotal.toFixed(2)}</Typography>
+            <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Tax (18%):</Typography>
-            <Typography>₹{orderSummary.tax.toFixed(2)}</Typography>
+            <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
-            <Typography variant='h6'>₹{orderSummary.total.toFixed(2)}</Typography>
+            <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
           </Box>
         </DialogContent>
         <DialogActions>

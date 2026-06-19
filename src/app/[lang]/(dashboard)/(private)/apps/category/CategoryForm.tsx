@@ -4,7 +4,6 @@
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import MenuItem from '@mui/material/MenuItem'
-import Typography from '@mui/material/Typography'
 
 // Third-party Imports
 import { useFormik } from 'formik'
@@ -42,6 +41,7 @@ const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) =
       status: category?.status || 'active'
     },
     validationSchema: validationSchema,
+
     // This is crucial for allowing the form to re-initialize with new props
     enableReinitialize: true,
     onSubmit: values => {

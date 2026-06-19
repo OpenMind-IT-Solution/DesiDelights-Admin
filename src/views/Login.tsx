@@ -108,11 +108,7 @@ const Login = ({ mode }: { mode: SystemMode }) => {
     handleSubmit,
     formState: { errors }
   } = useForm<FormData>({
-    resolver: valibotResolver(schema),
-    defaultValues: {
-      login: 'dd_superadmin@yopmail.com',
-      password: 'P@ssw0rd'
-    }
+    resolver: valibotResolver(schema)
   })
 
   const characterIllustration = useImageVariant(

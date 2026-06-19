@@ -118,6 +118,7 @@
     "locationManagement": "Gestion de l'emplacement",
     "restaurantProfile": "Profil du restaurant",
     "posModule": "POS Management",
-    "pos": "POS"
+    "pos": "POS",
+    "deliverySettings": "Paramètres de livraison"
   }
 }

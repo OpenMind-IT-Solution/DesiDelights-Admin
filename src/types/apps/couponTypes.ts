@@ -1,13 +1,13 @@
 export type CouponProps = {
-  id: number;
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  startDate: Date;
-  endDate: Date;
-  isActive: boolean;
-  usageCount: number;
-  maxUsage: number;
+  id: number
+  code: string
+  discount: number
+  type: 'percentage' | 'fixed'
+  startDate: string
+  endDate: string
+  status: boolean
+  usageCount: number
+  maxUsage: number
 }
 
 export type CouponTypes = {

@@ -36,18 +36,19 @@ import {
 import classnames from 'classnames'
 
 // Type Imports
+import { useSession } from 'next-auth/react'
+
 import type { OrderType } from '@/types/apps/orderTypes'
 import type { ThemeColor } from '@core/types'
 
 // Component Imports
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
+import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
 import AddOrderDrawer from './AddOrderDrawer'
-import TableFilters from './TableFilters'
 import { post } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 import tableStyles from '@core/styles/table.module.css'
-import { useSession } from 'next-auth/react'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
@@ -70,10 +71,35 @@ type OrderStatusType = {
 // Styled Components
 // const Icon = styled('i')({})
 
+const parseDeliveryAddress = (address: string | null | undefined): string => {
+  if (!address) return '-'
+
+  try {
+    const parsed = JSON.parse(address)
+
+    if (parsed && typeof parsed === 'object' && (parsed.customerName || parsed.customerPhone || parsed.customerNotes)) {
+      const parts: string[] = []
+
+      if (parsed.customerName) parts.push(parsed.customerName)
+      if (parsed.customerPhone) parts.push(parsed.customerPhone)
+      if (parsed.customerNotes) parts.push(`(${parsed.customerNotes})`)
+      
+return parts.join(' | ')
+    }
+  } catch {
+    // not JSON
+  }
+
+  
+return address
+}
+
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
   const itemRank = rankItem(row.getValue(columnId), value)
+
   addMeta({ itemRank })
-  return itemRank.passed
+  
+return itemRank.passed
 }
 
 const DebouncedInput = ({
@@ -115,57 +141,73 @@ const columnHelper = createColumnHelper<OrderTypeWithAction>()
 const OrderListTable = () => {
   const { data: session } = useSession()
   const [addOrderOpen, setAddOrderOpen] = useState(false)
-  const [editOrderOpen, setEditOrderOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
   const [data, setData] = useState([])
   const [filteredData, setFilteredData] = useState(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [totalRows, setTotalRows] = useState(0)
+  const [, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
+  const [, setLoading] = useState(true)
+  const [, setError] = useState<string | null>(null)
+  const [, setTotalRows] = useState(0)
+  const [refreshKey, setRefreshKey] = useState(0)
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
   })
+
   const { lang: locale } = useParams()
 
   useEffect(() => {
     setFilteredData(data)
   }, [data])
 
-  const fetchOrders = async () => {
-    if (!session) return
-    setLoading(true)
-    setError(null)
-    try {
-      const res: any = await post(orderEndpoints.getOrders, {
-        search: globalFilter,
-        page: pagination.pageIndex + 1,
-        limit: pagination.pageSize,
-        status: []
-      })
-      setData(res.data.orders)
-      setFilteredData(res.data.orders)
-      setPagination(prev => ({ ...prev, total: res.data.total }))
-    } catch (err: any) {
-      console.error(err)
-      setError(err?.message || 'Failed to fetch orders')
-      setData([])
-      setTotalRows(0)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let active = true
+
+    const fetchOrders = async () => {
+      if (!session) return
+      setLoading(true)
+      setError(null)
+
+      try {
+        const res: any = await post(orderEndpoints.getOrders, {
+          search: globalFilter,
+          page: pagination.pageIndex + 1,
+          limit: pagination.pageSize,
+          status: []
+        })
+
+        if (!active) return
+
+        setData(res.data.orders)
+        setFilteredData(res.data.orders)
+        setPagination(prev => ({ ...prev, total: res.data.total }))
+      } catch (err: any) {
+        if (!active) return
+
+        console.error(err)
+        setError(err?.message || 'Failed to fetch orders')
+        setData([])
+        setTotalRows(0)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
     if (session) {
       fetchOrders()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize])
+
+    return () => {
+      active = false
+    }
+  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize, refreshKey])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
     if (ordersToExport.length === 0) return
@@ -174,16 +216,20 @@ const OrderListTable = () => {
     const escapeCSV = (value: unknown): string => {
       if (value == null) return ''
       const str = String(value)
-      return `"${str.replace(/"/g, '""')}"`
+
+      
+return `"${str.replace(/"/g, '""')}"`
     }
 
     const rows = ordersToExport.map(order =>
       headers.map(header => escapeCSV(order[header as keyof OrderTypeWithAction]))
     )
+
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
+
     link.href = url
     link.download = 'orders-export.csv'
     link.click()
@@ -239,7 +285,7 @@ const OrderListTable = () => {
         cell: ({ row }) => (
           <Chip
             variant='tonal'
-            label={row.original.status}
+            label={row.original.status?.replace(/_/g, ' ')}
             size='small'
             color={orderStatusObj[row.original.status] || 'default'}
             className='capitalize'
@@ -248,7 +294,7 @@ const OrderListTable = () => {
       }),
       columnHelper.accessor('totalAmount', {
         header: 'Total Amount',
-        cell: ({ row }) => <Typography>₹{row.original.totalAmount}</Typography>
+        cell: ({ row }) => <Typography>€{row.original.totalAmount}</Typography>
       }),
       columnHelper.accessor('paymentStatus', {
         header: 'Payment Status',
@@ -270,15 +316,18 @@ const OrderListTable = () => {
         header: 'Delivery Address',
         cell: ({ row }) => (
           <Typography sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {row.original.deliveryAddress}
+            {parseDeliveryAddress(row.original.deliveryAddress)}
           </Typography>
         )
       }),
       columnHelper.accessor('orderItems', {
         header: 'Order Items',
-        cell: ({ row }) => (
-          <Typography>{Array.isArray(row.original.orderItems) ? row.original.orderItems.length : 0} items</Typography>
-        )
+        cell: ({ row }) => {
+          const orderItems = row.original.orderItems ?? row.original.items ?? []
+
+          
+return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '0 items'}</Typography>
+        }
       }),
       columnHelper.accessor('action', {
         header: 'Action',
@@ -287,7 +336,7 @@ const OrderListTable = () => {
             <IconButton
               onClick={() => {
                 setSelectedOrder(row.original)
-                setEditOrderOpen(true)
+                setDrawerOpen(true)
               }}
             >
               <i className='tabler-edit text-textSecondary' />
@@ -312,6 +361,7 @@ const OrderListTable = () => {
   const table = useReactTable({
     data: filteredData as OrderType[],
     columns,
+    autoResetPageIndex: false,
     filterFns: { fuzzy: fuzzyFilter },
     state: { rowSelection, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
@@ -450,17 +500,23 @@ const OrderListTable = () => {
         />
       </Card>
 
-      {/* <AddOrderDrawer
-        open={addOrderOpen || editOrderOpen}
-        handleClose={() => {
-          setAddOrderOpen(false)
-          setEditOrderOpen(false)
+      <OrderItemsDrawer
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false)
           setSelectedOrder(null)
         }}
-        orderData={data}
-        setData={setData}
-        orderToEdit={selectedOrder}
-      /> */}
+        order={selectedOrder}
+        onSaved={() => setRefreshKey(k => k + 1)}
+      />
+
+      <AddOrderDrawer
+        open={addOrderOpen}
+        handleClose={() => {
+          setAddOrderOpen(false)
+        }}
+        onSuccess={() => setRefreshKey(k => k + 1)}
+      />
 
       <DeleteConfirmationDialog
         open={deleteDialogOpen}

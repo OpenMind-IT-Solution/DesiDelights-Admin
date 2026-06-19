@@ -17,6 +17,8 @@ import type { TextFieldProps } from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import type { RankingInfo } from '@tanstack/match-sorter-utils'
+import { rankItem } from '@tanstack/match-sorter-utils'
 import {
   createColumnHelper,
   flexRender,
@@ -26,6 +28,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type FilterFn,
   type SortingState
 } from '@tanstack/react-table'
 import classnames from 'classnames'
@@ -42,6 +45,23 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import BannerFormDrawer from './BannerFormDrawer'
 
 import tableStyles from '@core/styles/table.module.css'
+
+declare module '@tanstack/table-core' {
+  interface FilterFns {
+    fuzzy: FilterFn<unknown>
+  }
+  interface FilterMeta {
+    itemRank: RankingInfo
+  }
+}
+
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  addMeta({ itemRank })
+
+  return itemRank.passed
+}
 
 const StatCard = ({
   title,
@@ -140,6 +160,7 @@ const BannerDashboard = () => {
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize
       }
+
       if (filterStatus !== 'all') body.status = filterStatus === 'active'
 
       const res: any = await post(bannerEndpoints.getBanners, body)
@@ -162,6 +183,7 @@ const BannerDashboard = () => {
         post(bannerEndpoints.getBanners, { page: 1, limit: 1, status: true }),
         post(bannerEndpoints.getBanners, { page: 1, limit: 1, status: false })
       ])
+
       setActiveCount(activeRes?.data?.total ?? 0)
       setInactiveCount(inactiveRes?.data?.total ?? 0)
     } catch (err) {
@@ -244,8 +266,10 @@ const BannerDashboard = () => {
         header: 'Preview',
         cell: info => {
           const url = info.getValue() as string | null
+
           if (!url) return <Typography color='text.secondary'>N/A</Typography>
-          return (
+          
+return (
             <img
               src={url}
               alt='Banner'
@@ -267,7 +291,9 @@ const BannerDashboard = () => {
         header: 'Status',
         cell: info => {
           const row = info.row.original
-          return (
+
+          
+return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Switch
                 size='small'
@@ -309,6 +335,8 @@ const BannerDashboard = () => {
   const table = useReactTable({
     data,
     columns,
+    filterFns: { fuzzy: fuzzyFilter },
+    autoResetPageIndex: false,
     state: { sorting, globalFilter, pagination },
     pageCount: Math.max(1, Math.ceil(totalRows / pagination.pageSize)),
     manualPagination: true,
@@ -448,7 +476,7 @@ const BannerDashboard = () => {
           </table>
         </div>
 
-        <TablePaginationComponent table={table} />
+        <TablePaginationComponent table={table as any} />
       </Card>
 
       <BannerFormDrawer open={isDrawerOpen} onClose={handleCloseDrawer} onSave={handleSaveItem} item={editingItem} />

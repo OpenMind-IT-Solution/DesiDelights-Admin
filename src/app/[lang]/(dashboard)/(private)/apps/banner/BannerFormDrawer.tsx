@@ -70,18 +70,21 @@ const BannerFormDrawer = ({ open, onClose, onSave, item }: Props) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
+
     if (!f) return
 
     if (!f.type.startsWith('image/')) {
       setFileError('Only image files are allowed')
       setFile(null)
-      return
+      
+return
     }
 
     if (f.size > 10 * 1024 * 1024) {
       setFileError('Image must be smaller than 10MB')
       setFile(null)
-      return
+      
+return
     }
 
     setFileError(null)
@@ -92,10 +95,12 @@ const BannerFormDrawer = ({ open, onClose, onSave, item }: Props) => {
   const onSubmit = async (formData: FormValues) => {
     if (!isEditMode && !file) {
       setFileError('Banner image is required')
-      return
+      
+return
     }
 
     const fd = new FormData()
+
     fd.append('bannerId', isEditMode ? String(item!.id) : '0')
     fd.append('restaurantId', '1')
     fd.append('sortOrder', String(formData.sortOrder))
@@ -103,6 +108,7 @@ const BannerFormDrawer = ({ open, onClose, onSave, item }: Props) => {
     if (file) fd.append('bannerImage', file)
 
     setSubmitting(true)
+
     try {
       await onSave(fd, isEditMode)
     } finally {

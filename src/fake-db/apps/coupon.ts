@@ -7,9 +7,9 @@ export const db: CouponTypes = {
       code: 'BLACKFRIDAY',
       discount: 20,
       type: 'percentage',
-      startDate: new Date('2025-08-24'),
-      endDate: new Date('2025-09-30'),
-      isActive: true,
+      startDate: '2025-08-24',
+      endDate: '2025-09-30',
+      status: true,
       usageCount: 5,
       maxUsage: 100
     },
@@ -18,9 +18,9 @@ export const db: CouponTypes = {
       code: 'XMAS2023',
       discount: 15,
       type: 'fixed',
-      startDate: new Date('2023-12-01'),
-      endDate: new Date('2023-12-25'),
-      isActive: true,
+      startDate: '2023-12-01',
+      endDate: '2023-12-25',
+      status: true,
       usageCount: 3,
       maxUsage: 50
     }

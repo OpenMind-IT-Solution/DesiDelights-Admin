@@ -10,7 +10,6 @@ import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
-import { styled } from '@mui/material/styles'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -31,6 +30,8 @@ import {
 import classnames from 'classnames'
 
 // Component Imports
+import { useSession } from 'next-auth/react'
+
 import CustomTextField from '@core/components/mui/TextField'
 
 // Style Imports
@@ -46,7 +47,6 @@ import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 // ❗ Adjust import paths if they differ in your project
 import { get, post, del } from '@/services/apiService'
 import { restaurantEndpoints } from '@/services/endpoints/restaurant'
-import { useSession } from 'next-auth/react'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -66,7 +66,6 @@ type RestaurantStatusType = {
 }
 
 // Styled Components
-const Icon = styled('i')({})
 
 // Fuzzy Filter Function
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
@@ -121,6 +120,7 @@ const RestaurantListTable = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalRows, setTotalRows] = useState(0)
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
@@ -131,6 +131,7 @@ const RestaurantListTable = () => {
     if (!session) return
     setLoading(true)
     setError(null)
+
     try {
       const res: any = await post(restaurantEndpoints.getRestaurant, {
         search: globalFilter,
@@ -171,6 +172,7 @@ const RestaurantListTable = () => {
 
   const handleEditClick = async (restaurant: RestaurantTypeWithAction) => {
     setLoading(true)
+
     try {
       const endpoint = restaurantEndpoints.getRestaurantById(restaurant.id)
       const result: any = await get(endpoint)
@@ -187,6 +189,7 @@ const RestaurantListTable = () => {
         setEditRestaurantOpen(true)
       } else {
         console.error(result?.message || 'Failed to fetch restaurant details.')
+
         // Optionally add a toast error message here
       }
     } catch (error: any) {
@@ -235,6 +238,7 @@ const RestaurantListTable = () => {
         }
       } catch (err) {
         console.error('Failed to delete restaurant', err)
+
         // Optionally add a generic error toast
       }
     }
@@ -327,6 +331,7 @@ const RestaurantListTable = () => {
   const table = useReactTable({
     data,
     columns,
+    autoResetPageIndex: false,
     pageCount: Math.ceil(totalRows / pagination.pageSize),
     state: { pagination, globalFilter, rowSelection },
     onPaginationChange: setPagination,

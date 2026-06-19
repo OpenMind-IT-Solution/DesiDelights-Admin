@@ -1,15 +1,11 @@
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 
-// Type Imports
-import type { PricingPlanType } from '@/types/pages/pricingTypes'
-
 // Component Imports
 import PaymentMethod from './PaymentMethod'
 import BillingAddress from './BillingAddress'
-import CurrentPlan from './CurrentPlan'
 
-const BillingPlans = ({ data }: { data?: PricingPlanType[] }) => {
+const BillingPlans = () => {
   return (
     <Grid container spacing={6}>
       {/* <Grid size={{ xs: 12 }}>
