@@ -446,7 +446,7 @@ return
                       height: '100%',
                       cursor: 'pointer',
                       transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.02)' }
+                      '&:hover': { transform: 'scale(1.02)' },
                     }}
                     onClick={() => addToCart(item)}
                   >
@@ -483,8 +483,8 @@ return
         </Box>
 
         {/* Right Panel - Order Summary */}
-        <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column' }}>
-          <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column'}}>
             <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               {/* <ShoppingCartIcon sx={{ mr: 1 }} /> */}
               <ShoppingOutline sx={{ mr: 1 }} />
