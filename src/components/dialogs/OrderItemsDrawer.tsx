@@ -92,6 +92,16 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
     const fetchOrderDetail = async () => {
       setItemsLoading(true)
 
+      const existingItems: any[] = (order as any).orderItems ?? (order as any).items ?? []
+      const nameLookup: Record<number, string> = {}
+
+      existingItems.forEach((it: any) => {
+        const id = it.menuItemId ?? it.id
+        const name = it.menuItemName ?? it.menuItem?.name ?? it.name
+
+        if (id != null && name) nameLookup[id] = name
+      })
+
       try {
         const result: any = await get(orderEndpoints.getOrderById(order.id))
         const raw: any[] = result?.data?.orderItems ?? []
@@ -100,7 +110,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
           raw.map((it: any, i: number) => ({
             rowId: i + 1,
             menuItemId: it.menuItemId,
-            name: it.menuItem?.name ?? `Item #${it.menuItemId}`,
+            name: it.menuItem?.name ?? nameLookup[it.menuItemId] ?? `Item #${it.menuItemId}`,
             price: Number(it.price),
             quantity: Number(it.quantity)
           }))
@@ -108,13 +118,11 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
       } catch (err) {
         console.error('Failed to fetch order details', err)
 
-        const raw: any[] = (order as any).orderItems ?? (order as any).items ?? []
-
         setItems(
-          raw.map((it: any, i: number) => ({
+          existingItems.map((it: any, i: number) => ({
             rowId: i + 1,
             menuItemId: it.menuItemId ?? it.id,
-            name: it.name ?? it.menuItemName ?? 'Item',
+            name: it.name ?? it.menuItemName ?? nameLookup[it.menuItemId ?? it.id] ?? 'Item',
             price: Number(it.price),
             quantity: Number(it.quantity)
           }))
@@ -525,10 +533,6 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
                   <Typography variant='body2' color='text.secondary'>Items ({items.length})</Typography>
                   <Typography variant='body2' fontWeight={600}>€{subtotal.toFixed(2)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                  <Typography variant='body2' color='text.secondary'>€0.00</Typography>
-                </Box>
                 <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
@@ -577,10 +581,6 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260, mt: 2 }}>
                 <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
                 <Typography variant='body2'>€{subtotal.toFixed(2)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
-                <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                <Typography variant='body2'>€0.00</Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>

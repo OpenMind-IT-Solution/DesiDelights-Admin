@@ -54,7 +54,7 @@ import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-// const TAX_RATE = 0.18   // ⬅ TAX DISABLED
+const TAX_RATE = 0  // 0% tax
 
 const Pos = () => {
   // States
@@ -166,7 +166,8 @@ const Pos = () => {
   const orderSummary: OrderSummary = {
     items: cart,
     subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    total: cart.reduce((sum, item) => sum + item.total, 0)
+    tax: cart.reduce((sum, item) => sum + item.total, 0) * TAX_RATE,
+    total: cart.reduce((sum, item) => sum + item.total, 0) * (1 + TAX_RATE)
   }
 
   // Add item to cart
@@ -238,6 +239,7 @@ const Pos = () => {
           price: item.price
         })),
         subtotal: orderSummary.subtotal,
+        tax: orderSummary.tax,
         total: orderSummary.total,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
@@ -530,10 +532,6 @@ const Pos = () => {
                   <Typography>Subtotal:</Typography>
                   <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
-                {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Tax (18%):</Typography>
-                  <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-                </Box> */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
@@ -617,10 +615,6 @@ const Pos = () => {
             <Typography>Subtotal:</Typography>
             <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
-          {/* <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography>Tax (18%):</Typography>
-            <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-          </Box> */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>

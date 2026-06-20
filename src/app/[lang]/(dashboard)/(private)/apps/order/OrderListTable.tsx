@@ -34,6 +34,7 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
+import { toast } from 'react-toastify'
 
 // Type Imports
 import { useSession } from 'next-auth/react'
@@ -46,7 +47,7 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
 import AddOrderDrawer from './AddOrderDrawer'
-import { post } from '@/services/apiService'
+import { post, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 import tableStyles from '@core/styles/table.module.css'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
@@ -157,11 +158,11 @@ const OrderListTable = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState([])
-  const [filteredData, setFilteredData] = useState(data)
+  const [data, setData] = useState<OrderType[]>([])
+  const [filteredData, setFilteredData] = useState<OrderType[]>(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
+  const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
   const [, setLoading] = useState(true)
   const [, setError] = useState<string | null>(null)
   const [, setTotalRows] = useState(0)
@@ -253,14 +254,22 @@ return `"${str.replace(/"/g, '""')}"`
     URL.revokeObjectURL(url)
   }
 
-  const handleConfirmDelete = () => {
-    // if (orderToDelete) {
-    //   const updatedData = data?.filter(order => order.id !== orderToDelete.id) ?? []
-    //   setData(updatedData)
-    //   setFilteredData(updatedData)
-    // }
-    // setDeleteDialogOpen(false)
-    // setOrderToDelete(null)
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return
+    const deleteId = orderToDelete.id
+
+    try {
+      await put(orderEndpoints.updateOrderStatus(deleteId), { status: 'cancelled' })
+      setData(prev => prev.filter(order => order.id !== deleteId))
+      setFilteredData(prev => prev.filter(order => order.id !== deleteId))
+      toast.success('Order cancelled successfully')
+    } catch (err) {
+      console.error('Failed to cancel order', err)
+      toast.error('Failed to cancel order')
+    }
+
+    setDeleteDialogOpen(false)
+    setOrderToDelete(null)
   }
 
   const columns = useMemo<ColumnDef<any, any>[]>(
