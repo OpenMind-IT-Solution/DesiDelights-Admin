@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // MUI Imports
 import {
@@ -11,6 +11,7 @@ import {
   CardContent,
   CardMedia,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,11 +24,12 @@ import {
   ListItem,
   ListItemSecondaryAction,
   ListItemText,
+  MenuItem,
   Paper,
   TextField,
-  Typography,
-  CircularProgress
+  Typography
 } from '@mui/material'
+
 
 // Type Imports
 import {
@@ -40,21 +42,23 @@ import {
 } from 'mdi-material-ui'
 
 import type { Category } from '@/types/apps/categoryTypes'
-import type { MenuItem } from '@/types/apps/menuTypes'
+import type { MenuItems } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 
 // API Imports
+import CustomTextField from '@/@core/components/mui/TextField'
+import { RequiredLabel } from '@/components/RequierdLabel'
 import { post } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0.18 // 18% GST
+// const TAX_RATE = 0.18   // ⬅ TAX DISABLED
 
 const Pos = () => {
   // States
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItems[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,6 +70,7 @@ const Pos = () => {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -108,10 +113,7 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
-          const category =
-            typeof item.category === 'string'
-              ? JSON.parse(item.category)
-              : item.category
+          const category = typeof item.category === 'string' ? JSON.parse(item.category) : item.category
 
           return {
             ...item,
@@ -129,7 +131,7 @@ const Pos = () => {
     }
   }, [])
 
-  const getMenuItemCategoryId = (item: MenuItem) => {
+  const getMenuItemCategoryId = (item: MenuItems) => {
     if (item.category?.id != null) {
       return Number(item.category.id)
     }
@@ -154,9 +156,8 @@ const Pos = () => {
   }, [fetchCategories, fetchMenuItems])
 
   // Filter menu items by category
-  const filteredMenuItems = selectedCategory !== null
-    ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory)
-    : menuItems
+  const filteredMenuItems =
+    selectedCategory !== null ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory) : menuItems
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
@@ -165,12 +166,11 @@ const Pos = () => {
   const orderSummary: OrderSummary = {
     items: cart,
     subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    tax: cart.reduce((sum, item) => sum + item.total, 0) * TAX_RATE,
-    total: cart.reduce((sum, item) => sum + item.total, 0) * (1 + TAX_RATE)
+    total: cart.reduce((sum, item) => sum + item.total, 0)
   }
 
   // Add item to cart
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: MenuItems) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id)
 
     if (existingItem) {
@@ -238,11 +238,11 @@ const Pos = () => {
           price: item.price
         })),
         subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
         total: orderSummary.total,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
@@ -262,26 +262,26 @@ const Pos = () => {
 
   // Print receipt
   const printReceipt = () => {
-  const receiptWindow = window.open('', '_blank', 'width=350,height=600')
+    const receiptWindow = window.open('', '_blank', 'width=350,height=600')
 
-  if (!receiptWindow) {
-    console.error('Unable to open print window')
-    
-return
-  }
+    if (!receiptWindow) {
+      console.error('Unable to open print window')
 
-  const itemsHtml = cart
-    .map(
-      item => `
+      return
+    }
+
+    const itemsHtml = cart
+      .map(
+        item => `
         <tr>
           <td>${item.name} x${item.quantity}</td>
           <td style="text-align:right;">€${item.total}</td>
         </tr>
       `
-    )
-    .join('')
+      )
+      .join('')
 
-  receiptWindow.document.write(`
+    receiptWindow.document.write(`
     <html>
       <head>
         <title>Receipt</title>
@@ -330,6 +330,7 @@ return
         ${customerName ? `<p>Customer: ${customerName}</p>` : ''}
         ${customerPhone ? `<p>Phone: ${customerPhone}</p>` : ''}
         ${customerNotes ? `<p>Notes: ${customerNotes}</p>` : ''}
+        <p>Payment: ${paymentMethod === 'cash' ? 'Cash' : 'Card'}</p>
 
         <hr />
 
@@ -343,10 +344,6 @@ return
           <tr>
             <td>Subtotal</td>
             <td style="text-align:right;">€${orderSummary.subtotal.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Tax (18%)</td>
-            <td style="text-align:right;">€${orderSummary.tax.toFixed(2)}</td>
           </tr>
           <tr class="bold">
             <td>Total</td>
@@ -363,8 +360,8 @@ return
     </html>
   `)
 
-  receiptWindow.document.close()
-}
+    receiptWindow.document.close()
+  }
 
   // Reset for new order
   const newOrder = () => {
@@ -446,7 +443,7 @@ return
                       height: '100%',
                       cursor: 'pointer',
                       transition: 'transform 0.2s',
-                      '&:hover': { transform: 'scale(1.02)' },
+                      '&:hover': { transform: 'scale(1.02)' }
                     }}
                     onClick={() => addToCart(item)}
                   >
@@ -484,7 +481,7 @@ return
 
         {/* Right Panel - Order Summary */}
         <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-          <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column'}}>
+          <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               {/* <ShoppingCartIcon sx={{ mr: 1 }} /> */}
               <ShoppingOutline sx={{ mr: 1 }} />
@@ -533,47 +530,16 @@ return
                   <Typography>Subtotal:</Typography>
                   <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tax (18%):</Typography>
                   <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-                </Box>
+                </Box> */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
                     €{orderSummary.total.toFixed(2)}
                   </Typography>
                 </Box>
-
-                <Divider sx={{ my: 2 }} />
-                <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-                  Customer Details (optional)
-                </Typography>
-                <TextField
-                  label='Customer Name'
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  fullWidth
-                  size='small'
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  label='Phone Number'
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  fullWidth
-                  size='small'
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  label='Notes'
-                  value={customerNotes}
-                  onChange={e => setCustomerNotes(e.target.value)}
-                  fullWidth
-                  size='small'
-                  multiline
-                  rows={2}
-                  sx={{ mb: 2 }}
-                />
 
                 <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
                   Place Order
@@ -586,32 +552,58 @@ return
 
       {/* Receipt Dialog */}
       <Dialog open={showReceipt} onClose={() => setShowReceipt(false)} maxWidth='sm' fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pb: 3 }}>
           {/* <ReceiptIcon sx={{ mr: 1 }} /> */}
           <Receipt sx={{ mr: 1 }} />
           Order Receipt #{orderNumber}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant='body2' color='text.secondary'>
               Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
             </Typography>
-            {customerName && (
-              <Typography variant='body2' color='text.secondary'>
-                Customer: {customerName}
-              </Typography>
-            )}
-            {customerPhone && (
-              <Typography variant='body2' color='text.secondary'>
-                Phone: {customerPhone}
-              </Typography>
-            )}
-            {customerNotes && (
-              <Typography variant='body2' color='text.secondary'>
-                Notes: {customerNotes}
-              </Typography>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CustomTextField
+                select
+                fullWidth
+                name='paymentMethod'
+                label={<RequiredLabel label='Payment Method' isRequired={true} />}
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value)}
+              >
+                <MenuItem value='cash'>Cash</MenuItem>
+                <MenuItem value='card'>Card</MenuItem>
+              </CustomTextField>
+            </Box>
           </Box>
+          <Divider sx={{ mb: 1.5 }} />
+          <Typography variant='subtitle2' gutterBottom color='text.secondary' sx={{ mb: 1 }}>
+            Customer Details (Optional)
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
+            <TextField
+              label='Customer Name'
+              value={customerName}
+              onChange={e => setCustomerName(e.target.value)}
+              fullWidth
+              size='small'
+            />
+            <TextField
+              label='Phone Number'
+              value={customerPhone}
+              onChange={e => setCustomerPhone(e.target.value)}
+              fullWidth
+              size='small'
+            />
+          </Box>
+          <TextField
+            label='Notes'
+            value={customerNotes}
+            onChange={e => setCustomerNotes(e.target.value)}
+            fullWidth
+            size='small'
+            sx={{ mb: 1 }}
+          />
           <List>
             {cart.map(item => (
               <ListItem key={item.id} sx={{ px: 0 }}>
@@ -625,10 +617,10 @@ return
             <Typography>Subtotal:</Typography>
             <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          {/* <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Tax (18%):</Typography>
             <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-          </Box>
+          </Box> */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
@@ -640,7 +632,7 @@ return
             Print Receipt
           </Button>
           <Button variant='outlined' onClick={newOrder}>
-            New Order
+            Place Order
           </Button>
         </DialogActions>
       </Dialog>
