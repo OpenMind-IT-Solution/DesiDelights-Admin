@@ -1,4 +1,4 @@
-export type MenuItem = {
+export type MenuItems = {
   id: number
   name: string
   description: string
@@ -14,5 +14,5 @@ export type MenuItem = {
 }
 
 export type Menu = {
-  menuItems: MenuItem[]
+  menuItems: MenuItems[]
 }

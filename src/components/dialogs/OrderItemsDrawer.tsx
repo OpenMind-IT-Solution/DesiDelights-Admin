@@ -35,7 +35,7 @@ import { get, post, put } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { orderEndpoints } from '@/services/endpoints/order'
 
-const TAX_RATE = 0.18
+// const TAX_RATE = 0  // ⬅ TAX DISABLED
 
 interface EditableItem {
   rowId: number
@@ -72,8 +72,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
 
   const selectedMenuItem = menuOptions.find(m => m.id === newMenuItemId)
   const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0)
-  const tax = subtotal * TAX_RATE
-  const grandTotal = subtotal + tax
+  const grandTotal = subtotal           // ⬅ TAX DISABLED — grandTotal = subtotal
 
   // Fetch actual order items from backend when drawer opens
   useEffect(() => {
@@ -528,7 +527,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                  <Typography variant='body2' color='text.secondary'>€{tax.toFixed(2)}</Typography>
+                  <Typography variant='body2' color='text.secondary'>€0.00</Typography>
                 </Box>
                 <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -581,7 +580,7 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
                 <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                <Typography variant='body2'>€{tax.toFixed(2)}</Typography>
+                <Typography variant='body2'>€0.00</Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>

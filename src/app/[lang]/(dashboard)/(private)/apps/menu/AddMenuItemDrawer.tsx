@@ -17,7 +17,7 @@ import { toast } from 'react-toastify'
 import { post, postFormData } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
-import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
+import type { MenuItems as MenuItemType } from '@/types/apps/menuTypes'
 import CustomTextField from '@core/components/mui/TextField'
 import { getImageUrl } from '@/utils/getImageUrl'
 

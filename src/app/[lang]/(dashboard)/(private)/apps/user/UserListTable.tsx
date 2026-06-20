@@ -164,7 +164,7 @@ const UserListTable = () => {
           page: pagination.pageIndex + 1,
           limit: isExport ? 100000 : pagination.pageSize,
           search: globalFilter,
-          status: filters.status === 'All' ? null : [filters.status],
+          status: filters.status === 'All' ? null : [filters.status === 'active'],
           roleId: filters.roleId ? [filters.roleId] : null,
           restaurantId:
             typeof session?.user?.restaurantId === 'string'
