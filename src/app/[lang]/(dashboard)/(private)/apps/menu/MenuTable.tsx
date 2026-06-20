@@ -11,8 +11,8 @@ import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -31,18 +31,18 @@ import classnames from 'classnames'
 
 import { CircularProgress } from '@mui/material'
 
-import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
+import type { MenuItems as MenuItemType } from '@/types/apps/menuTypes'
 import type { ThemeColor } from '@core/types'
 
 import { del, get, post } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { getImageUrl } from '@/utils/getImageUrl'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
 import AddMenuItemDrawer from './AddMenuItemDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TableFilters from './TableFilters'
-import { getImageUrl } from '@/utils/getImageUrl'
 
 type MenuItemWithAction = MenuItemType & { action?: string }
 type StatusType = { [key: string]: ThemeColor }
