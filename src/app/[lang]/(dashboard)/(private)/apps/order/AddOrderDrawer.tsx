@@ -477,10 +477,6 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
                   <Typography variant='body2' color='text.secondary'>Items ({items.length})</Typography>
                   <Typography variant='body2' fontWeight={600}>€{subtotal.toFixed(2)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                  <Typography variant='body2' color='text.secondary'>€0.00</Typography>
-                </Box>
                 <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
@@ -529,10 +525,6 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260, mt: 2 }}>
                 <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
                 <Typography variant='body2'>€{subtotal.toFixed(2)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
-                <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                <Typography variant='body2'>€0.00</Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
