@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // MUI Imports
 import {
@@ -30,7 +30,6 @@ import {
   Typography
 } from '@mui/material'
 
-
 // Type Imports
 import {
   MinusCircleOutline,
@@ -54,7 +53,7 @@ import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0  // 0% tax
+const TAX_RATE = 0 // 0% tax
 
 const Pos = () => {
   // States
@@ -71,6 +70,7 @@ const Pos = () => {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -259,110 +259,113 @@ const Pos = () => {
     }
 
     setOrderPlaced(true)
-    setShowReceipt(true)
+    setCart([])
   }
 
   // Print receipt
-  const printReceipt = () => {
-    const receiptWindow = window.open('', '_blank', 'width=350,height=600')
+  const printReceipt = async () => {
+    if (cart.length === 0) return
 
-    if (!receiptWindow) {
-      console.error('Unable to open print window')
+    // Save order first
+    let newOrderId = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.tax,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+    setOrderPlaced(true)
+
+    const el = receiptCaptureRef.current
+
+    if (!el) {
+      setShowReceipt(false)
 
       return
     }
 
-    const itemsHtml = cart
-      .map(
-        item => `
-        <tr>
-          <td>${item.name} x${item.quantity}</td>
-          <td style="text-align:right;">€${item.total}</td>
-        </tr>
-      `
-      )
-      .join('')
+    let origLeft: string | null = null
 
-    receiptWindow.document.write(`
-    <html>
-      <head>
-        <title>Receipt</title>
-        <style>
-          body {
-            font-family: monospace;
-            width: 280px;
-            margin: 0 auto;
-            padding: 10px;
-            font-size: 12px;
-          }
-          .center { text-align: center; }
-          img {
-            width: 90px;
-            margin-bottom: 5px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          td {
-            padding: 3px 0;
-          }
-          hr {
-            border: none;
-            border-top: 1px dashed #000;
-            margin: 8px 0;
-          }
-          .bold {
-            font-weight: bold;
-          }
-        </style>
-      </head>
-      <body onload="window.print(); window.close();">
-        <div class="center">
-          <img src="/logo.png" alt="Logo" />
-          <h3>DESI DELIGHTS</h3>
-          <p>info@desidelights.be</p>
-          <p>+32 XXX XXX XXX</p>
-          <hr />
-        </div>
+    try {
+      await new Promise(r => setTimeout(r, 500))
+      const logoImg = new Image()
 
-        <p>Order #: ${orderNumber}</p>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-        <p>Time: ${new Date().toLocaleTimeString()}</p>
-        ${customerName ? `<p>Customer: ${customerName}</p>` : ''}
-        ${customerPhone ? `<p>Phone: ${customerPhone}</p>` : ''}
-        ${customerNotes ? `<p>Notes: ${customerNotes}</p>` : ''}
-        <p>Payment: ${paymentMethod === 'cash' ? 'Cash' : 'Card'}</p>
+      logoImg.src = '/logo.png'
+      if (!logoImg.complete)
+        await new Promise(r => {
+          logoImg.onload = r
+          logoImg.onerror = r
+        })
 
-        <hr />
+      origLeft = el.style.left
+      el.style.left = '0'
 
-        <table>
-          ${itemsHtml}
-        </table>
+      await new Promise(r => requestAnimationFrame(r))
 
-        <hr />
+      const html2canvas = (await import('html2canvas')).default
 
-        <table>
-          <tr>
-            <td>Subtotal</td>
-            <td style="text-align:right;">€${orderSummary.subtotal.toFixed(2)}</td>
-          </tr>
-          <tr class="bold">
-            <td>Total</td>
-            <td style="text-align:right;">€${orderSummary.total.toFixed(2)}</td>
-          </tr>
-        </table>
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
 
-        <hr />
+      const imgData = canvas.toDataURL('image/png')
 
-        <div class="center">
-          <p>Thank you for dining with us!</p>
-        </div>
-      </body>
-    </html>
-  `)
+      const w = window.open('', '_blank')
 
-    receiptWindow.document.close()
+      if (w) {
+        w.document.write(`<!DOCTYPE html><html><head><style>
+          @page { size: 80mm 297mm; margin: 0; }
+          *{margin:0;padding:0;box-sizing:border-box}
+          body{font-family:Arial,sans-serif;background:#f5f5f5}
+          .receipt-wrapper{padding-top:30px;display:flex;flex-direction:column;align-items:center}
+          .receipt-img{width:80mm;height:auto;display:block;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+          .actions{margin-top:20px;display:flex;gap:12px;padding-bottom:40px}
+          .actions button,.actions a{padding:10px 24px;border:none;border-radius:6px;font-size:14px;cursor:pointer;text-decoration:none;font-weight:600}
+          .btn-print{background:#1976d2;color:#fff}
+          .btn-download{background:#fff;color:#1976d2;border:2px solid #1976d2}
+          @media print{.actions{display:none!important}}
+</style></head><body>
+<div class="receipt-wrapper">
+  <img class="receipt-img" src="${imgData}" />
+  <div class="actions">
+    <button class="btn-print" onclick="window.print()">Print</button>
+    <a class="btn-download" href="${imgData}" download="receipt.png">Download</a>
+  </div>
+</div>
+</body></html>`)
+        w.document.close()
+      }
+    } catch (err) {
+      console.error('Print failed:', err)
+    } finally {
+      if (origLeft !== null) el.style.left = origLeft
+    }
+
+    setCart([])
+    setShowReceipt(false)
   }
 
   // Reset for new order
@@ -539,8 +542,14 @@ const Pos = () => {
                   </Typography>
                 </Box>
 
-                <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
-                  Place Order
+                <Button
+                  variant='contained'
+                  fullWidth
+                  size='large'
+                  onClick={() => setShowReceipt(true)}
+                  disabled={cart.length === 0}
+                >
+                  Review Order
                 </Button>
               </Box>
             )}
@@ -553,12 +562,15 @@ const Pos = () => {
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', pb: 3 }}>
           {/* <ReceiptIcon sx={{ mr: 1 }} /> */}
           <Receipt sx={{ mr: 1 }} />
-          Order Receipt #{orderNumber}
+          {orderNumber ? `Order Receipt #${orderNumber}` : 'Review Order'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant='body2' color='text.secondary'>
-              Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              Date:{' '}
+              <span suppressHydrationWarning>
+                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              </span>
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CustomTextField
@@ -625,11 +637,60 @@ const Pos = () => {
           <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
             Print Receipt
           </Button>
-          <Button variant='outlined' onClick={newOrder}>
+          <Button variant='outlined' onClick={placeOrder}>
             Place Order
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Hidden receipt template for image capture */}
+      <div
+        ref={receiptCaptureRef}
+        style={{
+          position: 'fixed',
+          left: -9999,
+          top: 0,
+          background: '#fff',
+          color: '#000',
+          padding: 30,
+          fontFamily: 'monospace',
+          fontSize: 13,
+          textAlign: 'center',
+          width: 320
+        }}
+      >
+        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
+        <p style={{ margin: '0 0 8px 0', fontSize: 11, color: '#666' }}>Quick Bites, Happy Vibes</p>
+        <p style={{ margin: '2px 0', color: '#666' }}>info@desidelights.be</p>
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
+        <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
+          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+        </p>
+        {customerName && <p style={{ textAlign: 'left', margin: '4px 0' }}>Customer: {customerName}</p>}
+        {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
+        {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        {cart.map(item => (
+          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+            <span>
+              {item.name} x{item.quantity}
+            </span>
+            <span>€{item.total}</span>
+          </div>
+        ))}
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ margin: '2px 0' }}>
+            Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
+          </p>
+          <p style={{ margin: '2px 0', fontSize: 15 }}>
+            Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
+          </p>
+        </div>
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <p style={{ margin: '8px 0' }}>Thank you for your order!</p>
+      </div>
 
       {/* Floating Action Button for New Order */}
       {orderPlaced && !showReceipt && (
