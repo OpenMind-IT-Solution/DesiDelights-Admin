@@ -30,7 +30,6 @@ import {
   Typography
 } from '@mui/material'
 
-
 // Type Imports
 import {
   MinusCircleOutline,
@@ -54,7 +53,7 @@ import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0  // 0% tax
+const TAX_RATE = 0 // 0% tax
 
 const Pos = () => {
   // States
@@ -269,6 +268,7 @@ const Pos = () => {
 
     // Save order first
     let newOrderId = null
+
     try {
       const payload = {
         items: cart.map(item => ({
@@ -286,6 +286,7 @@ const Pos = () => {
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
+
       newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
     } catch {
       newOrderId = Math.floor(Math.random() * 10000) + 1
@@ -295,8 +296,10 @@ const Pos = () => {
     setOrderPlaced(true)
 
     const el = receiptCaptureRef.current
+
     if (!el) {
       setShowReceipt(false)
+
       return
     }
 
@@ -305,14 +308,21 @@ const Pos = () => {
     try {
       await new Promise(r => setTimeout(r, 500))
       const logoImg = new Image()
+
       logoImg.src = '/logo.png'
-      if (!logoImg.complete) await new Promise(r => { logoImg.onload = r; logoImg.onerror = r })
+      if (!logoImg.complete)
+        await new Promise(r => {
+          logoImg.onload = r
+          logoImg.onerror = r
+        })
 
       origLeft = el.style.left
       el.style.left = '0'
+
       await new Promise(r => requestAnimationFrame(r))
 
       const html2canvas = (await import('html2canvas')).default
+
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
@@ -324,6 +334,7 @@ const Pos = () => {
       const imgData = canvas.toDataURL('image/png')
 
       const w = window.open('', '_blank')
+
       if (w) {
         w.document.write(`<!DOCTYPE html><html><head><style>
           @page { size: 80mm 297mm; margin: 0; }
@@ -355,7 +366,7 @@ const Pos = () => {
 
     setCart([])
     setShowReceipt(false)
-  };
+  }
 
   // Reset for new order
   const newOrder = () => {
@@ -531,7 +542,13 @@ const Pos = () => {
                   </Typography>
                 </Box>
 
-                <Button variant='contained' fullWidth size='large' onClick={() => setShowReceipt(true)} disabled={cart.length === 0}>
+                <Button
+                  variant='contained'
+                  fullWidth
+                  size='large'
+                  onClick={() => setShowReceipt(true)}
+                  disabled={cart.length === 0}
+                >
                   Review Order
                 </Button>
               </Box>
@@ -550,7 +567,10 @@ const Pos = () => {
         <DialogContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant='body2' color='text.secondary'>
-              Date: <span suppressHydrationWarning>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</span>
+              Date:{' '}
+              <span suppressHydrationWarning>
+                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              </span>
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CustomTextField
@@ -624,27 +644,49 @@ const Pos = () => {
       </Dialog>
 
       {/* Hidden receipt template for image capture */}
-      <div ref={receiptCaptureRef} style={{ position: 'fixed', left: -9999, top: 0, background: '#fff', color: '#000', padding: 30, fontFamily: 'monospace', fontSize: 13, textAlign: 'center', width: 320 }}>
+      <div
+        ref={receiptCaptureRef}
+        style={{
+          position: 'fixed',
+          left: -9999,
+          top: 0,
+          background: '#fff',
+          color: '#000',
+          padding: 30,
+          fontFamily: 'monospace',
+          fontSize: 13,
+          textAlign: 'center',
+          width: 320
+        }}
+      >
         <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
         <p style={{ margin: '0 0 8px 0', fontSize: 11, color: '#666' }}>Quick Bites, Happy Vibes</p>
         <p style={{ margin: '2px 0', color: '#666' }}>info@desidelights.be</p>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
-        <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
+        <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
+          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+        </p>
         {customerName && <p style={{ textAlign: 'left', margin: '4px 0' }}>Customer: {customerName}</p>}
         {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
         {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         {cart.map(item => (
           <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-            <span>{item.name} x{item.quantity}</span>
+            <span>
+              {item.name} x{item.quantity}
+            </span>
             <span>€{item.total}</span>
           </div>
         ))}
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <div style={{ textAlign: 'right' }}>
-          <p style={{ margin: '2px 0' }}>Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong></p>
-          <p style={{ margin: '2px 0', fontSize: 15 }}>Total: <strong>€{orderSummary.total.toFixed(2)}</strong></p>
+          <p style={{ margin: '2px 0' }}>
+            Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
+          </p>
+          <p style={{ margin: '2px 0', fontSize: 15 }}>
+            Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
+          </p>
         </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ margin: '8px 0' }}>Thank you for your order!</p>
