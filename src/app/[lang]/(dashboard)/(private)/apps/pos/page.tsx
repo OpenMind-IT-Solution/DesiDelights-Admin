@@ -53,7 +53,7 @@ import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0 // 0% tax
+const DEFAULT_VAT_RATE = 0.12
 
 const Pos = () => {
   // States
@@ -162,12 +162,31 @@ const Pos = () => {
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
 
-  // Calculate order summary
+  // Calculate order summary with VAT
+  const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+
+  const vatByRate: Record<number, number> = {}
+
+  const vatTotal = cart.reduce((sum, item) => {
+    const menuItem = menuItems.find(m => m.id === item.id)
+    const rate = menuItem?.vatRate != null ? menuItem.vatRate / 100 : DEFAULT_VAT_RATE
+    const vat = item.total * rate
+    const pct = Math.round(rate * 100)
+
+    vatByRate[pct] = (vatByRate[pct] || 0) + vat
+
+    return sum + vat
+  }, 0)
+
   const orderSummary: OrderSummary = {
     items: cart,
-    subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    tax: cart.reduce((sum, item) => sum + item.total, 0) * TAX_RATE,
-    total: cart.reduce((sum, item) => sum + item.total, 0) * (1 + TAX_RATE)
+    subtotal,
+    foodSubtotal: subtotal,
+    drinksSubtotal: 0,
+    foodVat: vatTotal,
+    drinksVat: 0,
+    vatTotal,
+    total: subtotal + vatTotal
   }
 
   // Add item to cart
@@ -239,7 +258,7 @@ const Pos = () => {
           price: item.price
         })),
         subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
+        tax: orderSummary.vatTotal,
         total: orderSummary.total,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
@@ -260,6 +279,7 @@ const Pos = () => {
 
     setOrderPlaced(true)
     setCart([])
+    setShowReceipt(false)
   }
 
   // Print receipt
@@ -277,7 +297,7 @@ const Pos = () => {
           price: item.price
         })),
         subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
+        tax: orderSummary.vatTotal,
         total: orderSummary.total,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
@@ -535,6 +555,12 @@ const Pos = () => {
                   <Typography>Subtotal:</Typography>
                   <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
+                {Object.entries(vatByRate).map(([rate, vat]) => (
+                  <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant='body2' color='text.secondary'>VAT {rate}%:</Typography>
+                    <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+                  </Box>
+                ))}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
@@ -627,6 +653,12 @@ const Pos = () => {
             <Typography>Subtotal:</Typography>
             <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant='body2' color='text.secondary'>VAT {rate}%:</Typography>
+              <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+            </Box>
+          ))}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
@@ -660,8 +692,8 @@ const Pos = () => {
         }}
       >
         <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
-        <p style={{ margin: '0 0 8px 0', fontSize: 11, color: '#666' }}>Quick Bites, Happy Vibes</p>
-        <p style={{ margin: '2px 0', color: '#666' }}>info@desidelights.be</p>
+        <p style={{ margin: '0 0 8px 0', fontSize: 11 }}>Quick Bites, Happy Vibes</p>
+        <p style={{ margin: '2px 0' }}>admin@desidelights.be</p>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
         <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
@@ -684,6 +716,11 @@ const Pos = () => {
           <p style={{ margin: '2px 0' }}>
             Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
           </p>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
+              VAT {rate}%: €{vat.toFixed(2)}
+            </p>
+          ))}
           <p style={{ margin: '2px 0', fontSize: 15 }}>
             Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
           </p>

@@ -37,6 +37,7 @@ type FormValidateType = {
   offer: string
   status: boolean
   categoryId: number | null
+  vatRate: number
 }
 
 type CategoryOption = {
@@ -76,7 +77,8 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null
+      categoryId: null,
+      vatRate: 12
     }
   })
 
@@ -99,7 +101,8 @@ const AddMenuItemDrawer = (props: Props) => {
         tag: itemToEdit.tag || '',
         offer: itemToEdit.offer || '0',
         status: itemToEdit.status ?? true,
-        categoryId: itemToEdit.category?.id || null
+        categoryId: itemToEdit.category?.id || null,
+        vatRate: itemToEdit.vatRate || 12
       })
 
       setFiles(itemToEdit.menuImages || [])
@@ -217,7 +220,8 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null
+      categoryId: null,
+      vatRate: 12
     })
   }
 
@@ -330,7 +334,22 @@ const AddMenuItemDrawer = (props: Props) => {
               </CustomTextField>
             )}
           />
-
+          <Controller
+            name='vatRate'
+            control={control}
+            rules={{ required: true, min: 0 }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='number'
+                label='VAT Rate (%)'
+                placeholder='12'
+                onChange={e => field.onChange(Number(e.target.value))}
+                {...(errors.vatRate && { error: true, helperText: 'VAT rate must be 0 or more.' })}
+              />
+            )}
+          />
           <div>
             <Typography variant='body2' className='mb-2'>
               Menu Images

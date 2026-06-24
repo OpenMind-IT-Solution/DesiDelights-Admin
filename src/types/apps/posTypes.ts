@@ -10,6 +10,10 @@ export type CartItem = {
 export type OrderSummary = {
   items: CartItem[]
   subtotal: number
-  tax?: number // ⬅ TAX FIELD IN OrderSummary TYPE
+  foodSubtotal: number
+  drinksSubtotal: number
+  foodVat: number
+  drinksVat: number
+  vatTotal: number
   total: number
 }
