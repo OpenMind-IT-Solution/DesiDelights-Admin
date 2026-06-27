@@ -189,6 +189,13 @@ const Pos = () => {
     total: subtotal + vatTotal
   }
 
+  const getItemUnitPriceWithVat = (item: CartItem) => {
+    const menuItem = menuItems.find(m => m.id === item.id)
+    const rate = menuItem?.vatRate != null ? menuItem.vatRate / 100 : DEFAULT_VAT_RATE
+
+    return item.price * (1 + rate)
+  }
+
   // Add item to cart
   const addToCart = (item: MenuItems) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id)
@@ -484,7 +491,7 @@ const Pos = () => {
                           {item.name}
                         </Typography>
                         <Typography variant='h6' color='primary'>
-                          €{item.price}
+                          €{(item.price * (1 + (item.vatRate || 12) / 100)).toFixed(2)}
                         </Typography>
                       </Box>
                       <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
@@ -523,7 +530,7 @@ const Pos = () => {
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity}`} />
+                      <ListItemText primary={item.name} secondary={`€${item.price.toFixed(2)} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton size='small' onClick={() => removeFromCart(item.id)}>
@@ -557,7 +564,7 @@ const Pos = () => {
                 </Box>
                 {Object.entries(vatByRate).map(([rate, vat]) => (
                   <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant='body2' color='text.secondary'>VAT {rate}%:</Typography>
+                    <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
                     <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
                   </Box>
                 ))}
@@ -640,13 +647,27 @@ const Pos = () => {
             size='small'
             sx={{ mb: 1 }}
           />
-          <List>
-            {cart.map(item => (
-              <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity} = €${item.total}`} />
-              </ListItem>
-            ))}
-          </List>
+          <Box sx={{ width: '100%', fontSize: 13 }}>
+            <Box sx={{ display: 'flex', fontWeight: 'bold', borderBottom: 1, borderColor: 'divider', pb: 0.5, mb: 0.5 }}>
+              <Typography sx={{ width: 24 }}>#</Typography>
+              <Typography sx={{ flex: 1 }}>Item</Typography>
+              <Typography sx={{ width: 65, textAlign: 'right' }}>Net</Typography>
+              <Typography sx={{ width: 45, textAlign: 'right' }}>VAT%</Typography>
+            </Box>
+            {cart.map((item, i) => {
+              const menuItem = menuItems.find(m => m.id === item.id)
+              const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+              return (
+                <Box key={item.id} sx={{ display: 'flex', py: 0.5 }}>
+                  <Typography sx={{ width: 24 }}>{i + 1}</Typography>
+                  <Typography sx={{ flex: 1 }}>{item.name} x{item.quantity}</Typography>
+                  <Typography sx={{ width: 65, textAlign: 'right' }}>€{item.total.toFixed(2)}</Typography>
+                  <Typography sx={{ width: 45, textAlign: 'right' }}>{rate}%</Typography>
+                </Box>
+              )
+            })}
+          </Box>
 
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -655,7 +676,7 @@ const Pos = () => {
           </Box>
           {Object.entries(vatByRate).map(([rate, vat]) => (
             <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant='body2' color='text.secondary'>VAT {rate}%:</Typography>
+              <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
               <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
             </Box>
           ))}
@@ -703,22 +724,35 @@ const Pos = () => {
         {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
         {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        {cart.map(item => (
-          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-            <span>
-              {item.name} x{item.quantity}
-            </span>
-            <span>€{item.total}</span>
+        <div style={{ width: '100%', fontSize: 10, margin: '4px 0' }}>
+          <div style={{ display: 'flex', fontWeight: 'bold', borderBottom: '1px dashed #999', padding: '2px 0' }}>
+            <span style={{ width: 20 }}>#</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>Item</span>
+            <span style={{ width: 55, textAlign: 'right' }}>Net</span>
+            <span style={{ width: 35, textAlign: 'right' }}>VAT%</span>
           </div>
-        ))}
+          {cart.map((item, i) => {
+            const menuItem = menuItems.find(m => m.id === item.id)
+            const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+            return (
+              <div key={item.id} style={{ display: 'flex', padding: '2px 0' }}>
+                <span style={{ width: 20 }}>{i + 1}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>{item.name} x{item.quantity}</span>
+                <span style={{ width: 55, textAlign: 'right' }}>€{item.total.toFixed(2)}</span>
+                <span style={{ width: 35, textAlign: 'right' }}>{rate}%</span>
+              </div>
+            )
+          })}
+        </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', fontSize: 11 }}>
           <p style={{ margin: '2px 0' }}>
-            Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
+            Net total: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
           </p>
           {Object.entries(vatByRate).map(([rate, vat]) => (
             <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
-              VAT {rate}%: €{vat.toFixed(2)}
+              VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drinks)'}: €{vat.toFixed(2)}
             </p>
           ))}
           <p style={{ margin: '2px 0', fontSize: 15 }}>

@@ -43,6 +43,7 @@ type FormValidateType = {
 type CategoryOption = {
   id: number
   name: string
+  vatRate?: number
 }
 
 const Dropzone = styled('div')(({ theme }) => ({
@@ -65,6 +66,8 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const {
     control,
+    setValue,
+    watch,
     reset: resetForm,
     handleSubmit,
     formState: { errors }
@@ -106,14 +109,29 @@ const AddMenuItemDrawer = (props: Props) => {
       })
 
       setFiles(itemToEdit.menuImages || [])
+      setTotalPriceInput(Math.round(itemToEdit.price * (1 + (itemToEdit.vatRate || 12) / 100) * 100) / 100)
     } else {
       resetForm()
       setFiles([])
+      setTotalPriceInput(0)
     }
   }, [itemToEdit, open, resetForm])
 
   const handleRemoveFile = (fileToRemove: File | string) => {
     setFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove))
+  }
+
+  const [totalPriceInput, setTotalPriceInput] = useState<number>(0)
+  const watchedVatRate = watch('vatRate')
+  const computedPrice = totalPriceInput > 0 && (watchedVatRate || 0) > 0
+    ? Math.round(totalPriceInput / (1 + (watchedVatRate || 0) / 100) * 100) / 100
+    : 0
+
+  const handleTotalPriceChange = (value: number) => {
+    setTotalPriceInput(value)
+    if (value > 0 && (watchedVatRate || 0) > 0) {
+      setValue('price', Math.round(value / (1 + (watchedVatRate || 0) / 100) * 100) / 100)
+    }
   }
 
   const renderFilePreview = (file: File | string) => {
@@ -212,6 +230,7 @@ const AddMenuItemDrawer = (props: Props) => {
   const handleReset = () => {
     handleClose()
     setFiles([])
+    setTotalPriceInput(0)
     resetForm({
       id: 0,
       name: '',
@@ -244,6 +263,35 @@ const AddMenuItemDrawer = (props: Props) => {
       <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6'>
           <Controller
+            name='categoryId'
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <CustomTextField
+                select
+                fullWidth
+                label='Select Category'
+                value={field.value ?? ''}
+                onChange={e => {
+                  field.onChange(e)
+                  const cat = categoryIds.find(c => c.id === Number(e.target.value))
+                  if (cat?.vatRate != null) {
+                    setValue('vatRate', cat.vatRate)
+                    if (totalPriceInput > 0) {
+                      setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 100) / 100)
+                    }
+                  }
+                }}
+              >
+                {categoryIds.map(category => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </CustomTextField>
+            )}
+          />
+          <Controller
             name='name'
             control={control}
             rules={{ required: true }}
@@ -266,7 +314,7 @@ const AddMenuItemDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 multiline
-                rows={3}
+                rows={2}
                 label='Description'
                 {...(errors.description && { error: true, helperText: 'This field is required.' })}
               />
@@ -281,10 +329,41 @@ const AddMenuItemDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 type='number'
-                label='Price'
+                label='Item price'
+                value={computedPrice > 0 ? computedPrice.toFixed(2) : (field.value || 0).toFixed(2)}
+                InputProps={{ readOnly: true }}
                 {...(errors.price && { error: true, helperText: 'Price must be a positive number.' })}
               />
             )}
+          />
+          <Controller
+            name='vatRate'
+            control={control}
+            rules={{ required: true, min: 0 }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='number'
+                label='VAT Rate (%)'
+                placeholder='12'
+                onChange={e => {
+                  field.onChange(Number(e.target.value))
+                  if (totalPriceInput > 0) {
+                    setValue('price', Math.round(totalPriceInput / (1 + Number(e.target.value) / 100) * 100) / 100)
+                  }
+                }}
+                {...(errors.vatRate && { error: true, helperText: 'VAT rate must be 0 or more.' })}
+              />
+            )}
+          />
+          <CustomTextField
+            fullWidth
+            type='number'
+            label='Total price'
+            placeholder='0'
+            value={totalPriceInput || ''}
+            onChange={e => handleTotalPriceChange(Number(e.target.value))}
           />
           <Controller
             name='tag'
@@ -297,26 +376,7 @@ const AddMenuItemDrawer = (props: Props) => {
             rules={{ required: true, min: 0 }}
             render={({ field }) => <CustomTextField {...field} fullWidth label='Offer (%)' placeholder='15' />}
           />
-          <Controller
-            name='categoryId'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                label='Select Category'
-                value={field.value ?? ''}
-                onChange={field.onChange}
-              >
-                {categoryIds.map(category => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </CustomTextField>
-            )}
-          />
+          
           <Controller
             name='status'
             control={control}
@@ -332,22 +392,6 @@ const AddMenuItemDrawer = (props: Props) => {
                 <MenuItem value='true'>Active</MenuItem>
                 <MenuItem value='false'>Inactive</MenuItem>
               </CustomTextField>
-            )}
-          />
-          <Controller
-            name='vatRate'
-            control={control}
-            rules={{ required: true, min: 0 }}
-            render={({ field }) => (
-              <CustomTextField
-                {...field}
-                fullWidth
-                type='number'
-                label='VAT Rate (%)'
-                placeholder='12'
-                onChange={e => field.onChange(Number(e.target.value))}
-                {...(errors.vatRate && { error: true, helperText: 'VAT rate must be 0 or more.' })}
-              />
             )}
           />
           <div>
