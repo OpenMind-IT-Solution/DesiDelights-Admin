@@ -189,13 +189,6 @@ const Pos = () => {
     total: subtotal + vatTotal
   }
 
-  const getItemUnitPriceWithVat = (item: CartItem) => {
-    const menuItem = menuItems.find(m => m.id === item.id)
-    const rate = menuItem?.vatRate != null ? menuItem.vatRate / 100 : DEFAULT_VAT_RATE
-
-    return item.price * (1 + rate)
-  }
-
   // Add item to cart
   const addToCart = (item: MenuItems) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id)

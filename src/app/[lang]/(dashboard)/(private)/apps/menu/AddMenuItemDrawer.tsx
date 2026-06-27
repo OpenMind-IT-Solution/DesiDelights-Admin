@@ -123,12 +123,14 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const [totalPriceInput, setTotalPriceInput] = useState<number>(0)
   const watchedVatRate = watch('vatRate')
+
   const computedPrice = totalPriceInput > 0 && (watchedVatRate || 0) > 0
     ? Math.round(totalPriceInput / (1 + (watchedVatRate || 0) / 100) * 100) / 100
     : 0
 
   const handleTotalPriceChange = (value: number) => {
     setTotalPriceInput(value)
+
     if (value > 0 && (watchedVatRate || 0) > 0) {
       setValue('price', Math.round(value / (1 + (watchedVatRate || 0) / 100) * 100) / 100)
     }
@@ -275,8 +277,10 @@ const AddMenuItemDrawer = (props: Props) => {
                 onChange={e => {
                   field.onChange(e)
                   const cat = categoryIds.find(c => c.id === Number(e.target.value))
+
                   if (cat?.vatRate != null) {
                     setValue('vatRate', cat.vatRate)
+
                     if (totalPriceInput > 0) {
                       setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 100) / 100)
                     }
@@ -349,6 +353,7 @@ const AddMenuItemDrawer = (props: Props) => {
                 placeholder='12'
                 onChange={e => {
                   field.onChange(Number(e.target.value))
+
                   if (totalPriceInput > 0) {
                     setValue('price', Math.round(totalPriceInput / (1 + Number(e.target.value) / 100) * 100) / 100)
                   }
