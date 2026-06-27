@@ -2,7 +2,6 @@
 
 // React Imports
 import { useCallback, useEffect, useRef, useState } from 'react'
-
 // MUI Imports
 import {
   Box,
@@ -282,7 +281,7 @@ const Pos = () => {
     setShowReceipt(false)
   }
 
-  // Print receipt
+ // Print receipt
   const printReceipt = async () => {
     if (cart.length === 0) return
 
