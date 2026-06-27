@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // MUI Imports
 import {
@@ -24,6 +24,7 @@ import {
   ListItem,
   ListItemSecondaryAction,
   ListItemText,
+  MenuItem,
   Paper,
   TextField,
   Typography
@@ -40,21 +41,23 @@ import {
 } from 'mdi-material-ui'
 
 import type { Category } from '@/types/apps/categoryTypes'
-import type { MenuItem } from '@/types/apps/menuTypes'
+import type { MenuItems } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 
 // API Imports
+import CustomTextField from '@/@core/components/mui/TextField'
+import { RequiredLabel } from '@/components/RequierdLabel'
 import { post } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0.18 // 18% GST
+const DEFAULT_VAT_RATE = 0.12
 
 const Pos = () => {
   // States
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItems[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +69,8 @@ const Pos = () => {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
-  const logoUrl = getImageUrl('/assets/logo.png')
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -109,10 +113,7 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
-          const category =
-            typeof item.category === 'string'
-              ? JSON.parse(item.category)
-              : item.category
+          const category = typeof item.category === 'string' ? JSON.parse(item.category) : item.category
 
           return {
             ...item,
@@ -130,7 +131,7 @@ const Pos = () => {
     }
   }, [])
 
-  const getMenuItemCategoryId = (item: MenuItem) => {
+  const getMenuItemCategoryId = (item: MenuItems) => {
     if (item.category?.id != null) {
       return Number(item.category.id)
     }
@@ -155,23 +156,41 @@ const Pos = () => {
   }, [fetchCategories, fetchMenuItems])
 
   // Filter menu items by category
-  const filteredMenuItems = selectedCategory !== null
-    ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory)
-    : menuItems
+  const filteredMenuItems =
+    selectedCategory !== null ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory) : menuItems
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
 
-  // Calculate order summary
+  // Calculate order summary with VAT
+  const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+
+  const vatByRate: Record<number, number> = {}
+
+  const vatTotal = cart.reduce((sum, item) => {
+    const menuItem = menuItems.find(m => m.id === item.id)
+    const rate = menuItem?.vatRate != null ? menuItem.vatRate / 100 : DEFAULT_VAT_RATE
+    const vat = item.total * rate
+    const pct = Math.round(rate * 100)
+
+    vatByRate[pct] = (vatByRate[pct] || 0) + vat
+
+    return sum + vat
+  }, 0)
+
   const orderSummary: OrderSummary = {
     items: cart,
-    subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    tax: cart.reduce((sum, item) => sum + item.total, 0) * TAX_RATE,
-    total: cart.reduce((sum, item) => sum + item.total, 0) * (1 + TAX_RATE)
+    subtotal,
+    foodSubtotal: subtotal,
+    drinksSubtotal: 0,
+    foodVat: vatTotal,
+    drinksVat: 0,
+    vatTotal,
+    total: subtotal + vatTotal
   }
 
   // Add item to cart
-  const addToCart = (item: MenuItem) => {
+  const addToCart = (item: MenuItems) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id)
 
     if (existingItem) {
@@ -239,11 +258,12 @@ const Pos = () => {
           price: item.price
         })),
         subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
+        tax: orderSummary.vatTotal,
         total: orderSummary.total,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
@@ -258,135 +278,114 @@ const Pos = () => {
     }
 
     setOrderPlaced(true)
-    setShowReceipt(true)
+    setCart([])
+    setShowReceipt(false)
   }
 
-  // Print receipt
-  const printReceipt = () => {
-    const receiptWindow = window.open('', '_blank', 'width=350,height=600')
+ // Print receipt
+  const printReceipt = async () => {
+    if (cart.length === 0) return
 
-    if (!receiptWindow) {
-      console.error('Unable to open print window')
-      
-return
+    // Save order first
+    let newOrderId = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.vatTotal,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
     }
 
-    const itemsHtml = cart
-      .map(
-        item => `
-        <tr>
-          <td>${item.name} x${item.quantity}</td>
-          <td style="text-align:right;">€${item.total}</td>
-        </tr>
-      `
-      )
-      .join('')
+    setOrderNumber(newOrderId)
+    setOrderPlaced(true)
 
-    receiptWindow.document.write(`
-    <html>
-      <head>
-        <base href="${window.location.origin}" />
-        <title>Receipt</title>
-        <style>
-          body {
-            width: 280px;
-            margin: 0 auto 10px;
-            padding: 5px;
-            font-size: 15px;
-          }
-          .center { text-align: center; }
-          img {
-            width: 90px;
-            margin-bottom: 2px;
-          }
-          .details-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin: 0 0 5px;
-          }
-          .detail-item {
-            flex: 1 1 130px;
-            min-width: 130px;
-            font-size: 14px;
-          }
-          .notes {
-            margin: 0 0 8px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          td {
-            padding: 3px 0;
-          }
-          hr {
-            border: none;
-            border-top: 1px dashed #000;
-            margin: 8px 0;
-          }
-          .bold {
-            font-weight: bold;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="center">
-          <img src='${logoUrl}' alt="Logo" width='90'/>
-          <h4 style="margin: 2px 0; line-height: normal;">Quick Bites, Happy vibes</h4>
-          <p style="margin: 2px 0; line-height: normal;">Insta: @desidelights.be</p>
-          <p style="margin: 2px 0; line-height: normal;">(+32) 4568 63496</p>
-          <hr />
-        </div>
-        <div class="details-row">
-          <div class="detail-item">Order #: ${orderNumber}</div>
-          <div class="detail-item">Date: ${new Date().toLocaleDateString()}</div>
-          <div class="detail-item">Time: ${new Date().toLocaleTimeString()}</div>
-        </div>
-        ${customerName && `<p style="margin: 0; line-height: 1.4;">Customer: ${customerName}</p>`}
-        ${
-          customerNotes &&
-          `<p style="margin: 0; line-height: 1.4;" class="notes"><strong>Notes:</strong> ${customerNotes}</p>`
-        }
-        <hr />
-        <table>
-          ${itemsHtml}
-        </table>
-        <hr />
-        <table>
-          <tr>
-            <td>Subtotal</td>
-            <td style="text-align:right;">€${orderSummary.subtotal.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td>Tax (18%)</td>
-            <td style="text-align:right;">€${orderSummary.tax.toFixed(2)}</td>
-          </tr>
-          <tr class="bold">
-            <td>Total</td>
-            <td style="text-align:right;">€${orderSummary.total.toFixed(2)}</td>
-          </tr>
-        </table>
-        <hr />
-        <div class="center">
-          <p>Thank you for dining with us!</p>
-        </div>
-        <script>
-          (function(){
-            const img = document.querySelector('img');
-            const doPrint = () => { setTimeout(() => { window.print(); window.close(); }, 100); };
-            if (!img) { doPrint(); return; }
-            if (img.complete) { doPrint(); return; }
-            img.addEventListener('load', doPrint);
-            img.addEventListener('error', doPrint);
-            // fallback timeout
-            setTimeout(doPrint, 4000);
-          })();
-        </script>
-      </body>
-    </html>
-  `)
-    receiptWindow.document.close()
+    const el = receiptCaptureRef.current
+
+    if (!el) {
+      setShowReceipt(false)
+
+      return
+    }
+
+    let origLeft: string | null = null
+
+    try {
+      await new Promise(r => setTimeout(r, 500))
+      const logoImg = new Image()
+
+      logoImg.src = '/logo.png'
+      if (!logoImg.complete)
+        await new Promise(r => {
+          logoImg.onload = r
+          logoImg.onerror = r
+        })
+
+      origLeft = el.style.left
+      el.style.left = '0'
+
+      await new Promise(r => requestAnimationFrame(r))
+
+      const html2canvas = (await import('html2canvas')).default
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+
+      const w = window.open('', '_blank')
+
+      if (w) {
+        w.document.write(`<!DOCTYPE html><html><head><style>
+          @page { size: 80mm 297mm; margin: 0; }
+          *{margin:0;padding:0;box-sizing:border-box}
+          body{font-family:Arial,sans-serif;background:#f5f5f5}
+          .receipt-wrapper{padding-top:30px;display:flex;flex-direction:column;align-items:center}
+          .receipt-img{width:80mm;height:auto;display:block;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+          .actions{margin-top:20px;display:flex;gap:12px;padding-bottom:40px}
+          .actions button,.actions a{padding:10px 24px;border:none;border-radius:6px;font-size:14px;cursor:pointer;text-decoration:none;font-weight:600}
+          .btn-print{background:#1976d2;color:#fff}
+          .btn-download{background:#fff;color:#1976d2;border:2px solid #1976d2}
+          @media print{.actions{display:none!important}}
+</style></head><body>
+<div class="receipt-wrapper">
+  <img class="receipt-img" src="${imgData}" />
+  <div class="actions">
+    <button class="btn-print" onclick="window.print()">Print</button>
+    <a class="btn-download" href="${imgData}" download="receipt.png">Download</a>
+  </div>
+</div>
+</body></html>`)
+        w.document.close()
+      }
+    } catch (err) {
+      console.error('Print failed:', err)
+    } finally {
+      if (origLeft !== null) el.style.left = origLeft
+    }
+
+    setCart([])
+    setShowReceipt(false)
   }
 
   // Reset for new order
@@ -485,7 +484,7 @@ return
                           {item.name}
                         </Typography>
                         <Typography variant='h6' color='primary'>
-                          €{item.price}
+                          €{(item.price * (1 + (item.vatRate || 12) / 100)).toFixed(2)}
                         </Typography>
                       </Box>
                       <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
@@ -506,7 +505,7 @@ return
         </Box>
 
         {/* Right Panel - Order Summary */}
-        <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ width: '30%', p: 2, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <Paper sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Typography variant='h6' gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
               {/* <ShoppingCartIcon sx={{ mr: 1 }} /> */}
@@ -524,7 +523,7 @@ return
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity}`} />
+                      <ListItemText primary={item.name} secondary={`€${item.price.toFixed(2)} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton size='small' onClick={() => removeFromCart(item.id)}>
@@ -556,10 +555,12 @@ return
                   <Typography>Subtotal:</Typography>
                   <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Tax (18%):</Typography>
-                  <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-                </Box>
+                {Object.entries(vatByRate).map(([rate, vat]) => (
+                  <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
+                    <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+                  </Box>
+                ))}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
@@ -567,39 +568,14 @@ return
                   </Typography>
                 </Box>
 
-                <Divider sx={{ my: 2 }} />
-                <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-                  Customer Details (optional)
-                </Typography>
-                <TextField
-                  label='Customer Name'
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
+                <Button
+                  variant='contained'
                   fullWidth
-                  size='small'
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  label='Phone Number'
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  fullWidth
-                  size='small'
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  label='Notes'
-                  value={customerNotes}
-                  onChange={e => setCustomerNotes(e.target.value)}
-                  fullWidth
-                  size='small'
-                  multiline
-                  rows={2}
-                  sx={{ mb: 2 }}
-                />
-
-                <Button variant='contained' fullWidth size='large' onClick={placeOrder} disabled={cart.length === 0}>
-                  Place Order
+                  size='large'
+                  onClick={() => setShowReceipt(true)}
+                  disabled={cart.length === 0}
+                >
+                  Review Order
                 </Button>
               </Box>
             )}
@@ -609,49 +585,94 @@ return
 
       {/* Receipt Dialog */}
       <Dialog open={showReceipt} onClose={() => setShowReceipt(false)} maxWidth='sm' fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pb: 3 }}>
           {/* <ReceiptIcon sx={{ mr: 1 }} /> */}
           <Receipt sx={{ mr: 1 }} />
-          Order Receipt #{orderNumber}
+          {orderNumber ? `Order Receipt #${orderNumber}` : 'Review Order'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Typography variant='body2' color='text.secondary'>
-              Date: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              Date:{' '}
+              <span suppressHydrationWarning>
+                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+              </span>
             </Typography>
-            {customerName && (
-              <Typography variant='body2' color='text.secondary'>
-                Customer: {customerName}
-              </Typography>
-            )}
-            {customerPhone && (
-              <Typography variant='body2' color='text.secondary'>
-                Phone: {customerPhone}
-              </Typography>
-            )}
-            {customerNotes && (
-              <Typography variant='body2' color='text.secondary'>
-                Notes: {customerNotes}
-              </Typography>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CustomTextField
+                select
+                fullWidth
+                name='paymentMethod'
+                label={<RequiredLabel label='Payment Method' isRequired={true} />}
+                value={paymentMethod}
+                onChange={e => setPaymentMethod(e.target.value)}
+              >
+                <MenuItem value='cash'>Cash</MenuItem>
+                <MenuItem value='card'>Card</MenuItem>
+              </CustomTextField>
+            </Box>
           </Box>
-          <List>
-            {cart.map(item => (
-              <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity} = €${item.total}`} />
-              </ListItem>
-            ))}
-          </List>
+          <Divider sx={{ mb: 1.5 }} />
+          <Typography variant='subtitle2' gutterBottom color='text.secondary' sx={{ mb: 1 }}>
+            Customer Details (Optional)
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
+            <TextField
+              label='Customer Name'
+              value={customerName}
+              onChange={e => setCustomerName(e.target.value)}
+              fullWidth
+              size='small'
+            />
+            <TextField
+              label='Phone Number'
+              value={customerPhone}
+              onChange={e => setCustomerPhone(e.target.value)}
+              fullWidth
+              size='small'
+            />
+          </Box>
+          <TextField
+            label='Notes'
+            value={customerNotes}
+            onChange={e => setCustomerNotes(e.target.value)}
+            fullWidth
+            size='small'
+            sx={{ mb: 1 }}
+          />
+          <Box sx={{ width: '100%', fontSize: 13 }}>
+            <Box sx={{ display: 'flex', fontWeight: 'bold', borderBottom: 1, borderColor: 'divider', pb: 0.5, mb: 0.5 }}>
+              <Typography sx={{ width: 24 }}>#</Typography>
+              <Typography sx={{ flex: 1 }}>Item</Typography>
+              <Typography sx={{ width: 65, textAlign: 'right' }}>Net</Typography>
+              <Typography sx={{ width: 45, textAlign: 'right' }}>VAT%</Typography>
+            </Box>
+            {cart.map((item, i) => {
+              const menuItem = menuItems.find(m => m.id === item.id)
+              const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+              return (
+                <Box key={item.id} sx={{ display: 'flex', py: 0.5 }}>
+                  <Typography sx={{ width: 24 }}>{i + 1}</Typography>
+                  <Typography sx={{ flex: 1 }}>{item.name} x{item.quantity}</Typography>
+                  <Typography sx={{ width: 65, textAlign: 'right' }}>€{item.total.toFixed(2)}</Typography>
+                  <Typography sx={{ width: 45, textAlign: 'right' }}>{rate}%</Typography>
+                </Box>
+              )
+            })}
+          </Box>
 
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Subtotal:</Typography>
             <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography>Tax (18%):</Typography>
-            <Typography>€{orderSummary.tax.toFixed(2)}</Typography>
-          </Box>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
+              <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+            </Box>
+          ))}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
@@ -662,11 +683,78 @@ return
           <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
             Print Receipt
           </Button>
-          <Button variant='outlined' onClick={newOrder}>
-            New Order
+          <Button variant='outlined' onClick={placeOrder}>
+            Place Order
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Hidden receipt template for image capture */}
+      <div
+        ref={receiptCaptureRef}
+        style={{
+          position: 'fixed',
+          left: -9999,
+          top: 0,
+          background: '#fff',
+          color: '#000',
+          padding: 30,
+          fontFamily: 'monospace',
+          fontSize: 13,
+          textAlign: 'center',
+          width: 320
+        }}
+      >
+        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
+        <p style={{ margin: '0 0 8px 0', fontSize: 11 }}>Quick Bites, Happy Vibes</p>
+        <p style={{ margin: '2px 0' }}>admin@desidelights.be</p>
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
+        <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
+          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+        </p>
+        {customerName && <p style={{ textAlign: 'left', margin: '4px 0' }}>Customer: {customerName}</p>}
+        {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
+        {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <div style={{ width: '100%', fontSize: 10, margin: '4px 0' }}>
+          <div style={{ display: 'flex', fontWeight: 'bold', borderBottom: '1px dashed #999', padding: '2px 0' }}>
+            <span style={{ width: 20 }}>#</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>Item</span>
+            <span style={{ width: 55, textAlign: 'right' }}>Net</span>
+            <span style={{ width: 35, textAlign: 'right' }}>VAT%</span>
+          </div>
+          {cart.map((item, i) => {
+            const menuItem = menuItems.find(m => m.id === item.id)
+            const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+            return (
+              <div key={item.id} style={{ display: 'flex', padding: '2px 0' }}>
+                <span style={{ width: 20 }}>{i + 1}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>{item.name} x{item.quantity}</span>
+                <span style={{ width: 55, textAlign: 'right' }}>€{item.total.toFixed(2)}</span>
+                <span style={{ width: 35, textAlign: 'right' }}>{rate}%</span>
+              </div>
+            )
+          })}
+        </div>
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <div style={{ textAlign: 'right', fontSize: 11 }}>
+          <p style={{ margin: '2px 0' }}>
+            Net total: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
+          </p>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
+              VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drinks)'}: €{vat.toFixed(2)}
+            </p>
+          ))}
+          <p style={{ margin: '2px 0', fontSize: 15 }}>
+            Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
+          </p>
+        </div>
+        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
+        <p style={{ margin: '8px 0' }}>Thank you for your order!</p>
+      </div>
 
       {/* Floating Action Button for New Order */}
       {orderPlaced && !showReceipt && (

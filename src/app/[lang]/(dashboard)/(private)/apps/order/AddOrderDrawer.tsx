@@ -34,7 +34,7 @@ import { get, post } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { orderEndpoints } from '@/services/endpoints/order'
 
-const TAX_RATE = 0.18
+// const TAX_RATE = 0  // ⬅ TAX DISABLED
 
 type Props = {
   open: boolean
@@ -70,8 +70,7 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
 
   const selectedMenuItem = menuOptions.find(m => m.id === newMenuItemId)
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
-  const tax = subtotal * TAX_RATE
-  const grandTotal = subtotal + tax
+  const grandTotal = subtotal           // ⬅ TAX DISABLED — grandTotal = subtotal
 
   useEffect(() => {
     if (!open) return
@@ -478,10 +477,6 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
                   <Typography variant='body2' color='text.secondary'>Items ({items.length})</Typography>
                   <Typography variant='body2' fontWeight={600}>€{subtotal.toFixed(2)}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                  <Typography variant='body2' color='text.secondary'>€{tax.toFixed(2)}</Typography>
-                </Box>
                 <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
@@ -530,10 +525,6 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260, mt: 2 }}>
                 <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
                 <Typography variant='body2'>€{subtotal.toFixed(2)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
-                <Typography variant='body2' color='text.secondary'>Tax (18%)</Typography>
-                <Typography variant='body2'>€{tax.toFixed(2)}</Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>

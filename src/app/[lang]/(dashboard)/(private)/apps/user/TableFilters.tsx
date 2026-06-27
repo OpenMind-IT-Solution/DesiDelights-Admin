@@ -1,53 +1,69 @@
 import { useState, useEffect, type Dispatch, type FC, type SetStateAction } from 'react'
 
-// MUI Imports
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid2'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
+import CircularProgress from '@mui/material/CircularProgress'
 
 import CustomTextField from '@core/components/mui/TextField'
 
 import type { FilterType } from './UserListTable'
+import { post } from '@/services/apiService'
+import { roleEndpoints } from '@/services/endpoints/role'
 
 type TableFiltersProps = {
   filters: FilterType
   setFilters: Dispatch<SetStateAction<FilterType>>
-  onClose: () => void 
+  onClose: () => void
 }
 
 const TableFilters: FC<TableFiltersProps> = ({ filters, setFilters, onClose }) => {
   const [localFilters, setLocalFilters] = useState<FilterType>({ ...filters })
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
+  const [rolesLoading, setRolesLoading] = useState(true)
 
   useEffect(() => {
     setLocalFilters(filters)
   }, [filters])
 
+  useEffect(() => {
+    const fetchRoles = async () => {
+      setRolesLoading(true)
+
+      try {
+        const res: any = await post(roleEndpoints.getRole, {})
+        const list = res?.data?.roles || res?.data || []
+
+        setRoles(list.map((r: any) => ({ id: r.id, name: r.name })))
+      } catch {
+        setRoles([])
+      } finally {
+        setRolesLoading(false)
+      }
+    }
+
+    fetchRoles()
+  }, [])
+
   const handleFilterChange = (field: keyof FilterType, value: string) => {
     setLocalFilters(prev => ({
       ...prev,
-      [field]: value as FilterType[keyof FilterType] 
+      [field]: value
     }))
   }
 
   const handleApply = () => {
-    const filtersToApply: FilterType = {
+    setFilters({
       status: localFilters.status === 'All' ? 'All' : localFilters.status,
-      roleId: localFilters.roleId === 'All' || localFilters.roleId === '' ? null : localFilters.roleId
-    }
-
-    setFilters(filtersToApply)
+      roleId: localFilters.roleId === null || localFilters.roleId === 'all' ? null : localFilters.roleId
+    })
     onClose()
   }
 
   const handleReset = () => {
-    const defaultFilters: FilterType = {
-      status: 'All',
-      roleId: null
-    }
-
-    setLocalFilters(defaultFilters)
+    setLocalFilters({ status: 'All', roleId: 'all' })
   }
 
   return (
@@ -58,15 +74,21 @@ const TableFilters: FC<TableFiltersProps> = ({ filters, setFilters, onClose }) =
             select
             fullWidth
             label='Select Role'
-            value={localFilters.roleId || 'All Roles'}
+            value={localFilters.roleId ?? 'all'}
             onChange={e => handleFilterChange('roleId', e.target.value)}
           >
-            <MenuItem value='All Roles'>All Roles</MenuItem>
-            <MenuItem value='admin'>Admin</MenuItem>
-            <MenuItem value='author'>Author</MenuItem>
-            <MenuItem value='editor'>Editor</MenuItem>
-            <MenuItem value='maintainer'>Maintainer</MenuItem>
-            <MenuItem value='user'>User</MenuItem>
+            <MenuItem value='all'>All Roles</MenuItem>
+            {rolesLoading ? (
+              <MenuItem disabled>
+                <CircularProgress size={16} sx={{ mr: 1 }} /> Loading...
+              </MenuItem>
+            ) : (
+              roles.map(role => (
+                <MenuItem key={role.id} value={String(role.id)}>
+                  {role.name}
+                </MenuItem>
+              ))
+            )}
           </CustomTextField>
         </Grid>
 
@@ -75,10 +97,10 @@ const TableFilters: FC<TableFiltersProps> = ({ filters, setFilters, onClose }) =
             select
             fullWidth
             label='Select Status'
-            value={localFilters.status || 'All Status'} 
+            value={localFilters.status || 'All'}
             onChange={e => handleFilterChange('status', e.target.value)}
           >
-            <MenuItem value='All Status'>All</MenuItem>
+            <MenuItem value='All'>All</MenuItem>
             <MenuItem value='active'>Active</MenuItem>
             <MenuItem value='inactive'>Inactive</MenuItem>
           </CustomTextField>

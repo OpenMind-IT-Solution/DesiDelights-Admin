@@ -11,8 +11,8 @@ import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
-import MenuItem from '@mui/material/MenuItem'
 import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -31,18 +31,18 @@ import classnames from 'classnames'
 
 import { CircularProgress } from '@mui/material'
 
-import type { MenuItem as MenuItemType } from '@/types/apps/menuTypes'
+import type { MenuItems as MenuItemType } from '@/types/apps/menuTypes'
 import type { ThemeColor } from '@core/types'
 
 import { del, get, post } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { getImageUrl } from '@/utils/getImageUrl'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
 import AddMenuItemDrawer from './AddMenuItemDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import TableFilters from './TableFilters'
-import { getImageUrl } from '@/utils/getImageUrl'
 
 type MenuItemWithAction = MenuItemType & { action?: string }
 type StatusType = { [key: string]: ThemeColor }
@@ -299,16 +299,18 @@ const MenuTable = () => {
         )
       }),
       columnHelper.accessor('price', {
-        header: 'Price',
+        header: 'Total price',
         cell: ({ row }) => {
           const originalPrice = row.original.price
+          const vatRate = row.original.vatRate || 12
+          const totalPrice = Math.round(originalPrice * (1 + vatRate / 100) * 100) / 100
           const offerPercentage = parseFloat(row.original.offer || '0')
 
           if (offerPercentage <= 0) {
-            return <Typography>€{originalPrice}</Typography>
+            return <Typography>€{totalPrice}</Typography>
           }
 
-          const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
+          const finalPrice = Math.round(totalPrice * (1 - offerPercentage / 100))
 
           return (
             <div className='flex items-center gap-3'>

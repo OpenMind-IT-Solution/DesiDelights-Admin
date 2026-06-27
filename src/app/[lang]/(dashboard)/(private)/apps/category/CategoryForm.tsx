@@ -28,7 +28,8 @@ type CategoryFormProps = {
 const validationSchema = yup.object({
   name: yup.string().trim().required('Category Name is required'),
   description: yup.string().trim().required('Description is required'),
-  status: yup.string().oneOf(['active', 'inactive']).required('Status is required')
+  status: yup.string().oneOf(['active', 'inactive']).required('Status is required'),
+  vatRate: yup.number().min(0, 'VAT rate must be 0 or more').optional()
 })
 
 const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) => {
@@ -38,7 +39,8 @@ const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) =
     initialValues: {
       name: category?.name || '',
       description: category?.description || '',
-      status: category?.status || 'active'
+      status: category?.status || 'active',
+      vatRate: category?.vatRate || undefined
     },
     validationSchema: validationSchema,
 
@@ -101,6 +103,19 @@ const CategoryForm = ({ mode, category, onSave, onCancel }: CategoryFormProps) =
         <MenuItem value='active'>Active</MenuItem>
         <MenuItem value='inactive'>Inactive</MenuItem>
       </CustomTextField>
+
+      <CustomTextField
+        fullWidth
+        name='vatRate'
+        type='number'
+        label='VAT Rate (%)'
+        placeholder='12'
+        value={formik.values.vatRate ?? ''}
+        onChange={e => formik.setFieldValue('vatRate', e.target.value === '' ? undefined : Number(e.target.value))}
+        onBlur={formik.handleBlur}
+        error={formik.touched.vatRate && Boolean(formik.errors.vatRate)}
+        helperText={formik.touched.vatRate && formik.errors.vatRate}
+      />
 
       <Box className='flex gap-4'>
         <Button type='submit' variant='contained' disabled={formik.isSubmitting}>

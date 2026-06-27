@@ -94,7 +94,8 @@ const CategoryManagementView = () => {
           id: cat.id,
           name: cat.name,
           description: cat.description,
-          status: cat.status ? 'active' : 'inactive'
+          status: cat.status ? 'active' : 'inactive',
+          ...(cat.vatRate !== undefined && { vatRate: cat.vatRate })
         })) || []
 
       setData(categoryData)
@@ -146,7 +147,8 @@ const CategoryManagementView = () => {
           id: result.data.id,
           name: result.data.name,
           description: result.data.description,
-          status: result.data.status ? 'active' : 'inactive'
+          status: result.data.status ? 'active' : 'inactive',
+          ...(result.data.vatRate !== undefined && { vatRate: result.data.vatRate })
         }
 
         setSelectedCategory(categoryDetails)
@@ -169,12 +171,16 @@ const CategoryManagementView = () => {
     setLoading(true)
     const isEditMode = 'id' in formData
 
-    const body = {
+    const body: Record<string, unknown> = {
       categoryId: isEditMode ? formData.id : 0,
       restaurantId: [1],
       name: formData.name,
       description: formData.description,
       status: formData.status === 'active'
+    }
+
+    if (formData.vatRate !== undefined) {
+      body.vatRate = formData.vatRate
     }
 
     try {

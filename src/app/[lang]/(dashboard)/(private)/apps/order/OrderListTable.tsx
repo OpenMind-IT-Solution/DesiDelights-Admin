@@ -34,6 +34,7 @@ import {
   useReactTable
 } from '@tanstack/react-table'
 import classnames from 'classnames'
+import { toast } from 'react-toastify'
 
 // Type Imports
 import { useSession } from 'next-auth/react'
@@ -46,7 +47,7 @@ import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
 import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
 import AddOrderDrawer from './AddOrderDrawer'
-import { post } from '@/services/apiService'
+import { post, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 import tableStyles from '@core/styles/table.module.css'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
@@ -102,6 +103,16 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
 return itemRank.passed
 }
 
+const searchByIdFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  if (columnId !== 'id') return false
+
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  addMeta({ itemRank })
+  
+return itemRank.passed
+}
+
 const DebouncedInput = ({
   value: initialValue,
   onChange,
@@ -130,9 +141,12 @@ const DebouncedInput = ({
 }
 
 const orderStatusObj: OrderStatusType = {
-  active: 'success',
   pending: 'warning',
-  inactive: 'secondary'
+  placed: 'info',
+  confirmed: 'primary',
+  out_for_delivery: 'info',
+  completed: 'success',
+  cancelled: 'secondary'
 }
 
 // Column Definitions
@@ -144,11 +158,11 @@ const OrderListTable = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderType | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
-  const [data, setData] = useState([])
-  const [filteredData, setFilteredData] = useState(data)
+  const [data, setData] = useState<OrderType[]>([])
+  const [filteredData, setFilteredData] = useState<OrderType[]>(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
+  const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
   const [, setLoading] = useState(true)
   const [, setError] = useState<string | null>(null)
   const [, setTotalRows] = useState(0)
@@ -166,6 +180,10 @@ const OrderListTable = () => {
   }, [data])
 
   useEffect(() => {
+    setPagination(prev => ({ ...prev, pageIndex: 0 }))
+  }, [globalFilter])
+
+  useEffect(() => {
     let active = true
 
     const fetchOrders = async () => {
@@ -175,9 +193,9 @@ const OrderListTable = () => {
 
       try {
         const res: any = await post(orderEndpoints.getOrders, {
-          search: globalFilter,
-          page: pagination.pageIndex + 1,
-          limit: pagination.pageSize,
+          search: '',
+          page: 1,
+          limit: 10000,
           status: []
         })
 
@@ -185,7 +203,7 @@ const OrderListTable = () => {
 
         setData(res.data.orders)
         setFilteredData(res.data.orders)
-        setPagination(prev => ({ ...prev, total: res.data.total }))
+        setTotalRows(res.data.total)
       } catch (err: any) {
         if (!active) return
 
@@ -207,7 +225,7 @@ const OrderListTable = () => {
     return () => {
       active = false
     }
-  }, [session, globalFilter, pagination.pageIndex, pagination.pageSize, refreshKey])
+  }, [session, refreshKey])
 
   const handleDownloadSelected = (ordersToExport: OrderTypeWithAction[]) => {
     if (ordersToExport.length === 0) return
@@ -236,14 +254,22 @@ return `"${str.replace(/"/g, '""')}"`
     URL.revokeObjectURL(url)
   }
 
-  const handleConfirmDelete = () => {
-    // if (orderToDelete) {
-    //   const updatedData = data?.filter(order => order.id !== orderToDelete.id) ?? []
-    //   setData(updatedData)
-    //   setFilteredData(updatedData)
-    // }
-    // setDeleteDialogOpen(false)
-    // setOrderToDelete(null)
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return
+    const deleteId = orderToDelete.id
+
+    try {
+      await put(orderEndpoints.updateOrderStatus(deleteId), { status: 'cancelled' })
+      setData(prev => prev.filter(order => order.id !== deleteId))
+      setFilteredData(prev => prev.filter(order => order.id !== deleteId))
+      toast.success('Order cancelled successfully')
+    } catch (err) {
+      console.error('Failed to cancel order', err)
+      toast.error('Failed to cancel order')
+    }
+
+    setDeleteDialogOpen(false)
+    setOrderToDelete(null)
   }
 
   const columns = useMemo<ColumnDef<any, any>[]>(
@@ -363,10 +389,11 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
     columns,
     autoResetPageIndex: false,
     filterFns: { fuzzy: fuzzyFilter },
-    state: { rowSelection, globalFilter },
+    state: { pagination, rowSelection, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
     enableRowSelection: true,
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: searchByIdFilter,
+    onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
@@ -385,12 +412,13 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
           <CustomTextField
             select
             value={table.getState().pagination.pageSize}
-            onChange={e => table.setPageSize(Number(e.target.value))}
+            onChange={e => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
             className='max-sm:is-full sm:is-[70px]'
           >
             <MenuItem value='10'>10</MenuItem>
             <MenuItem value='25'>25</MenuItem>
             <MenuItem value='50'>50</MenuItem>
+            <MenuItem value='100'>100</MenuItem>
           </CustomTextField>
           <div className='flex flex-col sm:flex-row max-sm:is-full items-start sm:items-center gap-4'>
             <DebouncedInput
@@ -478,8 +506,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
             ) : (
               <tbody>
                 {table
-                  .getRowModel()
-                  .rows.slice(0, table.getState().pagination.pageSize)
+                  .getRowModel().rows
                   .map(row => (
                     <tr key={row.id} className={classnames({ selected: row.getIsSelected() })}>
                       {row.getVisibleCells().map(cell => (
