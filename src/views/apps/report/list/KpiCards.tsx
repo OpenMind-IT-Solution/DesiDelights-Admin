@@ -99,38 +99,31 @@ type KpiCardGridProps = {
     totalSubTotal: number
     todayRevenue: number
   }
-  profit?: {
-    grossProfit: number
-    profitMargin: number
-    netProfit: number
-  }
   customers?: {
     totalCustomers: number
   }
   loading?: boolean
 }
 
-const KpiCardGrid = ({ data, profit, customers, loading }: KpiCardGridProps) => {
+const KpiCardGrid = ({ data, customers, loading }: KpiCardGridProps) => {
   if (!data) return null
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2.5, mb: 4 }}>
-      <KpiCard title='Total Revenue' value={formatCurrency(data.totalRevenue)} icon='tabler-currency-euro' color='primary' loading={loading}
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2.5, mb: 4 }}>
+      <KpiCard title='Total Sell' value={formatCurrency(data.totalRevenue)} icon='tabler-currency-euro' color='primary' loading={loading}
         trend={{ value: '+12.5%', direction: 'up' }} />
-      <KpiCard title='Total Orders' value={formatNumber(data.totalOrders)} icon='tabler-shopping-cart' color='info' loading={loading}
-        trend={{ value: '+8.3%', direction: 'up' }} />
-      <KpiCard title='Net Revenue' value={formatCurrency(data.totalRevenue - data.totalDiscounts)} icon='tabler-receipt' color='success' loading={loading} subtitle='After discounts'
+      <KpiCard title='VAT Collection' value={formatCurrency(data.totalTax)} icon='tabler-building' color='warning' loading={loading} />
+      <KpiCard title='Net Total Sell' value={formatCurrency(data.totalRevenue - data.totalTax)} icon='tabler-receipt' color='success' loading={loading} subtitle='After VAT'
         trend={{ value: '+5.2%', direction: 'up' }} />
       <KpiCard title='Avg Order Value' value={formatCurrency(data.averageOrderValue)} icon='tabler-calculator' color='warning' loading={loading}
         trend={{ value: '+3.8%', direction: 'up' }} />
-      <KpiCard title='Gross Profit' value={profit ? formatCurrency(profit.grossProfit) : '-'} icon='tabler-trending-up' color='success' loading={loading}
-        trend={profit && profit.profitMargin > 0 ? { value: `${profit.profitMargin.toFixed(1)}%`, direction: 'up' } : undefined} />
-      <KpiCard title='Profit Margin' value={profit ? `${profit.profitMargin.toFixed(1)}%` : '-'} icon='tabler-percentage' color='primary' loading={loading} />
       <KpiCard title='Total Customers' value={customers ? formatNumber(customers.totalCustomers) : '-'} icon='tabler-users' color='info' loading={loading}
         trend={{ value: '+15.2%', direction: 'up' }} />
-      <KpiCard title='Tax Collected' value={formatCurrency(data.totalTax)} icon='tabler-building' color='warning' loading={loading} />
+
       <KpiCard title='Discount Amount' value={formatCurrency(data.totalDiscounts)} icon='tabler-discount' color='error' loading={loading} />
       <KpiCard title='Refund Amount' value={formatCurrency(data.refundedTotal)} icon='tabler-refresh' color='error' loading={loading} />
+      <KpiCard title='Total Orders' value={formatNumber(data.totalOrders)} icon='tabler-shopping-cart' color='info' loading={loading}
+        trend={{ value: '+8.3%', direction: 'up' }} />
     </Box>
   )
 }

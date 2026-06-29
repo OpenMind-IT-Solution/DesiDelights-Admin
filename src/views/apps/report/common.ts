@@ -152,17 +152,6 @@ return { startDate: monthStart.toISOString(), endDate: end }
 return { startDate: firstDay.toISOString(), endDate: lastDay.toISOString() }
     }
 
-    case 'tomorrow': {
-      const tomorrow = new Date(now)
-
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const start = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
-      const tEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59)
-
-      
-return { startDate: start.toISOString(), endDate: tEnd.toISOString() }
-    }
-
     case 'thisYear': {
       const yearStart = new Date(now.getFullYear(), 0, 1)
 

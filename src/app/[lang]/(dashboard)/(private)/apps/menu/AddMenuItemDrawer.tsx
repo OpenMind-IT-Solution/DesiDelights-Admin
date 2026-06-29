@@ -109,7 +109,7 @@ const AddMenuItemDrawer = (props: Props) => {
       })
 
       setFiles(itemToEdit.menuImages || [])
-      setTotalPriceInput(Math.round(itemToEdit.price * (1 + (itemToEdit.vatRate || 12) / 100) * 100) / 100)
+      setTotalPriceInput(Math.round(itemToEdit.price * (1 + (itemToEdit.vatRate || 12) / 100) * 10000) / 10000)
     } else {
       resetForm()
       setFiles([])
@@ -125,14 +125,14 @@ const AddMenuItemDrawer = (props: Props) => {
   const watchedVatRate = watch('vatRate')
 
   const computedPrice = totalPriceInput > 0 && (watchedVatRate || 0) > 0
-    ? Math.round(totalPriceInput / (1 + (watchedVatRate || 0) / 100) * 100) / 100
+    ? Math.round(totalPriceInput / (1 + (watchedVatRate || 0) / 100) * 10000) / 10000
     : 0
 
   const handleTotalPriceChange = (value: number) => {
     setTotalPriceInput(value)
 
     if (value > 0 && (watchedVatRate || 0) > 0) {
-      setValue('price', Math.round(value / (1 + (watchedVatRate || 0) / 100) * 100) / 100)
+      setValue('price', Math.round(value / (1 + (watchedVatRate || 0) / 100) * 10000) / 10000)
     }
   }
 
@@ -282,7 +282,7 @@ const AddMenuItemDrawer = (props: Props) => {
                     setValue('vatRate', cat.vatRate)
 
                     if (totalPriceInput > 0) {
-                      setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 100) / 100)
+                      setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 10000) / 10000)
                     }
                   }
                 }}
@@ -355,7 +355,7 @@ const AddMenuItemDrawer = (props: Props) => {
                   field.onChange(Number(e.target.value))
 
                   if (totalPriceInput > 0) {
-                    setValue('price', Math.round(totalPriceInput / (1 + Number(e.target.value) / 100) * 100) / 100)
+                    setValue('price', Math.round(totalPriceInput / (1 + Number(e.target.value) / 100) * 10000) / 10000)
                   }
                 }}
                 {...(errors.vatRate && { error: true, helperText: 'VAT rate must be 0 or more.' })}
