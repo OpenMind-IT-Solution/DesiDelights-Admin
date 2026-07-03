@@ -47,10 +47,11 @@ import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 // API Imports
 import CustomTextField from '@/@core/components/mui/TextField'
 import { RequiredLabel } from '@/components/RequierdLabel'
-import { post } from '@/services/apiService'
+import { post, put } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { couponEndpoints } from '@/services/endpoints/coupon'
+import { orderEndpoints } from '@/services/endpoints/order'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
@@ -75,6 +76,7 @@ const Pos = () => {
   const [discountAmount, setDiscountAmount] = useState(0)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -134,17 +136,34 @@ const Pos = () => {
     }
   }, [])
 
+  // Fetch available coupons
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const result: any = await post(couponEndpoints.getCoupons, {
+        page: 1,
+        limit: 1000,
+        status: true
+      })
+
+      if (result.status === 'success') {
+        setAvailableCoupons(result.data.coupons || [])
+      }
+    } catch {
+      // Silently fail - coupons are optional
+    }
+  }, [])
+
   // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
-      await Promise.all([fetchCategories(), fetchMenuItems()])
+      await Promise.all([fetchCategories(), fetchMenuItems(), fetchCoupons()])
       setLoading(false)
     }
 
     fetchData()
-  }, [fetchCategories, fetchMenuItems])
+  }, [fetchCategories, fetchMenuItems, fetchCoupons])
 
   // Filter menu items by category
   const filteredMenuItems =
@@ -244,25 +263,28 @@ const Pos = () => {
   }
 
   // Apply coupon
-  const applyCoupon = async () => {
-    if (!couponCode.trim()) return
+  const applyCoupon = async (code: string) => {
+    if (!code.trim()) return
 
     setCouponLoading(true)
     setCouponError('')
 
     try {
       const result: any = await post(couponEndpoints.validateCoupon, {
-        couponCode: couponCode.trim(),
+        couponCode: code.trim(),
         subtotal: orderSummary.subtotal
       })
 
       if (result.status === 'success') {
+        setCouponCode(code)
         setDiscountAmount(result.data.discountAmount)
       } else {
+        setCouponCode('')
         setDiscountAmount(0)
         setCouponError(result.message || 'Invalid coupon')
       }
     } catch (err: any) {
+      setCouponCode('')
       setDiscountAmount(0)
       setCouponError(err?.message || 'Failed to validate coupon')
     } finally {
@@ -276,9 +298,71 @@ const Pos = () => {
     setCouponError('')
   }
 
+  // Handle coupon dropdown selection
+  const handleCouponChange = (e: React.ChangeEvent<{ value: unknown }>) => {
+    const code = e.target.value as string
+    if (code) {
+      applyCoupon(code)
+    } else {
+      removeCoupon()
+    }
+  }
+
+  // Helper to capture receipt image
+  const captureReceiptImage = async (): Promise<string | null> => {
+    const el = receiptCaptureRef.current
+    if (!el) return null
+
+    let origLeft: string | null = null
+
+    try {
+      await new Promise(r => setTimeout(r, 500))
+      const logoImg = new Image()
+
+      logoImg.src = '/logo.png'
+      if (!logoImg.complete)
+        await new Promise(r => {
+          logoImg.onload = r
+          logoImg.onerror = r
+        })
+
+      origLeft = el.style.left
+      el.style.left = '0'
+
+      await new Promise(r => requestAnimationFrame(r))
+
+      const html2canvas = (await import('html2canvas')).default
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      return canvas.toDataURL('image/png')
+    } catch {
+      return null
+    } finally {
+      if (origLeft !== null) el.style.left = origLeft
+    }
+  }
+
+  // Helper to save receipt image to backend
+  const saveReceiptImage = async (orderId: number, imgData: string) => {
+    try {
+      await put(orderEndpoints.updateOrder(orderId), { receiptImage: imgData })
+    } catch {
+      // Silently fail - receipt image save is non-critical
+    }
+  }
+
   // Place order
   const placeOrder = async () => {
     if (cart.length === 0) return
+
+    let newOrderId: number | null = null
 
     try {
       const payload = {
@@ -300,13 +384,17 @@ const Pos = () => {
 
       const result: any = await post(posEndpoints.saveOrder, payload)
 
-      if (result.status === 'success') {
-        setOrderNumber(result.data.orderId)
-      } else {
-        setOrderNumber(Math.floor(Math.random() * 10000) + 1)
-      }
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
     } catch {
-      setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+
+    // Capture receipt image and save to backend
+    const imgData = await captureReceiptImage()
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
     }
 
     setOrderPlaced(true)
@@ -320,7 +408,7 @@ const Pos = () => {
     if (cart.length === 0) return
 
     // Save order first
-    let newOrderId = null
+    let newOrderId: number | null = null
 
     try {
       const payload = {
@@ -351,44 +439,14 @@ const Pos = () => {
     setOrderPlaced(true)
     removeCoupon()
 
-    const el = receiptCaptureRef.current
+    // Capture receipt image and save to backend, then open print window
+    const imgData = await captureReceiptImage()
 
-    if (!el) {
-      setShowReceipt(false)
-
-      return
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
     }
 
-    let origLeft: string | null = null
-
-    try {
-      await new Promise(r => setTimeout(r, 500))
-      const logoImg = new Image()
-
-      logoImg.src = '/logo.png'
-      if (!logoImg.complete)
-        await new Promise(r => {
-          logoImg.onload = r
-          logoImg.onerror = r
-        })
-
-      origLeft = el.style.left
-      el.style.left = '0'
-
-      await new Promise(r => requestAnimationFrame(r))
-
-      const html2canvas = (await import('html2canvas')).default
-
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
-
-      const imgData = canvas.toDataURL('image/png')
-
+    if (imgData) {
       const w = window.open('', '_blank')
 
       if (w) {
@@ -414,10 +472,6 @@ const Pos = () => {
 </body></html>`)
         w.document.close()
       }
-    } catch (err) {
-      console.error('Print failed:', err)
-    } finally {
-      if (origLeft !== null) el.style.left = origLeft
     }
 
     setCart([])
@@ -606,29 +660,37 @@ const Pos = () => {
 
                 {/* Coupon */}
                 <Box sx={{ mb: 2 }}>
+                  <Typography variant='body2' sx={{ mb: 0.5 }}>Coupon</Typography>
                   <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
                     <CustomTextField
+                      select
                       size='small'
-                      placeholder='Coupon code'
-                      value={couponCode}
-                      onChange={e => setCouponCode(e.target.value)}
-                      disabled={discountAmount > 0}
+                      placeholder='Select coupon'
+                      value={discountAmount > 0 ? couponCode : ''}
+                      onChange={handleCouponChange}
+                      disabled={couponLoading}
                       sx={{ flex: 1 }}
-                    />
-                    {discountAmount > 0 ? (
+                    >
+                      <MenuItem value=''>
+                        <em>No coupon</em>
+                      </MenuItem>
+                      {availableCoupons.map((c: any) => (
+                        <MenuItem key={c.id} value={c.code}>
+                          {c.code} {c.type === 'percentage' ? `(${c.discount}%)` : `(€${c.discount})`}
+                        </MenuItem>
+                      ))}
+                    </CustomTextField>
+                    {discountAmount > 0 && (
                       <Button size='small' color='error' variant='tonal' onClick={removeCoupon}>
                         Remove
                       </Button>
-                    ) : (
-                      <Button size='small' variant='contained' onClick={applyCoupon} disabled={!couponCode.trim() || couponLoading}>
-                        {couponLoading ? '...' : 'Apply'}
-                      </Button>
                     )}
                   </Box>
+                  {couponLoading && <CircularProgress size={16} sx={{ mr: 1 }} />}
                   {couponError && (
                     <Typography variant='caption' color='error'>{couponError}</Typography>
                   )}
-                  {discountAmount > 0 && (
+                  {discountAmount > 0 && !couponLoading && (
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant='body2' color='success.main'>Discount:</Typography>
                       <Typography variant='body2' color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
