@@ -298,6 +298,16 @@ const MenuTable = () => {
           </div>
         )
       }),
+      columnHelper.accessor('categories', {
+        header: 'Categories',
+        cell: ({ row }) => (
+          <div className='flex gap-1 flex-wrap'>
+            {(row.original.categories || []).map(cat => (
+              <Chip key={cat.id} label={cat.name} size='small' variant='tonal' color='primary' />
+            ))}
+          </div>
+        )
+      }),
       columnHelper.accessor('price', {
         header: 'Total price',
         cell: ({ row }) => {

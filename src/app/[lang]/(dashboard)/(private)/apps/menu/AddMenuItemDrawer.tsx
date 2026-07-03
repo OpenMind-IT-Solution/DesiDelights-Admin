@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 
 import Image from 'next/image'
 
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import ListItemText from '@mui/material/ListItemText'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -36,7 +39,7 @@ type FormValidateType = {
   tag: string
   offer: string
   status: boolean
-  categoryId: number | null
+  categoryId: number[]
   vatRate: number
 }
 
@@ -80,7 +83,7 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null,
+      categoryId: [],
       vatRate: 12
     }
   })
@@ -104,7 +107,7 @@ const AddMenuItemDrawer = (props: Props) => {
         tag: itemToEdit.tag || '',
         offer: itemToEdit.offer || '0',
         status: itemToEdit.status ?? true,
-        categoryId: itemToEdit.category?.id || null,
+        categoryId: itemToEdit.categories?.map(c => c.id) || [],
         vatRate: itemToEdit.vatRate || 12
       })
 
@@ -241,7 +244,7 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null,
+      categoryId: [],
       vatRate: 12
     })
   }
@@ -267,29 +270,39 @@ const AddMenuItemDrawer = (props: Props) => {
           <Controller
             name='categoryId'
             control={control}
-            rules={{ required: true }}
+            rules={{ required: true, validate: (v: number[]) => v.length > 0 || 'At least one category required' }}
             render={({ field }) => (
               <CustomTextField
                 select
                 fullWidth
-                label='Select Category'
-                value={field.value ?? ''}
+                label='Select Categories'
+                value={field.value || []}
                 onChange={e => {
-                  field.onChange(e)
-                  const cat = categoryIds.find(c => c.id === Number(e.target.value))
-
-                  if (cat?.vatRate != null) {
-                    setValue('vatRate', cat.vatRate)
-
-                    if (totalPriceInput > 0) {
-                      setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 10000) / 10000)
+                  const ids = e.target.value as unknown as number[]
+                  field.onChange(ids)
+                  if (ids.length > 0) {
+                    const cat = categoryIds.find(c => c.id === ids[0])
+                    if (cat?.vatRate != null) {
+                      setValue('vatRate', cat.vatRate)
+                      if (totalPriceInput > 0) {
+                        setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 10000) / 10000)
+                      }
                     }
                   }
                 }}
+                SelectProps={{
+                  multiple: true,
+                  renderValue: (selected: unknown) => {
+                    const ids = selected as number[]
+                    return ids.map(id => categoryIds.find(c => c.id === id)?.name).filter(Boolean).join(', ')
+                  }
+                }}
+                {...(errors.categoryId && { error: true, helperText: 'At least one category required' })}
               >
                 {categoryIds.map(category => (
                   <MenuItem key={category.id} value={category.id}>
-                    {category.name}
+                    <Checkbox checked={(field.value || []).includes(category.id)} />
+                    <ListItemText primary={category.name} />
                   </MenuItem>
                 ))}
               </CustomTextField>

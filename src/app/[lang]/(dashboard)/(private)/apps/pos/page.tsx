@@ -3,10 +3,6 @@
 // React Imports
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 8905273 (fix report module)
 // MUI Imports
 import {
   Box,
@@ -54,6 +50,7 @@ import { RequiredLabel } from '@/components/RequierdLabel'
 import { post } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { couponEndpoints } from '@/services/endpoints/coupon'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
@@ -74,6 +71,10 @@ const Pos = () => {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [couponCode, setCouponCode] = useState('')
+  const [discountAmount, setDiscountAmount] = useState(0)
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -117,12 +118,10 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
-          const category = typeof item.category === 'string' ? JSON.parse(item.category) : item.category
-
           return {
             ...item,
             menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages,
-            category
+            categoryId: item.categoryId || []
           }
         })
 
@@ -134,18 +133,6 @@ const Pos = () => {
       setError(err?.message || 'Failed to fetch menu items')
     }
   }, [])
-
-  const getMenuItemCategoryId = (item: MenuItems) => {
-    if (item.category?.id != null) {
-      return Number(item.category.id)
-    }
-
-    if ((item as any).categoryId != null) {
-      return Number((item as any).categoryId)
-    }
-
-    return null
-  }
 
   // Fetch data on mount
   useEffect(() => {
@@ -161,7 +148,13 @@ const Pos = () => {
 
   // Filter menu items by category
   const filteredMenuItems =
-    selectedCategory !== null ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory) : menuItems
+    // Filter items by category
+    selectedCategory !== null
+      ? menuItems.filter(item => {
+          const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
+          return ids.includes(selectedCategory)
+        })
+      : menuItems
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
@@ -250,6 +243,39 @@ const Pos = () => {
     setCart(cart.filter(cartItem => cartItem.id !== itemId))
   }
 
+  // Apply coupon
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return
+
+    setCouponLoading(true)
+    setCouponError('')
+
+    try {
+      const result: any = await post(couponEndpoints.validateCoupon, {
+        couponCode: couponCode.trim(),
+        subtotal: orderSummary.subtotal
+      })
+
+      if (result.status === 'success') {
+        setDiscountAmount(result.data.discountAmount)
+      } else {
+        setDiscountAmount(0)
+        setCouponError(result.message || 'Invalid coupon')
+      }
+    } catch (err: any) {
+      setDiscountAmount(0)
+      setCouponError(err?.message || 'Failed to validate coupon')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode('')
+    setDiscountAmount(0)
+    setCouponError('')
+  }
+
   // Place order
   const placeOrder = async () => {
     if (cart.length === 0) return
@@ -267,7 +293,9 @@ const Pos = () => {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
@@ -284,9 +312,10 @@ const Pos = () => {
     setOrderPlaced(true)
     setCart([])
     setShowReceipt(false)
+    removeCoupon()
   }
 
- // Print receipt
+  // Print receipt
   const printReceipt = async () => {
     if (cart.length === 0) return
 
@@ -306,7 +335,9 @@ const Pos = () => {
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
         customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
@@ -318,6 +349,7 @@ const Pos = () => {
 
     setOrderNumber(newOrderId)
     setOrderPlaced(true)
+    removeCoupon()
 
     const el = receiptCaptureRef.current
 
@@ -572,6 +604,38 @@ const Pos = () => {
                   </Typography>
                 </Box>
 
+                {/* Coupon */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <CustomTextField
+                      size='small'
+                      placeholder='Coupon code'
+                      value={couponCode}
+                      onChange={e => setCouponCode(e.target.value)}
+                      disabled={discountAmount > 0}
+                      sx={{ flex: 1 }}
+                    />
+                    {discountAmount > 0 ? (
+                      <Button size='small' color='error' variant='tonal' onClick={removeCoupon}>
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button size='small' variant='contained' onClick={applyCoupon} disabled={!couponCode.trim() || couponLoading}>
+                        {couponLoading ? '...' : 'Apply'}
+                      </Button>
+                    )}
+                  </Box>
+                  {couponError && (
+                    <Typography variant='caption' color='error'>{couponError}</Typography>
+                  )}
+                  {discountAmount > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant='body2' color='success.main'>Discount:</Typography>
+                      <Typography variant='body2' color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+                    </Box>
+                  )}
+                </Box>
+
                 <Button
                   variant='contained'
                   fullWidth
@@ -681,6 +745,18 @@ const Pos = () => {
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
           </Box>
+          {discountAmount > 0 && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography color='success.main'>Discount:</Typography>
+                <Typography color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant='h6'>Grand Total:</Typography>
+                <Typography variant='h6' color='primary'>€{(orderSummary.total - discountAmount).toFixed(2)}</Typography>
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowReceipt(false)}>Close</Button>
@@ -755,6 +831,16 @@ const Pos = () => {
           <p style={{ margin: '2px 0', fontSize: 15 }}>
             Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
           </p>
+          {discountAmount > 0 && (
+            <>
+              <p style={{ margin: '2px 0', fontSize: 11, color: 'green' }}>
+                Discount: -€{discountAmount.toFixed(2)}
+              </p>
+              <p style={{ margin: '2px 0', fontSize: 15 }}>
+                Grand Total: <strong>€{(orderSummary.total - discountAmount).toFixed(2)}</strong>
+              </p>
+            </>
+          )}
         </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ margin: '8px 0' }}>Thank you for your order!</p>

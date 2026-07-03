@@ -8,10 +8,11 @@ export type MenuItems = {
   tag?: string
   offer?: string
   vatRate?: number
-  category?: {
+  categories?: {
     id: number
     name: string
-  }
+  }[]
+  categoryId?: number[]
 }
 
 export type Menu = {
