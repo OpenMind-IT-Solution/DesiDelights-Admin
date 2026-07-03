@@ -3,14 +3,16 @@ export type MenuItems = {
   name: string
   description: string
   price: number
-  menuImages: string[] 
+  menuImages: string[]
   status: boolean
   tag?: string
   offer?: string
-  category?: {
+  vatRate?: number
+  categories?: {
     id: number
     name: string
-  }
+  }[]
+  categoryId?: number[]
 }
 
 export type Menu = {

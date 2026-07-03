@@ -21,7 +21,7 @@ import CustomTextField from '@core/components/mui/TextField'
 import type {
   DateRange, SalesSummary, RevenueTrendData, OrderTypeBreakdownData,
   TopProductsData, CustomerAnalyticsData, CategoryAnalyticsData, PaymentMethodData,
-  HourlySalesData, RecentOrdersData, InventoryInsightsData, ProfitReportData
+  HourlySalesData, RecentOrdersData, InventoryInsightsData
 } from '@/types/apps/reportTypes'
 import { reportEndpoints } from '@/services/endpoints/report'
 import { formatCurrency, formatNumber, getDatePreset } from './common'
@@ -87,7 +87,6 @@ const SalesReports = () => {
   const [hourlySales, setHourlySales] = useState<HourlySalesData | null>(null)
   const [recentOrders, setRecentOrders] = useState<RecentOrdersData | null>(null)
   const [inventory, setInventory] = useState<InventoryInsightsData | null>(null)
-  const [profit, setProfit] = useState<ProfitReportData | null>(null)
 
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [errors, setErrors] = useState<Record<string, string | null>>({})
@@ -125,7 +124,6 @@ const SalesReports = () => {
       { key: 'topProducts', ep: reportEndpoints.topProducts, setter: setTopProducts },
       { key: 'customers', ep: reportEndpoints.customerAnalytics, setter: setCustomerAnalytics },
       { key: 'hourly', ep: reportEndpoints.hourlySales, setter: setHourlySales },
-      { key: 'profit', ep: reportEndpoints.profit, setter: setProfit },
     ]
 
     fetches.forEach(({ key, ep, setter }) => {
@@ -143,7 +141,7 @@ const SalesReports = () => {
     post(reportEndpoints.filterOptions, {}).then((res: any) => setFilterOptions(res.data)).catch(() => {})
   }, [session]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const periodOptions = ['today', 'tomorrow', 'thisWeek', 'thisMonth', 'thisYear'] as const
+  const periodOptions = ['today', 'thisWeek', 'thisMonth', 'thisYear'] as const
 
   const handlePreset = (preset: string) => {
     setActivePreset(preset)
@@ -217,7 +215,6 @@ const SalesReports = () => {
 
   const presetLabels: Record<string, string> = {
     today: 'Today',
-    tomorrow: 'Tomorrow',
     thisWeek: 'This Week',
     thisMonth: 'This Month',
     thisYear: 'This Year'
@@ -342,8 +339,8 @@ const SalesReports = () => {
       </Box>
 
       {/* KPI Cards */}
-      <KpiCardGrid data={summary ?? undefined} profit={profit ?? undefined} customers={customerAnalytics ?? undefined}
-        loading={loading['summary'] || loading['profit'] || loading['customers']} />
+      <KpiCardGrid data={summary ?? undefined} customers={customerAnalytics ?? undefined}
+        loading={loading['summary'] || loading['customers']} />
 
       {/* Revenue Trend */}
       <Box>

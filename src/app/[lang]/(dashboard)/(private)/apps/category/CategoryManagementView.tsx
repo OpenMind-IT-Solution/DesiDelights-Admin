@@ -1,16 +1,15 @@
 'use client'
-
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
-import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
+import CardHeader from '@mui/material/CardHeader'
+import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
+import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import List from '@mui/material/List'
@@ -18,21 +17,20 @@ import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
-import Typography from '@mui/material/Typography'
 import MenuItem from '@mui/material/MenuItem'
-import Grid from '@mui/material/Grid'
-import CircularProgress from '@mui/material/CircularProgress'
-
+import { useTheme } from '@mui/material/styles'
+import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import { toast } from 'react-toastify'
 
 import type { Category } from '@/types/apps/categoryTypes'
 
-import DeleteConfirmationDialog from './DeleteConfirmationDialog'
+import CustomTextField from '@/@core/components/mui/TextField'
+import { del, get, post } from '@/services/apiService' // Import the 'del' method
+import { categoriesEndpoints } from '@/services/endpoints/category'
 import CategoryDetails from './CategoryDetails'
 import CategoryForm from './CategoryForm'
-import CustomTextField from '@/@core/components/mui/TextField'
-import { post, get, del } from '@/services/apiService' // Import the 'del' method
-import { categoriesEndpoints } from '@/services/endpoints/category'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -83,9 +81,10 @@ const CategoryManagementView = () => {
     try {
       const body = {
         search: debouncedSearchTerm,
-        status: statusFilter ? [statusFilter === 'active'] : [],
+        status: statusFilter ? [statusFilter === 'active'] : null,
         page: pagination.pageIndex + 1,
-        limit: pagination.pageSize
+        limit: pagination.pageSize,
+        restaurantId: [1]
       }
 
       const res: any = await post(categoriesEndpoints.getCategories, body)
@@ -95,7 +94,8 @@ const CategoryManagementView = () => {
           id: cat.id,
           name: cat.name,
           description: cat.description,
-          status: cat.status ? 'active' : 'inactive'
+          status: cat.status ? 'active' : 'inactive',
+          ...(cat.vatRate !== undefined && { vatRate: cat.vatRate })
         })) || []
 
       setData(categoryData)
@@ -147,7 +147,8 @@ const CategoryManagementView = () => {
           id: result.data.id,
           name: result.data.name,
           description: result.data.description,
-          status: result.data.status ? 'active' : 'inactive'
+          status: result.data.status ? 'active' : 'inactive',
+          ...(result.data.vatRate !== undefined && { vatRate: result.data.vatRate })
         }
 
         setSelectedCategory(categoryDetails)
@@ -170,12 +171,16 @@ const CategoryManagementView = () => {
     setLoading(true)
     const isEditMode = 'id' in formData
 
-    const body = {
+    const body: Record<string, unknown> = {
       categoryId: isEditMode ? formData.id : 0,
       restaurantId: [1],
       name: formData.name,
       description: formData.description,
       status: formData.status === 'active'
+    }
+
+    if (formData.vatRate !== undefined) {
+      body.vatRate = formData.vatRate
     }
 
     try {

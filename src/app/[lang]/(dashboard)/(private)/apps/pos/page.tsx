@@ -47,13 +47,15 @@ import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 // API Imports
 import CustomTextField from '@/@core/components/mui/TextField'
 import { RequiredLabel } from '@/components/RequierdLabel'
-import { post } from '@/services/apiService'
+import { post, put } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { couponEndpoints } from '@/services/endpoints/coupon'
+import { orderEndpoints } from '@/services/endpoints/order'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
-const TAX_RATE = 0 // 0% tax
+const DEFAULT_VAT_RATE = 0.12
 
 const Pos = () => {
   // States
@@ -70,6 +72,11 @@ const Pos = () => {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [couponCode, setCouponCode] = useState('')
+  const [discountAmount, setDiscountAmount] = useState(0)
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -113,12 +120,10 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
-          const category = typeof item.category === 'string' ? JSON.parse(item.category) : item.category
-
           return {
             ...item,
             menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages,
-            category
+            categoryId: item.categoryId || []
           }
         })
 
@@ -131,43 +136,73 @@ const Pos = () => {
     }
   }, [])
 
-  const getMenuItemCategoryId = (item: MenuItems) => {
-    if (item.category?.id != null) {
-      return Number(item.category.id)
-    }
+  // Fetch available coupons
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const result: any = await post(couponEndpoints.getCoupons, {
+        page: 1,
+        limit: 1000,
+        status: true
+      })
 
-    if ((item as any).categoryId != null) {
-      return Number((item as any).categoryId)
+      if (result.status === 'success') {
+        setAvailableCoupons(result.data.coupons || [])
+      }
+    } catch {
+      // Silently fail - coupons are optional
     }
-
-    return null
-  }
+  }, [])
 
   // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
-      await Promise.all([fetchCategories(), fetchMenuItems()])
+      await Promise.all([fetchCategories(), fetchMenuItems(), fetchCoupons()])
       setLoading(false)
     }
 
     fetchData()
-  }, [fetchCategories, fetchMenuItems])
+  }, [fetchCategories, fetchMenuItems, fetchCoupons])
 
   // Filter menu items by category
   const filteredMenuItems =
-    selectedCategory !== null ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory) : menuItems
+    // Filter items by category
+    selectedCategory !== null
+      ? menuItems.filter(item => {
+          const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
+          return ids.includes(selectedCategory)
+        })
+      : menuItems
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
 
-  // Calculate order summary
+  // Calculate order summary with VAT
+  const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+
+  const vatByRate: Record<number, number> = {}
+
+  const vatTotal = cart.reduce((sum, item) => {
+    const menuItem = menuItems.find(m => m.id === item.id)
+    const rate = menuItem?.vatRate != null ? menuItem.vatRate / 100 : DEFAULT_VAT_RATE
+    const vat = item.total * rate
+    const pct = Math.round(rate * 100)
+
+    vatByRate[pct] = (vatByRate[pct] || 0) + vat
+
+    return sum + vat
+  }, 0)
+
   const orderSummary: OrderSummary = {
     items: cart,
-    subtotal: cart.reduce((sum, item) => sum + item.total, 0),
-    tax: cart.reduce((sum, item) => sum + item.total, 0) * TAX_RATE,
-    total: cart.reduce((sum, item) => sum + item.total, 0) * (1 + TAX_RATE)
+    subtotal,
+    foodSubtotal: subtotal,
+    drinksSubtotal: 0,
+    foodVat: vatTotal,
+    drinksVat: 0,
+    vatTotal,
+    total: subtotal + vatTotal
   }
 
   // Add item to cart
@@ -227,81 +262,56 @@ const Pos = () => {
     setCart(cart.filter(cartItem => cartItem.id !== itemId))
   }
 
-  // Place order
-  const placeOrder = async () => {
-    if (cart.length === 0) return
+  // Apply coupon
+  const applyCoupon = async (code: string) => {
+    if (!code.trim()) return
+
+    setCouponLoading(true)
+    setCouponError('')
 
     try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
-      }
-
-      const result: any = await post(posEndpoints.saveOrder, payload)
+      const result: any = await post(couponEndpoints.validateCoupon, {
+        couponCode: code.trim(),
+        subtotal: orderSummary.subtotal
+      })
 
       if (result.status === 'success') {
-        setOrderNumber(result.data.orderId)
+        setCouponCode(code)
+        setDiscountAmount(result.data.discountAmount)
       } else {
-        setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+        setCouponCode('')
+        setDiscountAmount(0)
+        setCouponError(result.message || 'Invalid coupon')
       }
-    } catch {
-      setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+    } catch (err: any) {
+      setCouponCode('')
+      setDiscountAmount(0)
+      setCouponError(err?.message || 'Failed to validate coupon')
+    } finally {
+      setCouponLoading(false)
     }
-
-    setOrderPlaced(true)
-    setCart([])
   }
 
-  // Print receipt
-  const printReceipt = async () => {
-    if (cart.length === 0) return
+  const removeCoupon = () => {
+    setCouponCode('')
+    setDiscountAmount(0)
+    setCouponError('')
+  }
 
-    // Save order first
-    let newOrderId = null
-
-    try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.tax,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
-      }
-
-      const result: any = await post(posEndpoints.saveOrder, payload)
-
-      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
-    } catch {
-      newOrderId = Math.floor(Math.random() * 10000) + 1
+  // Handle coupon dropdown selection
+  const handleCouponChange = (e: React.ChangeEvent<{ value: unknown }>) => {
+    const code = e.target.value as string
+    if (code) {
+      applyCoupon(code)
+    } else {
+      removeCoupon()
     }
+  }
 
-    setOrderNumber(newOrderId)
-    setOrderPlaced(true)
-
+  // Helper to capture receipt image
+  const captureReceiptImage = async (): Promise<string | null> => {
     const el = receiptCaptureRef.current
-
-    if (!el) {
-      setShowReceipt(false)
-
-      return
-    }
+    if (!el) return null
 
     let origLeft: string | null = null
 
@@ -331,8 +341,112 @@ const Pos = () => {
         backgroundColor: '#ffffff'
       })
 
-      const imgData = canvas.toDataURL('image/png')
+      return canvas.toDataURL('image/png')
+    } catch {
+      return null
+    } finally {
+      if (origLeft !== null) el.style.left = origLeft
+    }
+  }
 
+  // Helper to save receipt image to backend
+  const saveReceiptImage = async (orderId: number, imgData: string) => {
+    try {
+      await put(orderEndpoints.updateOrder(orderId), { receiptImage: imgData })
+    } catch {
+      // Silently fail - receipt image save is non-critical
+    }
+  }
+
+  // Place order
+  const placeOrder = async () => {
+    if (cart.length === 0) return
+
+    let newOrderId: number | null = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.vatTotal,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+
+    // Capture receipt image and save to backend
+    const imgData = await captureReceiptImage()
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
+    }
+
+    setOrderPlaced(true)
+    setCart([])
+    setShowReceipt(false)
+    removeCoupon()
+  }
+
+  // Print receipt
+  const printReceipt = async () => {
+    if (cart.length === 0) return
+
+    // Save order first
+    let newOrderId: number | null = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.vatTotal,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+    setOrderPlaced(true)
+    removeCoupon()
+
+    // Capture receipt image and save to backend, then open print window
+    const imgData = await captureReceiptImage()
+
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
+    }
+
+    if (imgData) {
       const w = window.open('', '_blank')
 
       if (w) {
@@ -358,10 +472,6 @@ const Pos = () => {
 </body></html>`)
         w.document.close()
       }
-    } catch (err) {
-      console.error('Print failed:', err)
-    } finally {
-      if (origLeft !== null) el.style.left = origLeft
     }
 
     setCart([])
@@ -464,7 +574,7 @@ const Pos = () => {
                           {item.name}
                         </Typography>
                         <Typography variant='h6' color='primary'>
-                          €{item.price}
+                          €{(item.price * (1 + (item.vatRate || 12) / 100)).toFixed(2)}
                         </Typography>
                       </Box>
                       <Typography variant='body2' color='text.secondary' sx={{ mb: 1, height: 40, overflow: 'hidden' }}>
@@ -503,7 +613,7 @@ const Pos = () => {
                 <List>
                   {cart.map(item => (
                     <ListItem key={item.id} sx={{ px: 0 }}>
-                      <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity}`} />
+                      <ListItemText primary={item.name} secondary={`€${item.price.toFixed(2)} x ${item.quantity}`} />
                       <ListItemSecondaryAction>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <IconButton size='small' onClick={() => removeFromCart(item.id)}>
@@ -535,11 +645,57 @@ const Pos = () => {
                   <Typography>Subtotal:</Typography>
                   <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
                 </Box>
+                {Object.entries(vatByRate).map(([rate, vat]) => (
+                  <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
+                    <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+                  </Box>
+                ))}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant='h6'>Total:</Typography>
                   <Typography variant='h6' color='primary'>
                     €{orderSummary.total.toFixed(2)}
                   </Typography>
+                </Box>
+
+                {/* Coupon */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant='body2' sx={{ mb: 0.5 }}>Coupon</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <CustomTextField
+                      select
+                      size='small'
+                      placeholder='Select coupon'
+                      value={discountAmount > 0 ? couponCode : ''}
+                      onChange={handleCouponChange}
+                      disabled={couponLoading}
+                      sx={{ flex: 1 }}
+                    >
+                      <MenuItem value=''>
+                        <em>No coupon</em>
+                      </MenuItem>
+                      {availableCoupons.map((c: any) => (
+                        <MenuItem key={c.id} value={c.code}>
+                          {c.code} {c.type === 'percentage' ? `(${c.discount}%)` : `(€${c.discount})`}
+                        </MenuItem>
+                      ))}
+                    </CustomTextField>
+                    {discountAmount > 0 && (
+                      <Button size='small' color='error' variant='tonal' onClick={removeCoupon}>
+                        Remove
+                      </Button>
+                    )}
+                  </Box>
+                  {couponLoading && <CircularProgress size={16} sx={{ mr: 1 }} />}
+                  {couponError && (
+                    <Typography variant='caption' color='error'>{couponError}</Typography>
+                  )}
+                  {discountAmount > 0 && !couponLoading && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant='body2' color='success.main'>Discount:</Typography>
+                      <Typography variant='body2' color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+                    </Box>
+                  )}
                 </Box>
 
                 <Button
@@ -614,23 +770,55 @@ const Pos = () => {
             size='small'
             sx={{ mb: 1 }}
           />
-          <List>
-            {cart.map(item => (
-              <ListItem key={item.id} sx={{ px: 0 }}>
-                <ListItemText primary={item.name} secondary={`€${item.price} x ${item.quantity} = €${item.total}`} />
-              </ListItem>
-            ))}
-          </List>
+          <Box sx={{ width: '100%', fontSize: 13 }}>
+            <Box sx={{ display: 'flex', fontWeight: 'bold', borderBottom: 1, borderColor: 'divider', pb: 0.5, mb: 0.5 }}>
+              <Typography sx={{ width: 24 }}>#</Typography>
+              <Typography sx={{ flex: 1 }}>Item</Typography>
+              <Typography sx={{ width: 65, textAlign: 'right' }}>Net</Typography>
+              <Typography sx={{ width: 45, textAlign: 'right' }}>VAT%</Typography>
+            </Box>
+            {cart.map((item, i) => {
+              const menuItem = menuItems.find(m => m.id === item.id)
+              const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+              return (
+                <Box key={item.id} sx={{ display: 'flex', py: 0.5 }}>
+                  <Typography sx={{ width: 24 }}>{i + 1}</Typography>
+                  <Typography sx={{ flex: 1 }}>{item.name} x{item.quantity}</Typography>
+                  <Typography sx={{ width: 65, textAlign: 'right' }}>€{item.total.toFixed(2)}</Typography>
+                  <Typography sx={{ width: 45, textAlign: 'right' }}>{rate}%</Typography>
+                </Box>
+              )
+            })}
+          </Box>
 
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography>Subtotal:</Typography>
             <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
           </Box>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
+              <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+            </Box>
+          ))}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
           </Box>
+          {discountAmount > 0 && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography color='success.main'>Discount:</Typography>
+                <Typography color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant='h6'>Grand Total:</Typography>
+                <Typography variant='h6' color='primary'>€{(orderSummary.total - discountAmount).toFixed(2)}</Typography>
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowReceipt(false)}>Close</Button>
@@ -660,8 +848,8 @@ const Pos = () => {
         }}
       >
         <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
-        <p style={{ margin: '0 0 8px 0', fontSize: 11, color: '#666' }}>Quick Bites, Happy Vibes</p>
-        <p style={{ margin: '2px 0', color: '#666' }}>info@desidelights.be</p>
+        <p style={{ margin: '0 0 8px 0', fontSize: 11 }}>Quick Bites, Happy Vibes</p>
+        <p style={{ margin: '2px 0' }}>admin@desidelights.be</p>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
         <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
@@ -671,22 +859,50 @@ const Pos = () => {
         {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
         {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        {cart.map(item => (
-          <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-            <span>
-              {item.name} x{item.quantity}
-            </span>
-            <span>€{item.total}</span>
+        <div style={{ width: '100%', fontSize: 10, margin: '4px 0' }}>
+          <div style={{ display: 'flex', fontWeight: 'bold', borderBottom: '1px dashed #999', padding: '2px 0' }}>
+            <span style={{ width: 20 }}>#</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>Item</span>
+            <span style={{ width: 55, textAlign: 'right' }}>Net</span>
+            <span style={{ width: 35, textAlign: 'right' }}>VAT%</span>
           </div>
-        ))}
+          {cart.map((item, i) => {
+            const menuItem = menuItems.find(m => m.id === item.id)
+            const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+
+            return (
+              <div key={item.id} style={{ display: 'flex', padding: '2px 0' }}>
+                <span style={{ width: 20 }}>{i + 1}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>{item.name} x{item.quantity}</span>
+                <span style={{ width: 55, textAlign: 'right' }}>€{item.total.toFixed(2)}</span>
+                <span style={{ width: 35, textAlign: 'right' }}>{rate}%</span>
+              </div>
+            )
+          })}
+        </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', fontSize: 11 }}>
           <p style={{ margin: '2px 0' }}>
-            Subtotal: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
+            Net total: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
           </p>
+          {Object.entries(vatByRate).map(([rate, vat]) => (
+            <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
+              VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drinks)'}: €{vat.toFixed(2)}
+            </p>
+          ))}
           <p style={{ margin: '2px 0', fontSize: 15 }}>
             Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
           </p>
+          {discountAmount > 0 && (
+            <>
+              <p style={{ margin: '2px 0', fontSize: 11, color: 'green' }}>
+                Discount: -€{discountAmount.toFixed(2)}
+              </p>
+              <p style={{ margin: '2px 0', fontSize: 15 }}>
+                Grand Total: <strong>€{(orderSummary.total - discountAmount).toFixed(2)}</strong>
+              </p>
+            </>
+          )}
         </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ margin: '8px 0' }}>Thank you for your order!</p>

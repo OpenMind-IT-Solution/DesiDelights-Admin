@@ -298,17 +298,29 @@ const MenuTable = () => {
           </div>
         )
       }),
+      columnHelper.accessor('categories', {
+        header: 'Categories',
+        cell: ({ row }) => (
+          <div className='flex gap-1 flex-wrap'>
+            {(row.original.categories || []).map(cat => (
+              <Chip key={cat.id} label={cat.name} size='small' variant='tonal' color='primary' />
+            ))}
+          </div>
+        )
+      }),
       columnHelper.accessor('price', {
-        header: 'Price',
+        header: 'Total price',
         cell: ({ row }) => {
           const originalPrice = row.original.price
+          const vatRate = row.original.vatRate || 12
+          const totalPrice = Math.round(originalPrice * (1 + vatRate / 100) * 100) / 100
           const offerPercentage = parseFloat(row.original.offer || '0')
 
           if (offerPercentage <= 0) {
-            return <Typography>€{originalPrice}</Typography>
+            return <Typography>€{totalPrice}</Typography>
           }
 
-          const finalPrice = Math.round(originalPrice * (1 - offerPercentage / 100))
+          const finalPrice = Math.round(totalPrice * (1 - offerPercentage / 100))
 
           return (
             <div className='flex items-center gap-3'>

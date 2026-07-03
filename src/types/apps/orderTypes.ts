@@ -14,4 +14,11 @@ export type OrderType = {
   deliveryAddress: string
   orderItems?: OrderItemType[]
   items?: OrderItemType[]
+  subtotal?: number
+  taxAmount?: number
+  discountAmount?: number
+  paymentMethod?: string
+  receiptImage?: string
+  createdAt?: string
+  customerName?: string
 }

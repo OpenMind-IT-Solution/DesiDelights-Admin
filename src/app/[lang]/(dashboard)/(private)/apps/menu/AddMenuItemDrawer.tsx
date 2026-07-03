@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 
 import Image from 'next/image'
 
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
+import ListItemText from '@mui/material/ListItemText'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -36,12 +39,14 @@ type FormValidateType = {
   tag: string
   offer: string
   status: boolean
-  categoryId: number | null
+  categoryId: number[]
+  vatRate: number
 }
 
 type CategoryOption = {
   id: number
   name: string
+  vatRate?: number
 }
 
 const Dropzone = styled('div')(({ theme }) => ({
@@ -64,6 +69,8 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const {
     control,
+    setValue,
+    watch,
     reset: resetForm,
     handleSubmit,
     formState: { errors }
@@ -76,7 +83,8 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null
+      categoryId: [],
+      vatRate: 12
     }
   })
 
@@ -99,18 +107,36 @@ const AddMenuItemDrawer = (props: Props) => {
         tag: itemToEdit.tag || '',
         offer: itemToEdit.offer || '0',
         status: itemToEdit.status ?? true,
-        categoryId: itemToEdit.category?.id || null
+        categoryId: itemToEdit.categories?.map(c => c.id) || [],
+        vatRate: itemToEdit.vatRate || 12
       })
 
       setFiles(itemToEdit.menuImages || [])
+      setTotalPriceInput(Math.round(itemToEdit.price * (1 + (itemToEdit.vatRate || 12) / 100) * 10000) / 10000)
     } else {
       resetForm()
       setFiles([])
+      setTotalPriceInput(0)
     }
   }, [itemToEdit, open, resetForm])
 
   const handleRemoveFile = (fileToRemove: File | string) => {
     setFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove))
+  }
+
+  const [totalPriceInput, setTotalPriceInput] = useState<number>(0)
+  const watchedVatRate = watch('vatRate')
+
+  const computedPrice = totalPriceInput > 0 && (watchedVatRate || 0) > 0
+    ? Math.round(totalPriceInput / (1 + (watchedVatRate || 0) / 100) * 10000) / 10000
+    : 0
+
+  const handleTotalPriceChange = (value: number) => {
+    setTotalPriceInput(value)
+
+    if (value > 0 && (watchedVatRate || 0) > 0) {
+      setValue('price', Math.round(value / (1 + (watchedVatRate || 0) / 100) * 10000) / 10000)
+    }
   }
 
   const renderFilePreview = (file: File | string) => {
@@ -209,6 +235,7 @@ const AddMenuItemDrawer = (props: Props) => {
   const handleReset = () => {
     handleClose()
     setFiles([])
+    setTotalPriceInput(0)
     resetForm({
       id: 0,
       name: '',
@@ -217,7 +244,8 @@ const AddMenuItemDrawer = (props: Props) => {
       tag: '',
       offer: '0',
       status: true,
-      categoryId: null
+      categoryId: [],
+      vatRate: 12
     })
   }
 
@@ -239,6 +267,47 @@ const AddMenuItemDrawer = (props: Props) => {
       <Divider />
       <div className='p-6'>
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-6'>
+          <Controller
+            name='categoryId'
+            control={control}
+            rules={{ required: true, validate: (v: number[]) => v.length > 0 || 'At least one category required' }}
+            render={({ field }) => (
+              <CustomTextField
+                select
+                fullWidth
+                label='Select Categories'
+                value={field.value || []}
+                onChange={e => {
+                  const ids = e.target.value as unknown as number[]
+                  field.onChange(ids)
+                  if (ids.length > 0) {
+                    const cat = categoryIds.find(c => c.id === ids[0])
+                    if (cat?.vatRate != null) {
+                      setValue('vatRate', cat.vatRate)
+                      if (totalPriceInput > 0) {
+                        setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 10000) / 10000)
+                      }
+                    }
+                  }
+                }}
+                SelectProps={{
+                  multiple: true,
+                  renderValue: (selected: unknown) => {
+                    const ids = selected as number[]
+                    return ids.map(id => categoryIds.find(c => c.id === id)?.name).filter(Boolean).join(', ')
+                  }
+                }}
+                {...(errors.categoryId && { error: true, helperText: 'At least one category required' })}
+              >
+                {categoryIds.map(category => (
+                  <MenuItem key={category.id} value={category.id}>
+                    <Checkbox checked={(field.value || []).includes(category.id)} />
+                    <ListItemText primary={category.name} />
+                  </MenuItem>
+                ))}
+              </CustomTextField>
+            )}
+          />
           <Controller
             name='name'
             control={control}
@@ -262,7 +331,7 @@ const AddMenuItemDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 multiline
-                rows={3}
+                rows={2}
                 label='Description'
                 {...(errors.description && { error: true, helperText: 'This field is required.' })}
               />
@@ -277,10 +346,42 @@ const AddMenuItemDrawer = (props: Props) => {
                 {...field}
                 fullWidth
                 type='number'
-                label='Price'
+                label='Item price'
+                value={computedPrice > 0 ? computedPrice.toFixed(2) : (field.value || 0).toFixed(2)}
+                InputProps={{ readOnly: true }}
                 {...(errors.price && { error: true, helperText: 'Price must be a positive number.' })}
               />
             )}
+          />
+          <Controller
+            name='vatRate'
+            control={control}
+            rules={{ required: true, min: 0 }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='number'
+                label='VAT Rate (%)'
+                placeholder='12'
+                onChange={e => {
+                  field.onChange(Number(e.target.value))
+
+                  if (totalPriceInput > 0) {
+                    setValue('price', Math.round(totalPriceInput / (1 + Number(e.target.value) / 100) * 10000) / 10000)
+                  }
+                }}
+                {...(errors.vatRate && { error: true, helperText: 'VAT rate must be 0 or more.' })}
+              />
+            )}
+          />
+          <CustomTextField
+            fullWidth
+            type='number'
+            label='Total price'
+            placeholder='0'
+            value={totalPriceInput || ''}
+            onChange={e => handleTotalPriceChange(Number(e.target.value))}
           />
           <Controller
             name='tag'
@@ -293,26 +394,7 @@ const AddMenuItemDrawer = (props: Props) => {
             rules={{ required: true, min: 0 }}
             render={({ field }) => <CustomTextField {...field} fullWidth label='Offer (%)' placeholder='15' />}
           />
-          <Controller
-            name='categoryId'
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <CustomTextField
-                select
-                fullWidth
-                label='Select Category'
-                value={field.value ?? ''}
-                onChange={field.onChange}
-              >
-                {categoryIds.map(category => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </CustomTextField>
-            )}
-          />
+          
           <Controller
             name='status'
             control={control}
@@ -330,7 +412,6 @@ const AddMenuItemDrawer = (props: Props) => {
               </CustomTextField>
             )}
           />
-
           <div>
             <Typography variant='body2' className='mb-2'>
               Menu Images

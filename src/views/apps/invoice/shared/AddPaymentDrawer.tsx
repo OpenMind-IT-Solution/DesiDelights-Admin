@@ -111,10 +111,7 @@ const AddPaymentDrawer = ({ open, handleClose }: Props) => {
               Select Payment Method
             </MenuItem>
             <MenuItem value='cash'>Cash</MenuItem>
-            <MenuItem value='bank-transfer'>Bank Transfer</MenuItem>
-            <MenuItem value='credit'>Credit</MenuItem>
-            <MenuItem value='debit'>Debit</MenuItem>
-            <MenuItem value='paypal'>Paypal</MenuItem>
+            <MenuItem value='card'>Card</MenuItem>
           </CustomTextField>
           <CustomTextField
             rows={6}
