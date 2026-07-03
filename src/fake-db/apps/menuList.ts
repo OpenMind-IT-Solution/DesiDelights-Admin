@@ -11,10 +11,12 @@ export const db: Menu = {
       status: true,
       tag: 'Popular',
       offer: '15',
-      category: {
-        id: 1,
-        name: 'South Indian'
-      }
+      categories: [
+        {
+          id: 1,
+          name: 'South Indian'
+        }
+      ]
     },
     {
       id: 2,
@@ -25,10 +27,12 @@ export const db: Menu = {
       status: true,
       tag: "Chef's Special",
       offer: '0',
-      category: {
-        id: 2,
-        name: 'North Indian'
-      }
+      categories: [
+        {
+          id: 2,
+          name: 'North Indian'
+        }
+      ]
     },
     {
       id: 3,
@@ -39,10 +43,12 @@ export const db: Menu = {
       status: true,
       tag: 'New',
       offer: '10',
-      category: {
-        id: 2,
-        name: 'North Indian'
-      }
+      categories: [
+        {
+          id: 2,
+          name: 'North Indian'
+        }
+      ]
     },
     {
       id: 4,
@@ -53,10 +59,12 @@ export const db: Menu = {
       status: true,
       tag: 'Beverage',
       offer: '5',
-      category: {
-        id: 6,
-        name: 'Beverages'
-      }
+      categories: [
+        {
+          id: 6,
+          name: 'Beverages'
+        }
+      ]
     },
     {
       id: 5,
@@ -67,10 +75,12 @@ export const db: Menu = {
       status: true,
       tag: 'Popular',
       offer: '0',
-      category: {
-        id: 2,
-        name: 'North Indian'
-      }
+      categories: [
+        {
+          id: 2,
+          name: 'North Indian'
+        }
+      ]
     },
     {
       id: 6,
@@ -81,10 +91,12 @@ export const db: Menu = {
       status: true,
       tag: 'Sweet',
       offer: '10',
-      category: {
-        id: 5,
-        name: 'Desserts'
-      }
+      categories: [
+        {
+          id: 5,
+          name: 'Desserts'
+        }
+      ]
     },
     {
       id: 7,
@@ -95,10 +107,12 @@ export const db: Menu = {
       status: true,
       tag: 'Spicy',
       offer: '0',
-      category: {
-        id: 3,
-        name: 'Chinese'
-      }
+      categories: [
+        {
+          id: 3,
+          name: 'Chinese'
+        }
+      ]
     },
     {
       id: 8,
@@ -109,10 +123,12 @@ export const db: Menu = {
       status: true,
       tag: 'Creamy',
       offer: '5',
-      category: {
-        id: 4,
-        name: 'Continental'
-      }
+      categories: [
+        {
+          id: 4,
+          name: 'Continental'
+        }
+      ]
     }
   ]
 }

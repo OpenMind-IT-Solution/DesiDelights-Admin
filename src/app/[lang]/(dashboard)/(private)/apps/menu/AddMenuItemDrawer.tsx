@@ -3,13 +3,12 @@ import { useEffect, useState } from 'react'
 
 import Image from 'next/image'
 
-import Checkbox from '@mui/material/Checkbox'
-import Chip from '@mui/material/Chip'
-import ListItemText from '@mui/material/ListItemText'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import ListItemText from '@mui/material/ListItemText'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
@@ -21,8 +20,8 @@ import { post, postFormData } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import type { MenuItems as MenuItemType } from '@/types/apps/menuTypes'
-import CustomTextField from '@core/components/mui/TextField'
 import { getImageUrl } from '@/utils/getImageUrl'
+import CustomTextField from '@core/components/mui/TextField'
 
 type Props = {
   open: boolean
@@ -279,11 +278,15 @@ const AddMenuItemDrawer = (props: Props) => {
                 value={field.value || []}
                 onChange={e => {
                   const ids = e.target.value as unknown as number[]
+
                   field.onChange(ids)
+
                   if (ids.length > 0) {
                     const cat = categoryIds.find(c => c.id === ids[0])
+
                     if (cat?.vatRate != null) {
                       setValue('vatRate', cat.vatRate)
+
                       if (totalPriceInput > 0) {
                         setValue('price', Math.round(totalPriceInput / (1 + cat.vatRate / 100) * 10000) / 10000)
                       }
@@ -294,7 +297,9 @@ const AddMenuItemDrawer = (props: Props) => {
                   multiple: true,
                   renderValue: (selected: unknown) => {
                     const ids = selected as number[]
-                    return ids.map(id => categoryIds.find(c => c.id === id)?.name).filter(Boolean).join(', ')
+
+                    
+return ids.map(id => categoryIds.find(c => c.id === id)?.name).filter(Boolean).join(', ')
                   }
                 }}
                 {...(errors.categoryId && { error: true, helperText: 'At least one category required' })}

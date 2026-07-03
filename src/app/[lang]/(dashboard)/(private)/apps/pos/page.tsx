@@ -167,11 +167,14 @@ const Pos = () => {
 
   // Filter menu items by category
   const filteredMenuItems =
+
     // Filter items by category
     selectedCategory !== null
       ? menuItems.filter(item => {
           const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
-          return ids.includes(selectedCategory)
+
+          
+return ids.includes(selectedCategory)
         })
       : menuItems
 
@@ -301,6 +304,7 @@ const Pos = () => {
   // Handle coupon dropdown selection
   const handleCouponChange = (e: React.ChangeEvent<{ value: unknown }>) => {
     const code = e.target.value as string
+
     if (code) {
       applyCoupon(code)
     } else {
@@ -311,6 +315,7 @@ const Pos = () => {
   // Helper to capture receipt image
   const captureReceiptImage = async (): Promise<string | null> => {
     const el = receiptCaptureRef.current
+
     if (!el) return null
 
     let origLeft: string | null = null
@@ -393,6 +398,7 @@ const Pos = () => {
 
     // Capture receipt image and save to backend
     const imgData = await captureReceiptImage()
+
     if (imgData && newOrderId) {
       await saveReceiptImage(newOrderId, imgData)
     }
