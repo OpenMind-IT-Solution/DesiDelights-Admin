@@ -3,7 +3,6 @@
 import { useState } from 'react'
 
 import { Box, Button, Chip, Typography } from '@mui/material'
-import Grid from '@mui/material/Grid2'
 
 import CustomTextField from '@core/components/mui/TextField'
 import type { DateRange } from '@/types/apps/reportTypes'
@@ -67,42 +66,33 @@ const ReportFilters = ({ onApply, onExportCSV, onExportPDF, onPrint, loading }: 
         ))}
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 2 }}>
-        <Grid container spacing={2} sx={{ flex: 1, minWidth: 300 }} size={{ xs: 12 }}>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <CustomTextField
-              fullWidth
-              label='Start Date'
-              type='date'
-              size='small'
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <CustomTextField
-              fullWidth
-              label='End Date'
-              type='date'
-              size='small'
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Button
-              fullWidth
-              variant='contained'
-              onClick={handleApply}
-              disabled={loading}
-              startIcon={<i className='tabler-filter' />}
-              sx={{ height: 38 }}
-            >
-              {loading ? 'Loading...' : 'Apply'}
-            </Button>
-          </Grid>
-        </Grid>
+        <CustomTextField
+          label='Start Date'
+          type='date'
+          size='small'
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 180 }}
+        />
+        <CustomTextField
+          label='End Date'
+          type='date'
+          size='small'
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 180 }}
+        />
+        <Button
+          variant='contained'
+          onClick={handleApply}
+          disabled={loading}
+          startIcon={<i className='tabler-filter' />}
+          sx={{ height: 40 }}
+        >
+          {loading ? 'Loading...' : 'Apply'}
+        </Button>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {onExportCSV && (
             <Button variant='tonal' startIcon={<i className='tabler-file-spreadsheet' />} onClick={onExportCSV} size='small'>

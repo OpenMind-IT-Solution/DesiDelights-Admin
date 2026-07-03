@@ -47,9 +47,11 @@ import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 // API Imports
 import CustomTextField from '@/@core/components/mui/TextField'
 import { RequiredLabel } from '@/components/RequierdLabel'
-import { post } from '@/services/apiService'
+import { post, put } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
+import { couponEndpoints } from '@/services/endpoints/coupon'
+import { orderEndpoints } from '@/services/endpoints/order'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
 
@@ -70,6 +72,11 @@ const Pos = () => {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [couponCode, setCouponCode] = useState('')
+  const [discountAmount, setDiscountAmount] = useState(0)
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -113,12 +120,10 @@ const Pos = () => {
 
       if (result.status === 'success') {
         const formattedMenuItems = (result.data.menuItems || []).map((item: any) => {
-          const category = typeof item.category === 'string' ? JSON.parse(item.category) : item.category
-
           return {
             ...item,
             menuImages: typeof item.menuImages === 'string' ? JSON.parse(item.menuImages) : item.menuImages,
-            category
+            categoryId: item.categoryId || []
           }
         })
 
@@ -131,33 +136,44 @@ const Pos = () => {
     }
   }, [])
 
-  const getMenuItemCategoryId = (item: MenuItems) => {
-    if (item.category?.id != null) {
-      return Number(item.category.id)
-    }
+  // Fetch available coupons
+  const fetchCoupons = useCallback(async () => {
+    try {
+      const result: any = await post(couponEndpoints.getCoupons, {
+        page: 1,
+        limit: 1000,
+        status: true
+      })
 
-    if ((item as any).categoryId != null) {
-      return Number((item as any).categoryId)
+      if (result.status === 'success') {
+        setAvailableCoupons(result.data.coupons || [])
+      }
+    } catch {
+      // Silently fail - coupons are optional
     }
-
-    return null
-  }
+  }, [])
 
   // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
-      await Promise.all([fetchCategories(), fetchMenuItems()])
+      await Promise.all([fetchCategories(), fetchMenuItems(), fetchCoupons()])
       setLoading(false)
     }
 
     fetchData()
-  }, [fetchCategories, fetchMenuItems])
+  }, [fetchCategories, fetchMenuItems, fetchCoupons])
 
   // Filter menu items by category
   const filteredMenuItems =
-    selectedCategory !== null ? menuItems.filter(item => getMenuItemCategoryId(item) === selectedCategory) : menuItems
+    // Filter items by category
+    selectedCategory !== null
+      ? menuItems.filter(item => {
+          const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
+          return ids.includes(selectedCategory)
+        })
+      : menuItems
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
@@ -246,82 +262,56 @@ const Pos = () => {
     setCart(cart.filter(cartItem => cartItem.id !== itemId))
   }
 
-  // Place order
-  const placeOrder = async () => {
-    if (cart.length === 0) return
+  // Apply coupon
+  const applyCoupon = async (code: string) => {
+    if (!code.trim()) return
+
+    setCouponLoading(true)
+    setCouponError('')
 
     try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.vatTotal,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
-      }
-
-      const result: any = await post(posEndpoints.saveOrder, payload)
+      const result: any = await post(couponEndpoints.validateCoupon, {
+        couponCode: code.trim(),
+        subtotal: orderSummary.subtotal
+      })
 
       if (result.status === 'success') {
-        setOrderNumber(result.data.orderId)
+        setCouponCode(code)
+        setDiscountAmount(result.data.discountAmount)
       } else {
-        setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+        setCouponCode('')
+        setDiscountAmount(0)
+        setCouponError(result.message || 'Invalid coupon')
       }
-    } catch {
-      setOrderNumber(Math.floor(Math.random() * 10000) + 1)
+    } catch (err: any) {
+      setCouponCode('')
+      setDiscountAmount(0)
+      setCouponError(err?.message || 'Failed to validate coupon')
+    } finally {
+      setCouponLoading(false)
     }
-
-    setOrderPlaced(true)
-    setCart([])
-    setShowReceipt(false)
   }
 
- // Print receipt
-  const printReceipt = async () => {
-    if (cart.length === 0) return
+  const removeCoupon = () => {
+    setCouponCode('')
+    setDiscountAmount(0)
+    setCouponError('')
+  }
 
-    // Save order first
-    let newOrderId = null
-
-    try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.vatTotal,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod
-      }
-
-      const result: any = await post(posEndpoints.saveOrder, payload)
-
-      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
-    } catch {
-      newOrderId = Math.floor(Math.random() * 10000) + 1
+  // Handle coupon dropdown selection
+  const handleCouponChange = (e: React.ChangeEvent<{ value: unknown }>) => {
+    const code = e.target.value as string
+    if (code) {
+      applyCoupon(code)
+    } else {
+      removeCoupon()
     }
+  }
 
-    setOrderNumber(newOrderId)
-    setOrderPlaced(true)
-
+  // Helper to capture receipt image
+  const captureReceiptImage = async (): Promise<string | null> => {
     const el = receiptCaptureRef.current
-
-    if (!el) {
-      setShowReceipt(false)
-
-      return
-    }
+    if (!el) return null
 
     let origLeft: string | null = null
 
@@ -351,8 +341,112 @@ const Pos = () => {
         backgroundColor: '#ffffff'
       })
 
-      const imgData = canvas.toDataURL('image/png')
+      return canvas.toDataURL('image/png')
+    } catch {
+      return null
+    } finally {
+      if (origLeft !== null) el.style.left = origLeft
+    }
+  }
 
+  // Helper to save receipt image to backend
+  const saveReceiptImage = async (orderId: number, imgData: string) => {
+    try {
+      await put(orderEndpoints.updateOrder(orderId), { receiptImage: imgData })
+    } catch {
+      // Silently fail - receipt image save is non-critical
+    }
+  }
+
+  // Place order
+  const placeOrder = async () => {
+    if (cart.length === 0) return
+
+    let newOrderId: number | null = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.vatTotal,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+
+    // Capture receipt image and save to backend
+    const imgData = await captureReceiptImage()
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
+    }
+
+    setOrderPlaced(true)
+    setCart([])
+    setShowReceipt(false)
+    removeCoupon()
+  }
+
+  // Print receipt
+  const printReceipt = async () => {
+    if (cart.length === 0) return
+
+    // Save order first
+    let newOrderId: number | null = null
+
+    try {
+      const payload = {
+        items: cart.map(item => ({
+          menuItemId: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        subtotal: orderSummary.subtotal,
+        tax: orderSummary.vatTotal,
+        total: orderSummary.total,
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerNotes: customerNotes.trim() || undefined,
+        paymentMethod,
+        couponCode: couponCode.trim() || undefined,
+        discountAmount
+      }
+
+      const result: any = await post(posEndpoints.saveOrder, payload)
+
+      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+    } catch {
+      newOrderId = Math.floor(Math.random() * 10000) + 1
+    }
+
+    setOrderNumber(newOrderId)
+    setOrderPlaced(true)
+    removeCoupon()
+
+    // Capture receipt image and save to backend, then open print window
+    const imgData = await captureReceiptImage()
+
+    if (imgData && newOrderId) {
+      await saveReceiptImage(newOrderId, imgData)
+    }
+
+    if (imgData) {
       const w = window.open('', '_blank')
 
       if (w) {
@@ -378,10 +472,6 @@ const Pos = () => {
 </body></html>`)
         w.document.close()
       }
-    } catch (err) {
-      console.error('Print failed:', err)
-    } finally {
-      if (origLeft !== null) el.style.left = origLeft
     }
 
     setCart([])
@@ -568,6 +658,46 @@ const Pos = () => {
                   </Typography>
                 </Box>
 
+                {/* Coupon */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant='body2' sx={{ mb: 0.5 }}>Coupon</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <CustomTextField
+                      select
+                      size='small'
+                      placeholder='Select coupon'
+                      value={discountAmount > 0 ? couponCode : ''}
+                      onChange={handleCouponChange}
+                      disabled={couponLoading}
+                      sx={{ flex: 1 }}
+                    >
+                      <MenuItem value=''>
+                        <em>No coupon</em>
+                      </MenuItem>
+                      {availableCoupons.map((c: any) => (
+                        <MenuItem key={c.id} value={c.code}>
+                          {c.code} {c.type === 'percentage' ? `(${c.discount}%)` : `(€${c.discount})`}
+                        </MenuItem>
+                      ))}
+                    </CustomTextField>
+                    {discountAmount > 0 && (
+                      <Button size='small' color='error' variant='tonal' onClick={removeCoupon}>
+                        Remove
+                      </Button>
+                    )}
+                  </Box>
+                  {couponLoading && <CircularProgress size={16} sx={{ mr: 1 }} />}
+                  {couponError && (
+                    <Typography variant='caption' color='error'>{couponError}</Typography>
+                  )}
+                  {discountAmount > 0 && !couponLoading && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant='body2' color='success.main'>Discount:</Typography>
+                      <Typography variant='body2' color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+                    </Box>
+                  )}
+                </Box>
+
                 <Button
                   variant='contained'
                   fullWidth
@@ -677,6 +807,18 @@ const Pos = () => {
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
           </Box>
+          {discountAmount > 0 && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                <Typography color='success.main'>Discount:</Typography>
+                <Typography color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                <Typography variant='h6'>Grand Total:</Typography>
+                <Typography variant='h6' color='primary'>€{(orderSummary.total - discountAmount).toFixed(2)}</Typography>
+              </Box>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowReceipt(false)}>Close</Button>
@@ -751,6 +893,16 @@ const Pos = () => {
           <p style={{ margin: '2px 0', fontSize: 15 }}>
             Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
           </p>
+          {discountAmount > 0 && (
+            <>
+              <p style={{ margin: '2px 0', fontSize: 11, color: 'green' }}>
+                Discount: -€{discountAmount.toFixed(2)}
+              </p>
+              <p style={{ margin: '2px 0', fontSize: 15 }}>
+                Grand Total: <strong>€{(orderSummary.total - discountAmount).toFixed(2)}</strong>
+              </p>
+            </>
+          )}
         </div>
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ margin: '8px 0' }}>Thank you for your order!</p>

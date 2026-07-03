@@ -27,7 +27,7 @@ const subReports = [
   { value: '6', label: 'Customer Sales', component: CustomerReports },
   { value: '7', label: 'Hourly Sales', component: HourlySales },
   { value: '8', label: 'Discounts', component: PromotionReports },
-  { value: '9', label: 'Taxes', component: AccountingReports },
+    { value: '9', label: 'VAT', component: AccountingReports },
   { value: '10', label: 'Refunds', component: RefundReports },
   { value: '11', label: 'Branch Wise', component: RestaurantReports },
   { value: '12', label: 'Profit', component: ProfitReports },

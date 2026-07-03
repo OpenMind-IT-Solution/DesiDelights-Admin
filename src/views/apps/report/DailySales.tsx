@@ -17,7 +17,7 @@ const columns = [
   columnHelper.accessor('orderCount', { header: 'Orders', cell: info => formatNumber(info.getValue()) }),
   columnHelper.accessor('revenue', { header: 'Revenue', cell: info => formatCurrency(info.getValue()) }),
   columnHelper.accessor('discounts', { header: 'Discounts', cell: info => formatCurrency(info.getValue()) }),
-  columnHelper.accessor('tax', { header: 'Tax', cell: info => formatCurrency(info.getValue()) }),
+  columnHelper.accessor('tax', { header: 'VAT', cell: info => formatCurrency(info.getValue()) }),
   columnHelper.accessor('avgOrderValue', { header: 'Avg Order', cell: info => formatCurrency(info.getValue()) })
 ]
 
