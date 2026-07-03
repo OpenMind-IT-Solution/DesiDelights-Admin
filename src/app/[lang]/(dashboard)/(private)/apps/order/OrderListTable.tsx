@@ -12,7 +12,6 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -50,13 +49,13 @@ import type { OrderType } from '@/types/apps/orderTypes'
 import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import TablePaginationComponent from '@components/TablePaginationComponent'
-import CustomTextField from '@core/components/mui/TextField'
-import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
-import AddOrderDrawer from './AddOrderDrawer'
 import { post, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
+import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
+import TablePaginationComponent from '@components/TablePaginationComponent'
+import CustomTextField from '@core/components/mui/TextField'
 import tableStyles from '@core/styles/table.module.css'
+import AddOrderDrawer from './AddOrderDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 
 declare module '@tanstack/table-core' {
@@ -660,6 +659,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
             startIcon={<i className='tabler-printer' />}
             onClick={() => {
               const w = window.open('', '_blank')
+
               if (!w || !receiptOrder) return
               const o = receiptOrder
               const items = o.orderItems || o.items || []
@@ -667,6 +667,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
               const taxAmount = Number((o as any).taxAmount || 0)
               const discountAmount = Number((o as any).discountAmount || 0)
               const totalAmount = Number(o.totalAmount || 0)
+
               const dateStr = o.createdAt
                 ? new Date(o.createdAt).toLocaleDateString() + ' ' + new Date(o.createdAt).toLocaleTimeString()
                 : '-'
@@ -744,6 +745,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
                   <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:8px 20px;background:#1976d2;color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer">Print</button></div>
                 </body></html>`)
               }
+
               w.document.close()
             }}
           >
