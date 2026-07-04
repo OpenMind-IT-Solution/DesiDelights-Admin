@@ -297,6 +297,7 @@ const AddMenuItemDrawer = (props: Props) => {
                   multiple: true,
                   renderValue: (selected: unknown) => {
                     const ids = selected as number[]
+
                     return ids.map(id => categoryIds.find(c => c.id === id)?.name).filter(Boolean).join(', ')
                   }
                 }}
