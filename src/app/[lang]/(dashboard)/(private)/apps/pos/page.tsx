@@ -77,6 +77,7 @@ const Pos = () => {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
+  const [isPlacing, setIsPlacing] = useState(false)
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -297,6 +298,7 @@ return ids.includes(selectedCategory)
 
   const removeCoupon = () => {
     setCouponCode('')
+
     setDiscountAmount(0)
     setCouponError('')
   }
@@ -365,27 +367,30 @@ return ids.includes(selectedCategory)
 
   // Place order
   const placeOrder = async () => {
-    if (cart.length === 0) return
+    if (cart.length === 0 || isPlacing) return
 
-    let newOrderId: number | null = null
+    setIsPlacing(true)
 
     try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.vatTotal,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod,
-        couponCode: couponCode.trim() || undefined,
-        discountAmount
-      }
+      let newOrderId: number | null = null
+
+      try {
+        const payload = {
+          items: cart.map(item => ({
+            menuItemId: item.id,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          subtotal: orderSummary.subtotal,
+          tax: orderSummary.vatTotal,
+          total: orderSummary.total,
+          customerName: customerName.trim() || undefined,
+          customerPhone: customerPhone.trim() || undefined,
+          customerNotes: customerNotes.trim() || undefined,
+          paymentMethod,
+          couponCode: couponCode.trim() || undefined,
+          discountAmount
+        }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
 
@@ -407,7 +412,12 @@ return ids.includes(selectedCategory)
     setCart([])
     setShowReceipt(false)
     removeCoupon()
+  } catch {
+    // Order failed, reset state
+  } finally {
+    setIsPlacing(false)
   }
+}
 
   // Print receipt
   const printReceipt = async () => {
@@ -831,8 +841,8 @@ return ids.includes(selectedCategory)
           <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
             Print Receipt
           </Button>
-          <Button variant='outlined' onClick={placeOrder}>
-            Place Order
+          <Button variant='outlined' onClick={placeOrder} disabled={isPlacing}>
+            {isPlacing ? 'Placing...' : 'Place Order'}
           </Button>
         </DialogActions>
       </Dialog>
