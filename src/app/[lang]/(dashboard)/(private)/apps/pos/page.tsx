@@ -77,6 +77,7 @@ const Pos = () => {
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
+  const [isPlacing, setIsPlacing] = useState(false)
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
 
   // Fetch categories
@@ -167,11 +168,14 @@ const Pos = () => {
 
   // Filter menu items by category
   const filteredMenuItems =
+
     // Filter items by category
     selectedCategory !== null
       ? menuItems.filter(item => {
           const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
-          return ids.includes(selectedCategory)
+
+          
+return ids.includes(selectedCategory)
         })
       : menuItems
 
@@ -294,6 +298,7 @@ const Pos = () => {
 
   const removeCoupon = () => {
     setCouponCode('')
+
     setDiscountAmount(0)
     setCouponError('')
   }
@@ -301,6 +306,7 @@ const Pos = () => {
   // Handle coupon dropdown selection
   const handleCouponChange = (e: React.ChangeEvent<{ value: unknown }>) => {
     const code = e.target.value as string
+
     if (code) {
       applyCoupon(code)
     } else {
@@ -311,6 +317,7 @@ const Pos = () => {
   // Helper to capture receipt image
   const captureReceiptImage = async (): Promise<string | null> => {
     const el = receiptCaptureRef.current
+
     if (!el) return null
 
     let origLeft: string | null = null
@@ -360,27 +367,30 @@ const Pos = () => {
 
   // Place order
   const placeOrder = async () => {
-    if (cart.length === 0) return
+    if (cart.length === 0 || isPlacing) return
 
-    let newOrderId: number | null = null
+    setIsPlacing(true)
 
     try {
-      const payload = {
-        items: cart.map(item => ({
-          menuItemId: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        subtotal: orderSummary.subtotal,
-        tax: orderSummary.vatTotal,
-        total: orderSummary.total,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
-        customerNotes: customerNotes.trim() || undefined,
-        paymentMethod,
-        couponCode: couponCode.trim() || undefined,
-        discountAmount
-      }
+      let newOrderId: number | null = null
+
+      try {
+        const payload = {
+          items: cart.map(item => ({
+            menuItemId: item.id,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          subtotal: orderSummary.subtotal,
+          tax: orderSummary.vatTotal,
+          total: orderSummary.total,
+          customerName: customerName.trim() || undefined,
+          customerPhone: customerPhone.trim() || undefined,
+          customerNotes: customerNotes.trim() || undefined,
+          paymentMethod,
+          couponCode: couponCode.trim() || undefined,
+          discountAmount
+        }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
 
@@ -393,6 +403,7 @@ const Pos = () => {
 
     // Capture receipt image and save to backend
     const imgData = await captureReceiptImage()
+
     if (imgData && newOrderId) {
       await saveReceiptImage(newOrderId, imgData)
     }
@@ -401,7 +412,12 @@ const Pos = () => {
     setCart([])
     setShowReceipt(false)
     removeCoupon()
+  } catch {
+    // Order failed, reset state
+  } finally {
+    setIsPlacing(false)
   }
+}
 
   // Print receipt
   const printReceipt = async () => {
@@ -825,8 +841,8 @@ const Pos = () => {
           <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
             Print Receipt
           </Button>
-          <Button variant='outlined' onClick={placeOrder}>
-            Place Order
+          <Button variant='outlined' onClick={placeOrder} disabled={isPlacing}>
+            {isPlacing ? 'Placing...' : 'Place Order'}
           </Button>
         </DialogActions>
       </Dialog>
