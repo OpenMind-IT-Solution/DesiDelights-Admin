@@ -35,7 +35,7 @@ import { get, post, put } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { orderEndpoints } from '@/services/endpoints/order'
 
-// const TAX_RATE = 0  // ⬅ TAX DISABLED
+const TAX_RATE = 0.12
 
 interface EditableItem {
   rowId: number
@@ -72,7 +72,8 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
 
   const selectedMenuItem = menuOptions.find(m => m.id === newMenuItemId)
   const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0)
-  const grandTotal = subtotal           // ⬅ TAX DISABLED — grandTotal = subtotal
+  const vatAmount = subtotal * TAX_RATE
+  const grandTotal = subtotal + vatAmount
 
   // Fetch actual order items from backend when drawer opens
   useEffect(() => {
@@ -200,6 +201,8 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
         paymentStatus,
         deliveryAddress: deliveryAddress || undefined,
         totalAmount: grandTotal,
+        subtotal,
+        taxAmount: vatAmount,
         items: items.map(it => ({
           menuItemId: it.menuItemId,
           quantity: it.quantity,
@@ -533,6 +536,10 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
                   <Typography variant='body2' color='text.secondary'>Items ({items.length})</Typography>
                   <Typography variant='body2' fontWeight={600}>€{subtotal.toFixed(2)}</Typography>
                 </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant='body2' color='text.secondary'>VAT ({(TAX_RATE * 100).toFixed(0)}%)</Typography>
+                  <Typography variant='body2'>€{vatAmount.toFixed(2)}</Typography>
+                </Box>
                 <Divider sx={{ mb: 1.5, borderColor: 'divider' }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant='subtitle2' fontWeight={700}>Grand Total</Typography>
@@ -581,6 +588,10 @@ const OrderItemsDrawer: FC<OrderItemsDrawerProps> = ({ open, onClose, order, onS
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260, mt: 2 }}>
                 <Typography variant='body2' color='text.secondary'>Subtotal</Typography>
                 <Typography variant='body2'>€{subtotal.toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
+                <Typography variant='body2' color='text.secondary'>VAT ({(TAX_RATE * 100).toFixed(0)}%)</Typography>
+                <Typography variant='body2'>€{vatAmount.toFixed(2)}</Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', maxWidth: 260 }}>
