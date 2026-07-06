@@ -120,7 +120,7 @@ const EditCard = ({ invoiceData, id, data }: { invoiceData?: InvoiceType; id: st
                   <CustomTextField
                     select
                     className='is-1/2 min-is-[220px] sm:is-auto'
-                    value={selectData?.id}
+                    value={selectData?.id ?? ''}
                     onChange={e => {
                       setSelectData(data?.slice(0, 5).filter(item => item.id === e.target.value)[0] || null)
                     }}

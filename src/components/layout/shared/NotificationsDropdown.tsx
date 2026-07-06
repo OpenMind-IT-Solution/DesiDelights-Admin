@@ -26,6 +26,7 @@ import type { Theme } from '@mui/material/styles'
 // Third Party Components
 import classnames from 'classnames'
 import PerfectScrollbar from 'react-perfect-scrollbar'
+import { toast } from 'react-toastify'
 
 // Type Imports
 import type { ThemeColor } from '@core/types'
@@ -46,7 +47,7 @@ import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Service Imports
-import { get } from '@/services/apiService'
+import { del, get, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 
 const SEEN_KEY = 'notif_seen_order_ids'
@@ -58,6 +59,7 @@ export type NotificationsType = {
   time: string
   read: boolean
   orderId?: number
+  status?: string
 } & (
   | {
       avatarImage?: string
@@ -262,7 +264,8 @@ const NotificationDropdown = () => {
           subtitle: `₹${parseFloat(order.totalAmount).toFixed(2)} • ${order.orderType} • ${order.status}`,
           time: getRelativeTime(order.createdAt),
           read: seenIds.includes(order.id),
-          orderId: order.id
+          orderId: order.id,
+          status: order.status
         }))
 
         setNotificationsState(mapped)
@@ -323,6 +326,38 @@ return () => window.removeEventListener('resize', adjustPopoverHeight)
 
     if (removed.orderId) addSeenId(removed.orderId)
     setNotificationsState(updated)
+  }
+
+  const handleAcceptOrder = async (e: React.MouseEvent<HTMLElement>, index: number, orderId: number) => {
+    e.stopPropagation()
+    try {
+      await put(orderEndpoints.updateOrderStatus(orderId), { status: 'confirmed' })
+      addSeenId(orderId)
+      setNotificationsState(prev =>
+        prev.map((n, i) =>
+          i === index ? { ...n, read: true, status: 'confirmed', subtitle: n.subtitle.replace(/•\s*\w+$/, '• confirmed') } : n
+        )
+      )
+      toast.success(`Order #${orderId} confirmed`)
+    } catch {
+      toast.error(`Failed to confirm order #${orderId}`)
+    }
+  }
+
+  const handleRejectOrder = async (e: React.MouseEvent<HTMLElement>, index: number, orderId: number) => {
+    e.stopPropagation()
+    try {
+      await put(orderEndpoints.updateOrderStatus(orderId), { status: 'deleted' })
+      addSeenId(orderId)
+      setNotificationsState(prev =>
+        prev.map((n, i) =>
+          i === index ? { ...n, read: true, status: 'deleted', subtitle: n.subtitle.replace(/•\s*\w+$/, '• deleted') } : n
+        )
+      )
+      toast.info(`Order #${orderId} rejected`)
+    } catch {
+      toast.error(`Failed to reject order #${orderId}`)
+    }
   }
 
   const readAllNotifications = () => {
@@ -467,6 +502,26 @@ return { ...n, read: !readAll }
                               <Typography variant='caption' color='text.disabled'>
                                 {time}
                               </Typography>
+                              {(notification.status === 'pending' || notification.status === 'placed') && notification.orderId && (
+                                <div className='flex gap-2 mbs-2'>
+                                  <Button
+                                    size='small'
+                                    variant='contained'
+                                    color='success'
+                                    onClick={e => handleAcceptOrder(e, index, notification.orderId!)}
+                                  >
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    size='small'
+                                    variant='outlined'
+                                    color='error'
+                                    onClick={e => handleRejectOrder(e, index, notification.orderId!)}
+                                  >
+                                    Reject
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                             <div className='flex flex-col items-end gap-2'>
                               <Badge

@@ -19,9 +19,11 @@ interface DeleteConfirmationCardProps {
   open: boolean
   onClose: () => void
   onConfirm: () => void
+  itemName?: string
+  itemType?: string
 }
 
-const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm }) => {
+const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm, itemName, itemType }) => {
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby='delete-dialog-title'>
       <Card>
@@ -40,7 +42,7 @@ const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClo
         />
         <Divider />
         <CardContent>
-          <Typography>Are you sure you want to delete the order?</Typography>
+          <Typography>Are you sure you want to delete {itemName || 'the order'}?</Typography>
           <Typography color='text.secondary' sx={{ mt: 2 }}>
             This action is permanent and cannot be undone.
           </Typography>

@@ -152,7 +152,8 @@ const orderStatusObj: OrderStatusType = {
   confirmed: 'primary',
   out_for_delivery: 'info',
   completed: 'success',
-  cancelled: 'secondary'
+  cancelled: 'secondary',
+  deleted: 'error'
 }
 
 // Column Definitions
@@ -168,6 +169,7 @@ const OrderListTable = () => {
   const [filteredData, setFilteredData] = useState<OrderType[]>(data)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkCancelDialogOpen, setBulkCancelDialogOpen] = useState(false)
   const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false)
   const [receiptOrder, setReceiptOrder] = useState<OrderType | null>(null)
@@ -267,17 +269,38 @@ return `"${str.replace(/"/g, '""')}"`
     const deleteId = orderToDelete.id
 
     try {
-      await put(orderEndpoints.updateOrderStatus(deleteId), { status: 'cancelled' })
+      await put(orderEndpoints.updateOrderStatus(deleteId), { status: 'deleted' })
       setData(prev => prev.filter(order => order.id !== deleteId))
       setFilteredData(prev => prev.filter(order => order.id !== deleteId))
-      toast.success('Order cancelled successfully')
+      toast.success('Order deleted')
     } catch (err) {
-      console.error('Failed to cancel order', err)
-      toast.error('Failed to cancel order')
+      console.error('Failed to delete order', err)
+      toast.error('Failed to delete order')
     }
 
     setDeleteDialogOpen(false)
     setOrderToDelete(null)
+  }
+
+  const handleBulkCancel = async () => {
+    const selectedIds = table.getSelectedRowModel().rows.map(row => row.original.id)
+
+    try {
+      const result = await post(orderEndpoints.bulkCancelOrder, { ids: selectedIds }) as { status: string; message?: string }
+
+      if (result.status === 'success') {
+        toast.success(result?.message || 'Orders deleted successfully.')
+        setRowSelection({})
+        setRefreshKey(k => k + 1)
+      } else {
+        toast.error(result?.message || 'Failed to delete orders.')
+      }
+    } catch (err) {
+      console.error('Failed to bulk delete orders', err)
+      toast.error('Failed to delete orders.')
+    }
+
+    setBulkCancelDialogOpen(false)
   }
 
   const columns = useMemo<ColumnDef<any, any>[]>(
@@ -474,6 +497,16 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
             >
               Export
             </Button>
+            {table.getSelectedRowModel().rows.length > 0 && (
+              <Button
+                variant='outlined'
+                color='error'
+                startIcon={<i className='tabler-trash' />}
+                onClick={() => setBulkCancelDialogOpen(true)}
+              >
+                Delete Selected ({table.getSelectedRowModel().rows.length})
+              </Button>
+            )}
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
@@ -565,6 +598,13 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
+      />
+      <DeleteConfirmationDialog
+        open={bulkCancelDialogOpen}
+        onClose={() => setBulkCancelDialogOpen(false)}
+        onConfirm={handleBulkCancel}
+        itemName={`${table.getSelectedRowModel().rows.length} selected orders`}
+        itemType='Orders'
       />
 
       <Dialog
