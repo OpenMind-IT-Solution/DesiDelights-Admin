@@ -2,8 +2,10 @@
 import { useEffect } from 'react'
 
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
@@ -33,6 +35,7 @@ type FormValues = {
   status: 'active' | 'inactive'
   usageCount: number
   maxUsage: number
+  isCustomerEligible: boolean
 }
 
 const toDateInputValue = (dateStr: string | undefined) => {
@@ -58,7 +61,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
       endDate: '',
       status: 'active',
       usageCount: 0,
-      maxUsage: 0
+      maxUsage: 0,
+      isCustomerEligible: true
     }
   })
 
@@ -72,7 +76,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
         endDate: toDateInputValue(couponToEdit?.endDate),
         status: couponToEdit?.status === false ? 'inactive' : 'active',
         usageCount: couponToEdit?.usageCount ?? 0,
-        maxUsage: couponToEdit?.maxUsage ?? 0
+        maxUsage: couponToEdit?.maxUsage ?? 0,
+        isCustomerEligible: couponToEdit?.isCustomerEligible ?? true
       })
     }
   }, [couponToEdit, open, reset])
@@ -94,7 +99,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
       expiryDate: new Date(data.endDate).toISOString(),
       status: data.status === 'active',
       usageCount: Number(data.usageCount),
-      maxUsage: Number(data.maxUsage)
+      maxUsage: Number(data.maxUsage),
+      isCustomerEligible: data.isCustomerEligible
     }
 
     try {
@@ -250,6 +256,16 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
                 <MenuItem value='active'>Active</MenuItem>
                 <MenuItem value='inactive'>Inactive</MenuItem>
               </CustomTextField>
+            )}
+          />
+          <Controller
+            name='isCustomerEligible'
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={<Checkbox checked={field.value} onChange={e => field.onChange(e.target.checked)} />}
+                label='Eligible for customers'
+              />
             )}
           />
           <div className='flex items-center gap-4'>

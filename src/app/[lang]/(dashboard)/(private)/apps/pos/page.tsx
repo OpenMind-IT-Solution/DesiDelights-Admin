@@ -12,10 +12,6 @@ import {
   CardMedia,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   Fab,
   Grid,
@@ -26,7 +22,6 @@ import {
   ListItemText,
   MenuItem,
   Paper,
-  TextField,
   Typography
 } from '@mui/material'
 
@@ -34,8 +29,6 @@ import {
 import {
   MinusCircleOutline,
   PlusCircleOutline,
-  Printer,
-  Receipt,
   ShoppingOutline,
   TrashCanOutline
 } from 'mdi-material-ui'
@@ -46,7 +39,6 @@ import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
 
 // API Imports
 import CustomTextField from '@/@core/components/mui/TextField'
-import { RequiredLabel } from '@/components/RequierdLabel'
 import { post, put } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
@@ -54,6 +46,8 @@ import { couponEndpoints } from '@/services/endpoints/coupon'
 import { orderEndpoints } from '@/services/endpoints/order'
 import { posEndpoints } from '@/services/endpoints/pos'
 import { getImageUrl } from '@/utils/getImageUrl'
+import ReceiptDialog from '@/components/dialogs/receipt-dialog/ReceiptDialog'
+import type { ReceiptDialogHandle } from '@/components/dialogs/receipt-dialog/ReceiptDialog'
 
 const DEFAULT_VAT_RATE = 0.12
 
@@ -78,7 +72,7 @@ const Pos = () => {
   const [couponLoading, setCouponLoading] = useState(false)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
   const [isPlacing, setIsPlacing] = useState(false)
-  const receiptCaptureRef = useRef<HTMLDivElement>(null)
+  const receiptDialogRef = useRef<ReceiptDialogHandle>(null)
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
@@ -314,57 +308,6 @@ return ids.includes(selectedCategory)
     }
   }
 
-  // Helper to capture receipt image
-  const captureReceiptImage = async (): Promise<string | null> => {
-    const el = receiptCaptureRef.current
-
-    if (!el) return null
-
-    let origLeft: string | null = null
-
-    try {
-      await new Promise(r => setTimeout(r, 500))
-      const logoImg = new Image()
-
-      logoImg.src = '/logo.png'
-      if (!logoImg.complete)
-        await new Promise(r => {
-          logoImg.onload = r
-          logoImg.onerror = r
-        })
-
-      origLeft = el.style.left
-      el.style.left = '0'
-
-      await new Promise(r => requestAnimationFrame(r))
-
-      const html2canvas = (await import('html2canvas')).default
-
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
-
-      return canvas.toDataURL('image/png')
-    } catch {
-      return null
-    } finally {
-      if (origLeft !== null) el.style.left = origLeft
-    }
-  }
-
-  // Helper to save receipt image to backend
-  const saveReceiptImage = async (orderId: number, imgData: string) => {
-    try {
-      await put(orderEndpoints.updateOrder(orderId), { receiptImage: imgData })
-    } catch {
-      // Silently fail - receipt image save is non-critical
-    }
-  }
-
   // Place order
   const placeOrder = async () => {
     if (cart.length === 0 || isPlacing) return
@@ -402,10 +345,14 @@ return ids.includes(selectedCategory)
     setOrderNumber(newOrderId)
 
     // Capture receipt image and save to backend
-    const imgData = await captureReceiptImage()
+    const imgData = await receiptDialogRef.current?.captureReceiptImage()
 
     if (imgData && newOrderId) {
-      await saveReceiptImage(newOrderId, imgData)
+      try {
+        await put(orderEndpoints.updateOrder(newOrderId), { receiptImage: imgData })
+      } catch {
+        // Silently fail - receipt image save is non-critical
+      }
     }
 
     setOrderPlaced(true)
@@ -419,12 +366,9 @@ return ids.includes(selectedCategory)
   }
 }
 
-  // Print receipt
-  const printReceipt = async () => {
+  // Save order before dialog captures and prints
+  const handleBeforePrint = async () => {
     if (cart.length === 0) return
-
-    // Save order first
-    let newOrderId: number | null = null
 
     try {
       const payload = {
@@ -445,53 +389,16 @@ return ids.includes(selectedCategory)
       }
 
       const result: any = await post(posEndpoints.saveOrder, payload)
+      const newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
 
-      newOrderId = result.status === 'success' ? result.data.orderId : Math.floor(Math.random() * 10000) + 1
+      setOrderNumber(newOrderId)
+      setOrderPlaced(true)
+      removeCoupon()
+      setCart([])
+      setShowReceipt(false)
     } catch {
-      newOrderId = Math.floor(Math.random() * 10000) + 1
+      // Silently fail
     }
-
-    setOrderNumber(newOrderId)
-    setOrderPlaced(true)
-    removeCoupon()
-
-    // Capture receipt image and save to backend, then open print window
-    const imgData = await captureReceiptImage()
-
-    if (imgData && newOrderId) {
-      await saveReceiptImage(newOrderId, imgData)
-    }
-
-    if (imgData) {
-      const w = window.open('', '_blank')
-
-      if (w) {
-        w.document.write(`<!DOCTYPE html><html><head><style>
-          @page { size: 80mm 297mm; margin: 0; }
-          *{margin:0;padding:0;box-sizing:border-box}
-          body{font-family:Arial,sans-serif;background:#f5f5f5}
-          .receipt-wrapper{padding-top:30px;display:flex;flex-direction:column;align-items:center}
-          .receipt-img{width:80mm;height:auto;display:block;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-          .actions{margin-top:20px;display:flex;gap:12px;padding-bottom:40px}
-          .actions button,.actions a{padding:10px 24px;border:none;border-radius:6px;font-size:14px;cursor:pointer;text-decoration:none;font-weight:600}
-          .btn-print{background:#1976d2;color:#fff}
-          .btn-download{background:#fff;color:#1976d2;border:2px solid #1976d2}
-          @media print{.actions{display:none!important}}
-</style></head><body>
-<div class="receipt-wrapper">
-  <img class="receipt-img" src="${imgData}" />
-  <div class="actions">
-    <button class="btn-print" onclick="window.print()">Print</button>
-    <a class="btn-download" href="${imgData}" download="receipt.png">Download</a>
-  </div>
-</div>
-</body></html>`)
-        w.document.close()
-      }
-    }
-
-    setCart([])
-    setShowReceipt(false)
   }
 
   // Reset for new order
@@ -730,199 +637,41 @@ return ids.includes(selectedCategory)
       </Box>
 
       {/* Receipt Dialog */}
-      <Dialog open={showReceipt} onClose={() => setShowReceipt(false)} maxWidth='sm' fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pb: 3 }}>
-          {/* <ReceiptIcon sx={{ mr: 1 }} /> */}
-          <Receipt sx={{ mr: 1 }} />
-          {orderNumber ? `Order Receipt #${orderNumber}` : 'Review Order'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant='body2' color='text.secondary'>
-              Date:{' '}
-              <span suppressHydrationWarning>
-                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-              </span>
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CustomTextField
-                select
-                fullWidth
-                name='paymentMethod'
-                label={<RequiredLabel label='Payment Method' isRequired={true} />}
-                value={paymentMethod}
-                onChange={e => setPaymentMethod(e.target.value)}
-              >
-                <MenuItem value='cash'>Cash</MenuItem>
-                <MenuItem value='card'>Card</MenuItem>
-              </CustomTextField>
-            </Box>
-          </Box>
-          <Divider sx={{ mb: 1.5 }} />
-          <Typography variant='subtitle2' gutterBottom color='text.secondary' sx={{ mb: 1 }}>
-            Customer Details (Optional)
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 4, mb: 4 }}>
-            <TextField
-              label='Customer Name'
-              value={customerName}
-              onChange={e => setCustomerName(e.target.value)}
-              fullWidth
-              size='small'
-            />
-            <TextField
-              label='Phone Number'
-              value={customerPhone}
-              onChange={e => setCustomerPhone(e.target.value)}
-              fullWidth
-              size='small'
-            />
-          </Box>
-          <TextField
-            label='Notes'
-            value={customerNotes}
-            onChange={e => setCustomerNotes(e.target.value)}
-            fullWidth
-            size='small'
-            sx={{ mb: 1 }}
-          />
-          <Box sx={{ width: '100%', fontSize: 13 }}>
-            <Box sx={{ display: 'flex', fontWeight: 'bold', borderBottom: 1, borderColor: 'divider', pb: 0.5, mb: 0.5 }}>
-              <Typography sx={{ width: 24 }}>#</Typography>
-              <Typography sx={{ flex: 1 }}>Item</Typography>
-              <Typography sx={{ width: 65, textAlign: 'right' }}>Net</Typography>
-              <Typography sx={{ width: 45, textAlign: 'right' }}>VAT%</Typography>
-            </Box>
-            {cart.map((item, i) => {
-              const menuItem = menuItems.find(m => m.id === item.id)
-              const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
+      <ReceiptDialog
+        ref={receiptDialogRef}
+        open={showReceipt}
+        onClose={() => setShowReceipt(false)}
+        orderNumber={orderNumber}
+        items={cart.map(item => {
+          const menuItem = menuItems.find(m => m.id === item.id)
 
-              return (
-                <Box key={item.id} sx={{ display: 'flex', py: 0.5 }}>
-                  <Typography sx={{ width: 24 }}>{i + 1}</Typography>
-                  <Typography sx={{ flex: 1 }}>{item.name} x{item.quantity}</Typography>
-                  <Typography sx={{ width: 65, textAlign: 'right' }}>€{item.total.toFixed(2)}</Typography>
-                  <Typography sx={{ width: 45, textAlign: 'right' }}>{rate}%</Typography>
-                </Box>
-              )
-            })}
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography>Subtotal:</Typography>
-            <Typography>€{orderSummary.subtotal.toFixed(2)}</Typography>
-          </Box>
-          {Object.entries(vatByRate).map(([rate, vat]) => (
-            <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant='body2' color='text.secondary'>VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drink)'}:</Typography>
-              <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
-            </Box>
-          ))}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-            <Typography variant='h6'>Total:</Typography>
-            <Typography variant='h6'>€{orderSummary.total.toFixed(2)}</Typography>
-          </Box>
-          {discountAmount > 0 && (
-            <>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                <Typography color='success.main'>Discount:</Typography>
-                <Typography color='success.main'>-€{discountAmount.toFixed(2)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                <Typography variant='h6'>Grand Total:</Typography>
-                <Typography variant='h6' color='primary'>€{(orderSummary.total - discountAmount).toFixed(2)}</Typography>
-              </Box>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowReceipt(false)}>Close</Button>
-          <Button variant='contained' onClick={printReceipt} startIcon={<Printer />}>
-            Print Receipt
-          </Button>
-          <Button variant='outlined' onClick={placeOrder} disabled={isPlacing}>
-            {isPlacing ? 'Placing...' : 'Place Order'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Hidden receipt template for image capture */}
-      <div
-        ref={receiptCaptureRef}
-        style={{
-          position: 'fixed',
-          left: -9999,
-          top: 0,
-          background: '#fff',
-          color: '#000',
-          padding: 30,
-          fontFamily: 'monospace',
-          fontSize: 13,
-          textAlign: 'center',
-          width: 320
-        }}
-      >
-        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', fontSize: 18, letterSpacing: 2 }}>DESI DELIGHTS</p>
-        <p style={{ margin: '0 0 8px 0', fontSize: 11 }}>Quick Bites, Happy Vibes</p>
-        <p style={{ margin: '2px 0' }}>admin@desidelights.be</p>
-        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
-        <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
-          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-        </p>
-        {customerName && <p style={{ textAlign: 'left', margin: '4px 0' }}>Customer: {customerName}</p>}
-        {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}
-        {customerNotes && <p style={{ textAlign: 'left', margin: '4px 0' }}>Notes: {customerNotes}</p>}
-        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <div style={{ width: '100%', fontSize: 10, margin: '4px 0' }}>
-          <div style={{ display: 'flex', fontWeight: 'bold', borderBottom: '1px dashed #999', padding: '2px 0' }}>
-            <span style={{ width: 20 }}>#</span>
-            <span style={{ flex: 1, textAlign: 'left' }}>Item</span>
-            <span style={{ width: 55, textAlign: 'right' }}>Net</span>
-            <span style={{ width: 35, textAlign: 'right' }}>VAT%</span>
-          </div>
-          {cart.map((item, i) => {
-            const menuItem = menuItems.find(m => m.id === item.id)
-            const rate = menuItem?.vatRate != null ? menuItem.vatRate : 12
-
-            return (
-              <div key={item.id} style={{ display: 'flex', padding: '2px 0' }}>
-                <span style={{ width: 20 }}>{i + 1}</span>
-                <span style={{ flex: 1, textAlign: 'left' }}>{item.name} x{item.quantity}</span>
-                <span style={{ width: 55, textAlign: 'right' }}>€{item.total.toFixed(2)}</span>
-                <span style={{ width: 35, textAlign: 'right' }}>{rate}%</span>
-              </div>
-            )
-          })}
-        </div>
-        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <div style={{ textAlign: 'right', fontSize: 11 }}>
-          <p style={{ margin: '2px 0' }}>
-            Net total: <strong>€{orderSummary.subtotal.toFixed(2)}</strong>
-          </p>
-          {Object.entries(vatByRate).map(([rate, vat]) => (
-            <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
-              VAT {rate}%{rate === '12' ? ' (Food)' : ' (Drinks)'}: €{vat.toFixed(2)}
-            </p>
-          ))}
-          <p style={{ margin: '2px 0', fontSize: 15 }}>
-            Total: <strong>€{orderSummary.total.toFixed(2)}</strong>
-          </p>
-          {discountAmount > 0 && (
-            <>
-              <p style={{ margin: '2px 0', fontSize: 11, color: 'green' }}>
-                Discount: -€{discountAmount.toFixed(2)}
-              </p>
-              <p style={{ margin: '2px 0', fontSize: 15 }}>
-                Grand Total: <strong>€{(orderSummary.total - discountAmount).toFixed(2)}</strong>
-              </p>
-            </>
-          )}
-        </div>
-        <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
-        <p style={{ margin: '8px 0' }}>Thank you for your order!</p>
-      </div>
+          return {
+            name: item.name,
+            quantity: item.quantity,
+            total: item.total,
+            vatRate: menuItem?.vatRate ?? 12
+          }
+        })}
+        subtotal={orderSummary.subtotal}
+        vatByRate={Object.fromEntries(
+          Object.entries(vatByRate).map(([k, v]) => [k, v])
+        )}
+        vatTotal={orderSummary.vatTotal}
+        total={orderSummary.total}
+        discountAmount={discountAmount}
+        showPlaceOrder
+        isPlacing={isPlacing}
+        onPlaceOrder={placeOrder}
+        onBeforePrint={handleBeforePrint}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={setPaymentMethod}
+        customerName={customerName}
+        onCustomerNameChange={setCustomerName}
+        customerPhone={customerPhone}
+        onCustomerPhoneChange={setCustomerPhone}
+        customerNotes={customerNotes}
+        onCustomerNotesChange={setCustomerNotes}
+      />
 
       {/* Floating Action Button for New Order */}
       {orderPlaced && !showReceipt && (

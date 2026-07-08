@@ -83,7 +83,7 @@ const AddAction = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
                       </Typography>
                       <CustomTextField
                         fullWidth
-                        value={invoiceData?.[0].id}
+                        value={invoiceData?.[0]?.id ?? ''}
                         slotProps={{
                           input: {
                             disabled: true,

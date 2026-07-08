@@ -34,7 +34,7 @@ import { CircularProgress } from '@mui/material'
 import type { MenuItems as MenuItemType } from '@/types/apps/menuTypes'
 import type { ThemeColor } from '@core/types'
 
-import { del, get, post } from '@/services/apiService'
+import { del, get, post, put } from '@/services/apiService'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { getImageUrl } from '@/utils/getImageUrl'
 import TablePaginationComponent from '@components/TablePaginationComponent'
@@ -99,6 +99,7 @@ const MenuTable = () => {
   const [error, setError] = useState<string | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
@@ -234,6 +235,28 @@ const MenuTable = () => {
     setItemToDelete(null)
   }
 
+  const handleBulkDelete = async () => {
+    const selectedIds = table.getSelectedRowModel().rows.map(row => row.original.id)
+
+    try {
+      const result = await post(menuEndpoints.bulkDeleteMenu, { ids: selectedIds }) as { status: string; message?: string }
+
+      if (result.status === 'success') {
+        toast.success(result?.message || 'Menu items deleted successfully.')
+        setRowSelection({})
+        await getData()
+      } else {
+        toast.error(result?.message || 'Failed to delete menu items.')
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred while deleting items.'
+
+      toast.error(message)
+    }
+
+    setBulkDeleteDialogOpen(false)
+  }
+
   const columns = useMemo<ColumnDef<MenuItemWithAction, any>[]>(
     () => [
       {
@@ -357,6 +380,21 @@ const MenuTable = () => {
             size='small'
             color={statusObj[String(row.original.status)]}
             className='capitalize'
+            onClick={async () => {
+              try {
+                const result = await put(menuEndpoints.toggleStatus(row.original.id), {}) as { status: string; message?: string; data?: { status: boolean } }
+
+                if (result.status === 'success') {
+                  setData(prev => prev.map(item => item.id === row.original.id ? { ...item, status: result.data!.status } : item))
+                  toast.success(result.message || 'Status updated')
+                } else {
+                  toast.error(result.message || 'Failed to update status')
+                }
+              } catch {
+                toast.error('Failed to update status')
+              }
+            }}
+            sx={{ cursor: 'pointer' }}
           />
         )
       }),
@@ -457,6 +495,16 @@ const MenuTable = () => {
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleFilterClose}>
               <TableFilters filters={filters} setFilters={setFilters} onClose={handleFilterClose} />
             </Menu>
+            {table.getSelectedRowModel().rows.length > 0 && (
+              <Button
+                variant='outlined'
+                color='error'
+                startIcon={<i className='tabler-trash' />}
+                onClick={() => setBulkDeleteDialogOpen(true)}
+              >
+                Delete Selected ({table.getSelectedRowModel().rows.length})
+              </Button>
+            )}
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
@@ -550,6 +598,13 @@ const MenuTable = () => {
         onConfirm={handleConfirmDelete}
         itemName={itemToDelete?.name}
         itemType='Menu Item'
+      />
+      <DeleteConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={handleBulkDelete}
+        itemName={`${table.getSelectedRowModel().rows.length} selected items`}
+        itemType='Menu Items'
       />
     </>
   )

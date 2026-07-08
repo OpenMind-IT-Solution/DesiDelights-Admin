@@ -11,7 +11,8 @@ export const db: CouponTypes = {
       endDate: '2025-09-30',
       status: true,
       usageCount: 5,
-      maxUsage: 100
+      maxUsage: 100,
+      isCustomerEligible: true
     },
     {
       id: 2,
@@ -22,7 +23,8 @@ export const db: CouponTypes = {
       endDate: '2023-12-25',
       status: true,
       usageCount: 3,
-      maxUsage: 50
+      maxUsage: 50,
+      isCustomerEligible: false
     }
   ]
 }

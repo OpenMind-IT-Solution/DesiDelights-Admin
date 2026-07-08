@@ -221,27 +221,6 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
             </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
-                <InputLabel>Payment Method</InputLabel>
-                <Select label='Payment Method' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-                  <MenuItem value='Cash'>Cash</MenuItem>
-                  <MenuItem value='Card'>Card</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            {orderType === 'delivery' && (
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  size='small'
-                  label='Delivery Address'
-                  placeholder='123 Main St, City'
-                  value={deliveryAddress}
-                  onChange={e => setDeliveryAddress(e.target.value)}
-                />
-              </Grid>
-            )}
-            <Grid item xs={6}>
-              <FormControl fullWidth size='small'>
                 <InputLabel>Status</InputLabel>
                 <Select
                   label='Status'
@@ -258,6 +237,28 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
                 </Select>
               </FormControl>
             </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 4 }} />
+
+          {/* ── Payment Details ── */}
+          <Typography
+            variant='subtitle2'
+            sx={{ fontWeight: 600, mb: 2, color: 'text.secondary', letterSpacing: 0.5, textTransform: 'uppercase', fontSize: 11 }}
+          >
+            Payment Details
+          </Typography>
+
+          <Grid container spacing={3}>
+            <Grid item xs={6}>
+              <FormControl fullWidth size='small'>
+                <InputLabel>Payment Method</InputLabel>
+                <Select label='Payment Method' value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                  <MenuItem value='Cash'>Cash</MenuItem>
+                  <MenuItem value='Card'>Card</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth size='small'>
                 <InputLabel>Payment Status</InputLabel>
@@ -271,6 +272,19 @@ const AddOrderDrawer = ({ open, handleClose, onSuccess }: Props) => {
               </FormControl>
             </Grid>
           </Grid>
+
+          {orderType === 'delivery' && (
+            <Box sx={{ mt: 3 }}>
+              <TextField
+                fullWidth
+                size='small'
+                label='Delivery Address'
+                placeholder='123 Main St, City'
+                value={deliveryAddress}
+                onChange={e => setDeliveryAddress(e.target.value)}
+              />
+            </Box>
+          )}
 
           <Divider sx={{ my: 4 }} />
 

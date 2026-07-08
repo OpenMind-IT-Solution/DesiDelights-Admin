@@ -68,6 +68,7 @@ return true
             <MenuItem value='out_for_delivery'>Out for Delivery</MenuItem>
             <MenuItem value='completed'>Completed</MenuItem>
             <MenuItem value='cancelled'>Cancelled</MenuItem>
+            <MenuItem value='deleted'>Deleted</MenuItem>
           </CustomTextField>
         </Grid>
       </Grid>
