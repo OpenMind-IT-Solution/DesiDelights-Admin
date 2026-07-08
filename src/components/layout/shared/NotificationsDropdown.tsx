@@ -47,7 +47,7 @@ import { getInitials } from '@/utils/getInitials'
 import { getLocalizedUrl } from '@/utils/i18n'
 
 // Service Imports
-import { del, get, put } from '@/services/apiService'
+import { get, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
 
 const SEEN_KEY = 'notif_seen_order_ids'
@@ -330,6 +330,7 @@ return () => window.removeEventListener('resize', adjustPopoverHeight)
 
   const handleAcceptOrder = async (e: React.MouseEvent<HTMLElement>, index: number, orderId: number) => {
     e.stopPropagation()
+
     try {
       await put(orderEndpoints.updateOrderStatus(orderId), { status: 'confirmed' })
       addSeenId(orderId)
@@ -346,6 +347,7 @@ return () => window.removeEventListener('resize', adjustPopoverHeight)
 
   const handleRejectOrder = async (e: React.MouseEvent<HTMLElement>, index: number, orderId: number) => {
     e.stopPropagation()
+
     try {
       await put(orderEndpoints.updateOrderStatus(orderId), { status: 'deleted' })
       addSeenId(orderId)

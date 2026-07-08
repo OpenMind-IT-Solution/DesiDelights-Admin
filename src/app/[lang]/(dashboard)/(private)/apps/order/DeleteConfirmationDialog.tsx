@@ -23,7 +23,7 @@ interface DeleteConfirmationCardProps {
   itemType?: string
 }
 
-const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm, itemName, itemType }) => {
+const DeleteConfirmationDialog: FC<DeleteConfirmationCardProps> = ({ open, onClose, onConfirm, itemName }) => {
   return (
     <Dialog open={open} onClose={onClose} aria-labelledby='delete-dialog-title'>
       <Card>

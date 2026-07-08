@@ -382,7 +382,8 @@ const MenuTable = () => {
             className='capitalize'
             onClick={async () => {
               try {
-                const result = await put(menuEndpoints.toggleStatus(row.original.id)) as { status: string; message?: string; data?: { status: boolean } }
+                const result = await put(menuEndpoints.toggleStatus(row.original.id), {}) as { status: string; message?: string; data?: { status: boolean } }
+
                 if (result.status === 'success') {
                   setData(prev => prev.map(item => item.id === row.original.id ? { ...item, status: result.data!.status } : item))
                   toast.success(result.message || 'Status updated')
