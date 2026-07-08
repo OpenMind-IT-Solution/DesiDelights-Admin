@@ -106,6 +106,7 @@ const CouponListTable = () => {
   const [data, setData] = useState<CouponProps[]>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<CouponProps | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -194,6 +195,27 @@ const CouponListTable = () => {
 
     setDeleteDialogOpen(false)
     setItemToDelete(null)
+  }
+
+  const handleBulkDelete = async () => {
+    const selectedIds = table.getSelectedRowModel().rows.map(row => row.original.id)
+
+    try {
+      const result = await post(couponEndpoints.bulkDeleteCoupon, { ids: selectedIds }) as { status: string; message?: string }
+
+      if (result.status === 'success') {
+        toast.success(result?.message || 'Coupons deleted successfully.')
+        setRowSelection({})
+        await getData()
+      } else {
+        toast.error(result?.message || 'Failed to delete coupons.')
+      }
+    } catch (err) {
+      console.error('Failed to bulk delete coupons', err)
+      toast.error('Failed to delete coupons.')
+    }
+
+    setBulkDeleteDialogOpen(false)
   }
 
   const handleDownload = (couponsToExport: CouponProps[]) => {
@@ -363,6 +385,16 @@ const CouponListTable = () => {
             >
               Export
             </Button>
+            {table.getSelectedRowModel().rows.length > 0 && (
+              <Button
+                variant='outlined'
+                color='error'
+                startIcon={<i className='tabler-trash' />}
+                onClick={() => setBulkDeleteDialogOpen(true)}
+              >
+                Delete Selected ({table.getSelectedRowModel().rows.length})
+              </Button>
+            )}
             <Button
               variant='contained'
               startIcon={<i className='tabler-plus' />}
@@ -458,6 +490,13 @@ const CouponListTable = () => {
         onConfirm={handleConfirmDelete}
         itemName={itemToDelete?.code}
         itemType='Coupon'
+      />
+      <DeleteConfirmationDialog
+        open={bulkDeleteDialogOpen}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={handleBulkDelete}
+        itemName={`${table.getSelectedRowModel().rows.length} selected items`}
+        itemType='Coupons'
       />
     </>
   )
