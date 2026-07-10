@@ -394,8 +394,6 @@ return ids.includes(selectedCategory)
       setOrderNumber(newOrderId)
       setOrderPlaced(true)
       removeCoupon()
-      setCart([])
-      setShowReceipt(false)
     } catch {
       // Silently fail
     }

@@ -62,6 +62,7 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
   items,
   subtotal,
   vatByRate,
+  vatTotal,
   total,
   discountAmount,
   readOnly = false,
@@ -265,14 +266,21 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
             <Typography>Subtotal:</Typography>
             <Typography>€{subtotal.toFixed(2)}</Typography>
           </Box>
-          {vatByRate && Object.entries(vatByRate).map(([rate, vat]) => (
-            <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant='body2' color='text.secondary'>
-                VAT {rate}%{rate === '12' ? ' (Food)' : rate === '0' ? '' : ' (Drinks)'}:
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
-            </Box>
-          ))}
+          {vatByRate && Object.entries(vatByRate).length > 0
+            ? Object.entries(vatByRate).map(([rate, vat]) => (
+                <Box key={rate} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant='body2' color='text.secondary'>
+                    VAT {rate}%{rate === '12' ? ' (Food)' : rate === '0' ? '' : ' (Drinks)'}:
+                  </Typography>
+                  <Typography variant='body2' color='text.secondary'>€{vat.toFixed(2)}</Typography>
+                </Box>
+              ))
+            : (vatTotal ?? 0) > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                  <Typography variant='body2' color='text.secondary'>VAT:</Typography>
+                  <Typography variant='body2' color='text.secondary'>€{(vatTotal ?? 0).toFixed(2)}</Typography>
+                </Box>
+              )}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant='h6'>Total:</Typography>
             <Typography variant='h6'>€{total.toFixed(2)}</Typography>
@@ -354,11 +362,15 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
           <p style={{ margin: '2px 0' }}>
             Net total: <strong>€{subtotal.toFixed(2)}</strong>
           </p>
-          {vatByRate && Object.entries(vatByRate).map(([rate, vat]) => (
-            <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
-              VAT {rate}%{rate === '12' ? ' (Food)' : rate === '0' ? '' : ' (Drinks)'}: €{vat.toFixed(2)}
-            </p>
-          ))}
+          {vatByRate && Object.entries(vatByRate).length > 0
+            ? Object.entries(vatByRate).map(([rate, vat]) => (
+                <p key={rate} style={{ margin: '2px 0', fontSize: 11 }}>
+                  VAT {rate}%{rate === '12' ? ' (Food)' : rate === '0' ? '' : ' (Drinks)'}: €{vat.toFixed(2)}
+                </p>
+              ))
+            : (vatTotal ?? 0) > 0 && (
+                <p style={{ margin: '2px 0', fontSize: 11 }}>VAT: €{(vatTotal ?? 0).toFixed(2)}</p>
+              )}
           <p style={{ margin: '2px 0', fontSize: 15 }}>
             Total: <strong>€{total.toFixed(2)}</strong>
           </p>
