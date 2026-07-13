@@ -1,78 +1,46 @@
-// React Imports
+'use client'
+
 import { useState, useEffect } from 'react'
 
-// MUI Imports
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import CardContent from '@mui/material/CardContent'
-import Grid from '@mui/material/Grid2'
-import MenuItem from '@mui/material/MenuItem'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Switch from '@mui/material/Switch'
 
-// Type Imports
-import type { OrderType } from '@/types/apps/orderTypes'
+type Props = {
+  showDeleted: boolean
+  setShowDeleted: (v: boolean) => void
+  onClose: () => void
+}
 
-// Component Imports
-import CustomTextField from '@core/components/mui/TextField'
-
-const TableFilters = ({ setData, tableData }: { setData: (data: OrderType[]) => void; tableData?: OrderType[] }) => {
-  // States
-  const [orderType, setOrderType] = useState<OrderType['orderType'] | ''>('')
-  const [status, setStatus] = useState<OrderType['status'] | ''>('')
+const TableFilters = ({ showDeleted, setShowDeleted, onClose }: Props) => {
+  const [localShowDeleted, setLocalShowDeleted] = useState(showDeleted)
 
   useEffect(() => {
-    const filteredData = tableData?.filter(order => {
-      if (orderType && order.orderType !== orderType) return false
-      if (status && order.status !== status) return false
-      
-return true
-    })
-
-    setData(filteredData || [])
-  }, [orderType, status, tableData, setData])
+    setLocalShowDeleted(showDeleted)
+  }, [showDeleted])
 
   return (
-    <CardContent>
-      <Grid container spacing={4} direction='column'>
-        {/* Order Type Filter */}
-        <Grid size={{ xs: 12 }}>
-          <CustomTextField
-            select
-            fullWidth
-            id='select-order-type'
-            value={orderType}
-            onChange={e => setOrderType(e.target.value as OrderType['orderType'])}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>Select Order Type</MenuItem>
-            <MenuItem value='delivery'>Delivery</MenuItem>
-            <MenuItem value='pickup'>Pickup</MenuItem>
-          </CustomTextField>
-        </Grid>
-
-        {/* Order Status Filter */}
-        <Grid size={{ xs: 12 }}>
-          <CustomTextField
-            select
-            fullWidth
-            id='select-status'
-            value={status}
-            onChange={e => setStatus(e.target.value as OrderType['status'])}
-            slotProps={{
-              select: { displayEmpty: true }
-            }}
-          >
-            <MenuItem value=''>Select Status</MenuItem>
-            <MenuItem value='pending'>Pending</MenuItem>
-            <MenuItem value='placed'>Placed</MenuItem>
-            <MenuItem value='confirmed'>Confirmed</MenuItem>
-            <MenuItem value='out_for_delivery'>Out for Delivery</MenuItem>
-            <MenuItem value='completed'>Completed</MenuItem>
-            <MenuItem value='cancelled'>Cancelled</MenuItem>
-            <MenuItem value='deleted'>Deleted</MenuItem>
-          </CustomTextField>
-        </Grid>
-      </Grid>
-    </CardContent>
+    <div onClick={e => e.stopPropagation()}>
+      <CardContent>
+        <FormControlLabel
+          control={<Switch checked={localShowDeleted} onChange={e => setLocalShowDeleted(e.target.checked)} />}
+          label='Show deleted orders'
+        />
+        <Box sx={{ display: 'flex', gap: 5, mt: 2 }}>
+          <Button variant='contained' onClick={() => { setShowDeleted(localShowDeleted); onClose() }} fullWidth>
+            Apply
+          </Button>
+          <Button variant='tonal' color='secondary' onClick={() => { setLocalShowDeleted(false); setShowDeleted(false); onClose() }} fullWidth>
+            Reset
+          </Button>
+          <Button variant='outlined' color='secondary' onClick={onClose} fullWidth>
+            Cancel
+          </Button>
+        </Box>
+      </CardContent>
+    </div>
   )
 }
 
