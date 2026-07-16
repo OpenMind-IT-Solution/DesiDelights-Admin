@@ -17,8 +17,11 @@ export type OrderType = {
   subtotal?: number
   taxAmount?: number
   discountAmount?: number
+  deliveryCharge?: number
   paymentMethod?: string
   receiptImage?: string
   createdAt?: string
   customerName?: string
+  notes?: string
+  deliveryTime?: string
 }
