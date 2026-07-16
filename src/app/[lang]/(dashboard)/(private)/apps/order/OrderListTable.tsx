@@ -12,6 +12,7 @@ import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
@@ -52,6 +53,7 @@ import tableStyles from '@core/styles/table.module.css'
 import AddOrderDrawer from './AddOrderDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import ReceiptDialog from '@/components/dialogs/receipt-dialog/ReceiptDialog'
+import TableFilters from './TableFilters'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -173,6 +175,9 @@ const OrderListTable = () => {
   const [, setTotalRows] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null)
+  const [showDeleted, setShowDeleted] = useState(false)
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10
@@ -181,8 +186,8 @@ const OrderListTable = () => {
   const { lang: locale } = useParams()
 
   useEffect(() => {
-    setFilteredData(data)
-  }, [data])
+    setFilteredData(showDeleted ? data : data.filter(o => o.status !== 'deleted'))
+  }, [data, showDeleted])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
@@ -401,15 +406,17 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
             >
               <i className='tabler-edit text-textSecondary' />
             </IconButton>
-            <IconButton
-              onClick={() => {
-                setOrderToDelete(row.original)
-                setDeleteDialogOpen(true)
-              }}
-              color='error'
-            >
-              <i className='tabler-trash' />
-            </IconButton>
+            {row.original.status !== 'deleted' && (
+              <IconButton
+                onClick={() => {
+                  setOrderToDelete(row.original)
+                  setDeleteDialogOpen(true)
+                }}
+                color='error'
+              >
+                <i className='tabler-trash' />
+              </IconButton>
+            )}
           </div>
         ),
         enableSorting: false
@@ -461,23 +468,22 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
               placeholder='Search Order'
               className='max-sm:is-full'
             />
-            {/* <CustomTextField
-              select
-              value=''
-              slotProps={{
-                select: {
-                  displayEmpty: true,
-                  IconComponent: () => (
-                    <i
-                      className='tabler-filter text-textSecondary text-base'
-                      style={{ transform: 'none', transition: 'none' }}
-                    />
-                  )
-                }
-              }}
+            <Button
+              variant={showDeleted ? 'contained' : 'tonal'}
+              color={showDeleted ? 'error' : 'secondary'}
+              startIcon={<i className='tabler-filter' />}
+              className='max-sm:is-full'
+              onClick={e => setFilterAnchorEl(e.currentTarget)}
             >
-              <TableFilters setData={setFilteredData} tableData={data} />
-            </CustomTextField> */}
+              {showDeleted ? 'Deleted ON' : 'Show Deleted'}
+            </Button>
+            <Menu
+              anchorEl={filterAnchorEl}
+              open={Boolean(filterAnchorEl)}
+              onClose={() => setFilterAnchorEl(null)}
+            >
+              <TableFilters showDeleted={showDeleted} setShowDeleted={setShowDeleted} onClose={() => setFilterAnchorEl(null)} />
+            </Menu>
             <Button
               disabled={table.getSelectedRowModel().rows.length === 0}
               color='secondary'
