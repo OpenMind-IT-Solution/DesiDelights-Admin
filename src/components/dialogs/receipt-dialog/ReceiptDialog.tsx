@@ -53,6 +53,7 @@ interface ReceiptDialogProps {
   onCustomerPhoneChange?: (value: string) => void
   customerNotes?: string
   onCustomerNotesChange?: (value: string) => void
+  createdAt?: string | Date | null
 }
 
 const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
@@ -77,7 +78,8 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
   customerPhone = '',
   onCustomerPhoneChange,
   customerNotes = '',
-  onCustomerNotesChange
+  onCustomerNotesChange,
+  createdAt
 }, ref) => {
   const receiptCaptureRef = useRef<HTMLDivElement>(null)
   const [printing, setPrinting] = useState(false)
@@ -168,6 +170,7 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
       }
     } finally {
       setPrinting(false)
+      onClose()
     }
   }
 
@@ -183,7 +186,12 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
             <Typography variant='body2' color='text.secondary'>
               Date:{' '}
               <span suppressHydrationWarning>
-                {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+                {(() => {
+                  const d = createdAt ? new Date(createdAt) : new Date()
+
+                  return d.toLocaleDateString('en-GB', { timeZone: 'Europe/Brussels' }) + ' ' +
+                    d.toLocaleTimeString('en-GB', { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit' })
+                })()}
               </span>
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -335,7 +343,12 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(({
         <hr style={{ border: 'none', borderTop: '1px dashed #999', margin: '10px 0' }} />
         <p style={{ textAlign: 'left', margin: '4px 0' }}>Order #{orderNumber || 'N/A'}</p>
         <p style={{ textAlign: 'left', margin: '4px 0' }} suppressHydrationWarning>
-          {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+          {(() => {
+            const d = createdAt ? new Date(createdAt) : new Date()
+
+            return d.toLocaleDateString('en-GB', { timeZone: 'Europe/Brussels' }) + ' ' +
+              d.toLocaleTimeString('en-GB', { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit' })
+          })()}
         </p>
         {customerName && <p style={{ textAlign: 'left', margin: '4px 0' }}>Customer: {customerName}</p>}
         {customerPhone && <p style={{ textAlign: 'left', margin: '4px 0' }}>Phone: {customerPhone}</p>}

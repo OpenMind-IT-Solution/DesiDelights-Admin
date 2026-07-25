@@ -211,9 +211,12 @@ const OrderListTable = () => {
 
         if (!active) return
 
-        setData(res.data.orders)
-        setFilteredData(res.data.orders)
-        setTotalRows(res.data.total)
+        console.log('Orders API response:', res)
+        const orders = res?.data?.orders ?? res?.data ?? []
+
+        setData(orders)
+        setFilteredData(orders)
+        setTotalRows(res?.data?.total ?? orders.length)
       } catch (err: any) {
         if (!active) return
 
@@ -743,6 +746,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
         readOnly
         paymentMethod={(receiptOrder as any)?.paymentMethod || 'cash'}
         customerName={receiptOrder?.customerName || ''}
+        createdAt={(receiptOrder as any)?.createdAt || null}
       />
     </>
   )

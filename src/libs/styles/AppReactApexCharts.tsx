@@ -1,21 +1,51 @@
 'use client'
 
-// MUI Imports
+import { Component, type ReactNode } from 'react'
+
 import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
 import type { BoxProps } from '@mui/material/Box'
 
-// Third-party Imports
 import type { Props } from 'react-apexcharts'
 
-// Component Imports
 import ReactApexcharts from '@/libs/ApexCharts'
 
 type ApexChartWrapperProps = Props & {
   boxProps?: BoxProps
 }
 
-// Styled Components
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+class ChartErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <i className='tabler-alert-triangle text-[2rem]' style={{ color: 'var(--mui-palette-warning-main)' }} />
+              <p style={{ color: 'var(--mui-palette-text-secondary)', marginTop: 8, fontSize: '0.85rem' }}>Chart could not be rendered</p>
+            </Box>
+          </Box>
+        )
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 const ApexChartWrapper = styled(Box)<BoxProps>(({ theme }) => ({
   '& .apexcharts-canvas': {
     "& line[stroke='transparent']": {
@@ -105,13 +135,14 @@ const ApexChartWrapper = styled(Box)<BoxProps>(({ theme }) => ({
 })) as typeof Box
 
 const AppReactApexCharts = (props: ApexChartWrapperProps) => {
-  // Props
   const { boxProps, ...rest } = props
 
   return (
-    <ApexChartWrapper {...boxProps}>
-      <ReactApexcharts {...rest} />
-    </ApexChartWrapper>
+    <ChartErrorBoundary>
+      <ApexChartWrapper {...boxProps}>
+        <ReactApexcharts {...rest} />
+      </ApexChartWrapper>
+    </ChartErrorBoundary>
   )
 }
 
