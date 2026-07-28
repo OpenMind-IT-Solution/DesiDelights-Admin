@@ -90,6 +90,7 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const uploadImageToServer = async (file: File): Promise<string | null> => {
     const formData = new FormData()
+
     formData.append('menuImage', file)
 
     try {
@@ -104,10 +105,13 @@ const AddMenuItemDrawer = (props: Props) => {
       }
 
       toast.error(result.message || 'Failed to upload image')
+
       return null
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to upload image'
+
       toast.error(message)
+
       return null
     }
   }

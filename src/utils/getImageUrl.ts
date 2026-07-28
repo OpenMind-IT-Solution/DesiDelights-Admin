@@ -9,6 +9,7 @@ export const getImageUrl = (imagePath: string | null | undefined): string => {
 
   if (imagePath.startsWith('/uploads/')) {
     const base = apiUrl.replace(/\/api\/?$/, '')
+
     return `${base}${imagePath}`
   }
 
