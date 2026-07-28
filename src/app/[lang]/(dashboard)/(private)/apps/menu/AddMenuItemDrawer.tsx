@@ -62,7 +62,8 @@ const Dropzone = styled('div')(({ theme }) => ({
 const AddMenuItemDrawer = (props: Props) => {
   const { open, handleClose, itemToEdit, refetchData } = props
 
-  const [files, setFiles] = useState<(File | string)[]>([])
+  const [files, setFiles] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [categoryIds, setCategoryIds] = useState<CategoryOption[]>([])
 
@@ -87,10 +88,44 @@ const AddMenuItemDrawer = (props: Props) => {
     }
   })
 
+  const uploadImageToServer = async (file: File): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append('menuImage', file)
+
+    try {
+      const result = await postFormData(menuEndpoints.uploadMenuImage, formData) as {
+        status: string
+        message?: string
+        data?: { imagePath: string }
+      }
+
+      if (result.status === 'success' && result.data?.imagePath) {
+        return result.data.imagePath
+      }
+
+      toast.error(result.message || 'Failed to upload image')
+      return null
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload image'
+      toast.error(message)
+      return null
+    }
+  }
+
   const { getRootProps, getInputProps } = useDropzone({
-    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.gif'] },
-    onDrop: (acceptedFiles: File[]) => {
-      setFiles(prevFiles => [...prevFiles, ...acceptedFiles.map(file => Object.assign(file))])
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
+    onDrop: async (acceptedFiles: File[]) => {
+      setUploading(true)
+
+      for (const file of acceptedFiles) {
+        const imagePath = await uploadImageToServer(file)
+
+        if (imagePath) {
+          setFiles(prev => [...prev, imagePath])
+        }
+      }
+
+      setUploading(false)
     }
   })
 
@@ -110,7 +145,15 @@ const AddMenuItemDrawer = (props: Props) => {
         vatRate: itemToEdit.vatRate || 12
       })
 
-      setFiles(itemToEdit.menuImages || [])
+      const existingImages = (itemToEdit.menuImages || []).map(img => {
+        if (typeof img === 'string' && !img.startsWith('/uploads/')) {
+          return `/uploads/menu/${img}`
+        }
+
+        return typeof img === 'string' ? img : ''
+      }).filter(Boolean)
+
+      setFiles(existingImages)
       setTotalPriceInput(Math.round(itemToEdit.price * (1 + (itemToEdit.vatRate || 12) / 100) * 10000) / 10000)
     } else {
       resetForm()
@@ -119,7 +162,7 @@ const AddMenuItemDrawer = (props: Props) => {
     }
   }, [itemToEdit, open, resetForm])
 
-  const handleRemoveFile = (fileToRemove: File | string) => {
+  const handleRemoveFile = (fileToRemove: string) => {
     setFiles(prevFiles => prevFiles.filter(file => file !== fileToRemove))
   }
 
@@ -138,17 +181,11 @@ const AddMenuItemDrawer = (props: Props) => {
     }
   }
 
-  const renderFilePreview = (file: File | string) => {
-    let src: string
-
-    if (typeof file === 'string') {
-      src = getImageUrl(file)
-    } else {
-      src = URL.createObjectURL(file)
-    }
+  const renderFilePreview = (file: string) => {
+    const src = getImageUrl(file)
 
     return (
-      <div key={typeof file === 'string' ? file : file.name} className='relative m-2'>
+      <div key={file} className='relative m-2'>
         <Image src={src} alt='preview' width={100} height={100} style={{ borderRadius: '8px', objectFit: 'cover' }} />
         <IconButton
           size='small'
@@ -182,35 +219,19 @@ const AddMenuItemDrawer = (props: Props) => {
 
   const onSubmit = async (data: FormValidateType) => {
     setLoading(true)
-    const formData = new FormData()
 
-    if (itemToEdit) {
-      formData.append('menuItemId', String(itemToEdit.id))
+    const payload: Record<string, unknown> = {
+      ...data,
+      menuImages: files,
+      restaurantId: [1]
     }
 
-    Object.entries(data).forEach(([key, value]) => {
-      if (value === null || value === undefined) {
-        formData.append(key, '')
-      } else {
-        formData.append(key, String(value))
-      }
-    })
-
-    const existingImages: string[] = []
-
-    files.forEach(file => {
-      if (typeof file === 'string') {
-        existingImages.push(file)
-      } else {
-        formData.append('menuImages', file)
-      }
-    })
-
-    formData.append('menuImages', JSON.stringify(existingImages))
-    formData.append('restaurantId', '1')
+    if (itemToEdit) {
+      payload.menuItemId = itemToEdit.id
+    }
 
     try {
-      const result = await postFormData(menuEndpoints.saveMenu, formData) as {
+      const result = await post(menuEndpoints.saveMenu, payload) as {
         status: string
         message?: string
       }
@@ -422,13 +443,18 @@ const AddMenuItemDrawer = (props: Props) => {
             </Typography>
             <Dropzone {...getRootProps()}>
               <input {...getInputProps()} />
-              <Typography>Drag & drop images here, or click to select files</Typography>
+              <Typography>
+                {uploading ? 'Uploading...' : 'Drag & drop images here, or click to select files'}
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Supported: JPG, JPEG, PNG, WEBP (Max 5MB)
+              </Typography>
             </Dropzone>
             {files.length > 0 && <div className='flex flex-wrap mt-4'>{files.map(renderFilePreview)}</div>}
           </div>
 
           <div className='flex items-center gap-4'>
-            <Button variant='contained' type='submit' disabled={loading}>
+            <Button variant='contained' type='submit' disabled={loading || uploading}>
               {loading ? 'Submitting...' : 'Submit'}
             </Button>
             <Button variant='tonal' color='error' type='reset' onClick={handleReset}>
