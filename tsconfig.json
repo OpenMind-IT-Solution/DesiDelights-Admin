@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "ignoreDeprecations": "5.0",
-    "downlevelIteration": true,
     "lib": [
       "DOM",
       "DOM.Iterable",
