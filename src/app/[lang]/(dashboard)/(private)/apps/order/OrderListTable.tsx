@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 // MUI Imports
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import Checkbox from '@mui/material/Checkbox'
@@ -178,8 +177,6 @@ const OrderListTable = () => {
 
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null)
   const [showDeleted, setShowDeleted] = useState(false)
-  const [monthFilterAnchorEl, setMonthFilterAnchorEl] = useState<null | HTMLElement>(null)
-  const [selectedMonth, setSelectedMonth] = useState('')
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -189,25 +186,8 @@ const OrderListTable = () => {
   const { lang: locale } = useParams()
 
   useEffect(() => {
-    const base = showDeleted ? data : data.filter(o => o.status !== 'deleted')
-
-    if (selectedMonth) {
-      const monthFiltered = base.filter(o => {
-        if (!o.createdAt) return false
-        const d = new Date(o.createdAt)
-
-        if (isNaN(d.getTime())) return false
-
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-
-        return ym === selectedMonth
-      })
-
-      setFilteredData(monthFiltered)
-    } else {
-      setFilteredData(base)
-    }
-  }, [data, showDeleted, selectedMonth])
+    setFilteredData(showDeleted ? data : data.filter(o => o.status !== 'deleted'))
+  }, [data, showDeleted])
 
   useEffect(() => {
     setPagination(prev => ({ ...prev, pageIndex: 0 }))
@@ -285,6 +265,15 @@ const OrderListTable = () => {
         return `${day}/${month}/${year}`
       }
 
+      const formatTime = (raw?: string): string => {
+        if (!raw) return ''
+        const d = new Date(raw)
+
+        if (isNaN(d.getTime())) return ''
+
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      }
+
       const fmt = (v: unknown): string => {
         if (v == null || v === undefined) return ''
         const s = String(v)
@@ -292,120 +281,95 @@ const OrderListTable = () => {
         return `"${s.replace(/"/g, '""')}"`
       }
 
-      const headerRow1 = ['Date', 'Numéro', 'CA TVAC', 'CA HTVA', 'CA HTVA', 'CA HTVA', 'TVA', 'TVA', 'TVA', 'CA TVAC', 'CA TVAC', 'CA TVAC']
+      const parseAddress = (addr: string): string => {
+        if (!addr) return ''
 
-      const headerRow2 = ['', '', 'Total', '21%', '12%', '6%', '21%', '12%', '6%', 'Espèce', 'Virement', 'Carte bancaire']
+        try {
+          const parsed = JSON.parse(addr)
 
-      const money = (v: unknown): string => {
-        const n = Number(v)
+          if (typeof parsed === 'object' && parsed !== null) {
+            const parts: string[] = []
 
-        return Number.isFinite(n) ? n.toFixed(2) : '0.00'
+            if (parsed.address) parts.push(parsed.address)
+            if (parsed.city) parts.push(parsed.city)
+            if (parsed.postcode) parts.push(parsed.postcode)
+
+            return parts.join(', ') || addr
+          }
+
+          return addr
+        } catch {
+          return addr
+        }
       }
 
-      const grouped = new Map<string, any[]>()
+      const headers = [
+        'Order ID',
+        'Order Number',
+        'Date',
+        'Time',
+        'Customer Name',
+        'Phone',
+        'Email',
+        'Order Type',
+        'Payment Method',
+        'Payment Status',
+        'Order Status',
+        'Items',
+        'Subtotal',
+        'Tax',
+        'Delivery Charge',
+        'Discount',
+        'Tip',
+        'Total Amount',
+        'Currency',
+        'Coupon Code',
+        'Delivery Address',
+        'Assigned Driver',
+        'Kitchen Status',
+        'Notes',
+        'Created By'
+      ]
 
-      filteredData.forEach(order => {
-        const key = order.createdAt ? formatDate(order.createdAt) : 'N/A'
+      const rows = filteredData.map(order => {
+        const itemsText = (order.orderItems || [])
+          .map((oi: any) => `${oi.menuItemName || 'Item #' + oi.menuItemId} x${oi.quantity} @${Number(oi.price).toFixed(2)}`)
+          .join('; ')
 
-        if (!grouped.has(key)) grouped.set(key, [])
-
-        grouped.get(key)!.push(order)
+        return [
+          order.id,
+          `#${order.id}`,
+          formatDate(order.createdAt),
+          formatTime(order.createdAt),
+          order.customerName || '',
+          '',
+          '',
+          order.orderType || '',
+          order.paymentMethod || '',
+          order.paymentStatus || '',
+          order.status || '',
+          itemsText,
+          order.subtotal != null ? Number(order.subtotal).toFixed(2) : '',
+          order.taxAmount != null ? Number(order.taxAmount).toFixed(2) : '',
+          order.deliveryCharge != null ? Number(order.deliveryCharge).toFixed(2) : '',
+          order.discountAmount != null ? Number(order.discountAmount).toFixed(2) : '',
+          '',
+          order.totalAmount != null ? Number(order.totalAmount).toFixed(2) : '',
+          'EUR',
+          '',
+          parseAddress(order.deliveryAddress || ''),
+          '',
+          '',
+          order.notes || '',
+          ''
+        ].map(fmt).join(',')
       })
 
-      const rows = Array.from(grouped.entries())
-        .sort((a, b) => (a[0] === 'N/A' ? 1 : b[0] === 'N/A' ? -1 : a[0].localeCompare(b[0])))
-        .map(([day, orders]) => {
-          const caHtva: Record<number, number> = { 21: 0, 12: 0, 6: 0 }
-
-          const rawTva: Record<number, number> = { 21: 0, 12: 0, 6: 0 }
-
-          const caTvac: Record<number, number> = { 21: 0, 12: 0, 6: 0 }
-
-          let totalTvac = 0
-
-          let espece = 0
-
-          let virement = 0
-
-          let carte = 0
-
-          orders.forEach(order => {
-            const orderTotal = Number(order.totalAmount) || 0
-
-            totalTvac += orderTotal
-
-            const method = String(order.paymentMethod || '').toLowerCase()
-
-            if (method === 'cash') espece += orderTotal
-            else if (['virement', 'bank_transfer', 'transfer', 'bank'].includes(method)) virement += orderTotal
-            else if (['card', 'stripe', 'credit_card', 'debit_card'].includes(method)) carte += orderTotal
-
-            let rawSum = 0
-
-            const orderRaw: Record<number, number> = { 21: 0, 12: 0, 6: 0 }
-
-            const orderHtva: Record<number, number> = { 21: 0, 12: 0, 6: 0 }
-
-            ;(order.orderItems || []).forEach((oi: any) => {
-              const qty = Number(oi.quantity) || 0
-
-              const price = Number(oi.price) || 0
-
-              let rate = Number(oi.vatRate)
-
-              if (!Number.isFinite(rate) || rate <= 0) rate = 12
-
-              if (!(rate in orderRaw)) rate = 12
-
-              const h = price * qty
-
-              const v = (h * rate) / 100
-
-              orderHtva[rate] += h
-
-              orderRaw[rate] += v
-
-              rawSum += v
-            })
-
-            const orderTax = Number(order.taxAmount) || rawSum
-
-            const scale = rawSum > 0 ? orderTax / rawSum : 1
-
-            ;[21, 12, 6].forEach(rate => {
-              caHtva[rate] += orderHtva[rate]
-
-              rawTva[rate] += orderRaw[rate] * scale
-
-              caTvac[rate] += orderHtva[rate] + orderRaw[rate] * scale
-            })
-          })
-
-          return [
-            day,
-            orders.length,
-            money(totalTvac),
-            money(caHtva[21]),
-            money(caHtva[12]),
-            money(caHtva[6]),
-            money(rawTva[21]),
-            money(rawTva[12]),
-            money(rawTva[6]),
-            money(espece),
-            money(virement),
-            money(carte)
-          ].map(fmt).join(',')
-        })
-
       const bom = '\uFEFF'
-
-      const csvContent =
-        bom +
-        [headerRow1.map(h => `"${h}"`).join(','), headerRow2.map(h => `"${h}"`).join(','), ...rows].join('\r\n')
-
+      const csvContent = bom + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n')
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
-      const dateStr = selectedMonth ? selectedMonth.replace('-', '_') : new Date().toISOString().slice(0, 10).replace(/-/g, '_')
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_')
       const link = document.createElement('a')
 
       link.href = url
@@ -414,7 +378,7 @@ const OrderListTable = () => {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      toast.success(`${grouped.size} day(s) exported successfully.`)
+      toast.success(`${filteredData.length} order(s) exported successfully.`)
     } catch (err) {
       console.error('Export failed:', err)
       toast.error('Failed to export orders.')
@@ -642,46 +606,6 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
               onClose={() => setFilterAnchorEl(null)}
             >
               <TableFilters showDeleted={showDeleted} setShowDeleted={setShowDeleted} onClose={() => setFilterAnchorEl(null)} />
-            </Menu>
-            <Button
-              variant={selectedMonth ? 'contained' : 'tonal'}
-              color={selectedMonth ? 'primary' : 'secondary'}
-              startIcon={<i className='tabler-calendar-month' />}
-              className='max-sm:is-full'
-              onClick={e => setMonthFilterAnchorEl(e.currentTarget)}
-            >
-              {selectedMonth ? `Month: ${selectedMonth}` : 'Filter by Month'}
-            </Button>
-            <Menu
-              anchorEl={monthFilterAnchorEl}
-              open={Boolean(monthFilterAnchorEl)}
-              onClose={() => setMonthFilterAnchorEl(null)}
-            >
-              <Box sx={{ p: 2, width: 260 }}>
-                <CustomTextField
-                  type='month'
-                  fullWidth
-                  label='Select Month'
-                  value={selectedMonth}
-                  onChange={e => setSelectedMonth(e.target.value)}
-                />
-                <Box sx={{ display: 'flex', gap: 5, mt: 2 }}>
-                  <Button variant='contained' onClick={() => setMonthFilterAnchorEl(null)} fullWidth>
-                    Apply
-                  </Button>
-                  <Button
-                    variant='tonal'
-                    color='secondary'
-                    onClick={() => {
-                      setSelectedMonth('')
-                      setMonthFilterAnchorEl(null)
-                    }}
-                    fullWidth
-                  >
-                    Reset
-                  </Button>
-                </Box>
-              </Box>
             </Menu>
             <Button
               disabled={exporting || filteredData.length === 0}
