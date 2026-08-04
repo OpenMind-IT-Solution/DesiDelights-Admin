@@ -9,6 +9,7 @@ export type CouponProps = {
   usageCount: number
   maxUsage: number
   isCustomerEligible?: boolean
+  isAdminEligible?: boolean
 }
 
 export type CouponTypes = {

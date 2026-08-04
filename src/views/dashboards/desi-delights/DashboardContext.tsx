@@ -115,7 +115,7 @@ function getPreviousDateRange(current: DateRange): DateRange {
 }
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
-  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('last30')
+  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('today')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
