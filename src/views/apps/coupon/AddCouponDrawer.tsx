@@ -36,6 +36,7 @@ type FormValues = {
   usageCount: number
   maxUsage: number
   isCustomerEligible: boolean
+  isAdminEligible: boolean
 }
 
 const toDateInputValue = (dateStr: string | undefined) => {
@@ -62,7 +63,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
       status: 'active',
       usageCount: 0,
       maxUsage: 0,
-      isCustomerEligible: true
+      isCustomerEligible: true,
+      isAdminEligible: true
     }
   })
 
@@ -77,7 +79,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
         status: couponToEdit?.status === false ? 'inactive' : 'active',
         usageCount: couponToEdit?.usageCount ?? 0,
         maxUsage: couponToEdit?.maxUsage ?? 0,
-        isCustomerEligible: couponToEdit?.isCustomerEligible ?? true
+        isCustomerEligible: couponToEdit?.isCustomerEligible ?? true,
+        isAdminEligible: couponToEdit?.isAdminEligible ?? true
       })
     }
   }, [couponToEdit, open, reset])
@@ -100,7 +103,8 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
       status: data.status === 'active',
       usageCount: Number(data.usageCount),
       maxUsage: Number(data.maxUsage),
-      isCustomerEligible: data.isCustomerEligible
+      isCustomerEligible: data.isCustomerEligible,
+      isAdminEligible: data.isAdminEligible
     }
 
     try {
@@ -265,6 +269,16 @@ const AddCouponDrawer = ({ open, handleClose, onSuccess, couponToEdit }: Props) 
               <FormControlLabel
                 control={<Checkbox checked={field.value} onChange={e => field.onChange(e.target.checked)} />}
                 label='Eligible for customers'
+              />
+            )}
+          />
+          <Controller
+            name='isAdminEligible'
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={<Checkbox checked={field.value} onChange={e => field.onChange(e.target.checked)} />}
+                label='Eligible for Admin / POS'
               />
             )}
           />

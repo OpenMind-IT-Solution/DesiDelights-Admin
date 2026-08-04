@@ -16,6 +16,7 @@ import {
   Fab,
   Grid,
   IconButton,
+  InputAdornment,
   List,
   ListItem,
   ListItemSecondaryAction,
@@ -27,6 +28,8 @@ import {
 
 // Type Imports
 import {
+  CloseCircleOutline,
+  Magnify,
   MinusCircleOutline,
   PlusCircleOutline,
   ShoppingOutline,
@@ -58,6 +61,7 @@ const Pos = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderNumber, setOrderNumber] = useState<number | null>(null)
@@ -141,7 +145,7 @@ const Pos = () => {
       })
 
       if (result.status === 'success') {
-        setAvailableCoupons(result.data.coupons || [])
+        setAvailableCoupons((result.data.coupons || []).filter((c: any) => c.isAdminEligible !== false))
       }
     } catch {
       // Silently fail - coupons are optional
@@ -160,18 +164,16 @@ const Pos = () => {
     fetchData()
   }, [fetchCategories, fetchMenuItems, fetchCoupons])
 
-  // Filter menu items by category
-  const filteredMenuItems =
+  // Filter menu items by category and search
+  const filteredMenuItems = menuItems.filter(item => {
+    const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
+    const matchesCategory = selectedCategory === null || ids.includes(selectedCategory)
 
-    // Filter items by category
-    selectedCategory !== null
-      ? menuItems.filter(item => {
-          const ids = item.categories?.map(c => c.id) || (item as any).categoryId || []
+    const matchesSearch =
+      searchQuery.trim() === '' || item.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
 
-          
-return ids.includes(selectedCategory)
-        })
-      : menuItems
+    return matchesCategory && matchesSearch
+  })
 
   // Get active categories for filter
   const activeCategories = categories.filter(cat => cat.status === 'active')
@@ -268,7 +270,7 @@ return ids.includes(selectedCategory)
     setCouponError('')
 
     try {
-      const result: any = await post(couponEndpoints.validateCoupon, {
+      const result: any = await post(posEndpoints.validateCoupon, {
         couponCode: code.trim(),
         subtotal: orderSummary.subtotal
       })
@@ -423,6 +425,48 @@ return ids.includes(selectedCategory)
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Left Panel - Menu */}
         <Box sx={{ width: '70%', p: 2, overflow: 'auto' }}>
+          {/* Search Bar */}
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <CustomTextField
+              size='small'
+              placeholder='Search menu items...'
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              sx={{
+                width: 350,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                  bgcolor: 'background.paper',
+                  boxShadow: theme => theme.shadows[1],
+                  transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                  '&:hover, &.Mui-focused': {
+                    boxShadow: theme => `0 0 0 3px ${theme.palette.primary.main}22`
+                  }
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position='start'>
+                    <Magnify sx={{ color: 'primary.main' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position='end'>
+                    <IconButton size='small' onClick={() => setSearchQuery('')} aria-label='Clear search'>
+                      <CloseCircleOutline fontSize='small' />
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            {searchQuery.trim() !== '' && (
+              <Typography variant='caption' color='text.secondary' sx={{ mt: 0.5, textAlign: 'right', display: 'block' }}>
+                {filteredMenuItems.length} {filteredMenuItems.length === 1 ? 'item' : 'items'} found
+                {selectedCategory !== null ? ' in this category' : ''}
+              </Typography>
+            )}
+          </Box>
+
           {/* Category Filter */}
           <Box sx={{ mb: 3 }}>
             <Typography variant='h6' gutterBottom>

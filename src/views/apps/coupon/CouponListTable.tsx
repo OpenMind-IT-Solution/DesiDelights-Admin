@@ -313,6 +313,16 @@ const CouponListTable = () => {
         header: 'Max Usage',
         cell: ({ row }) => <span>{row.original.maxUsage}</span>
       }),
+      columnHelper.accessor('isCustomerEligible', {
+        header: 'Applies To',
+        cell: ({ row }) => {
+          const customer = row.original.isCustomerEligible !== false
+          const admin = row.original.isAdminEligible !== false
+          const label = customer && admin ? 'Customer + Admin' : customer ? 'Customer' : admin ? 'Admin / POS' : 'None'
+
+          return <Chip variant='tonal' label={label} size='small' color={customer || admin ? 'primary' : 'secondary'} />
+        }
+      }),
       columnHelper.accessor('action', {
         header: 'Action',
         cell: ({ row }) => (
