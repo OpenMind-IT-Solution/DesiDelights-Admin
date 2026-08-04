@@ -75,6 +75,7 @@ const initialPermissions: ModulePermissions = {
   'Location Management': { moduleId: 16, all: false, view: false, create: false, edit: false, delete: false },
   'Menu Management': { moduleId: 6, all: false, view: false, create: false, edit: false, delete: false },
   'Order Management': { moduleId: 7, all: false, view: false, create: false, edit: false, delete: false },
+  'POS Management': { moduleId: 19, all: false, view: false, create: false, edit: false, delete: false },
   'Payment Gateway': { moduleId: 15, all: false, view: false, create: false, edit: false, delete: false },
   'Report Management': { moduleId: 9, all: false, view: false, create: false, edit: false, delete: false },
   'Restaurant Management': { moduleId: 2, all: false, view: false, create: false, edit: false, delete: false },
