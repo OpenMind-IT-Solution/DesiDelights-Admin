@@ -6,6 +6,7 @@ import { useTheme } from '@mui/material/styles'
 
 // Third-party Imports
 import PerfectScrollbar from 'react-perfect-scrollbar'
+import { useSession } from 'next-auth/react'
 
 // Type Imports
 import type { getDictionary } from '@/utils/getDictionary'
@@ -14,10 +15,11 @@ import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Me
 // Component Imports
 import { Menu, MenuItem, SubMenu } from '@menu/vertical-menu'
 
-// import { GenerateVerticalMenu } from '@components/GenerateMenu'
-
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
+
+// Util Imports
+import { canView } from '@/utils/permissions'
 
 // Styled Component Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
@@ -50,10 +52,12 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
   const theme = useTheme()
   const verticalNavOptions = useVerticalNav()
   const params = useParams()
+  const { data: session } = useSession()
 
   // Vars
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
   const { lang: locale } = params
+  const permissions = session?.user?.permissions
 
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
@@ -76,44 +80,66 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
-        <MenuItem
-          href={`/${locale}/dashboards/crm`}
-          icon={<i className='tabler-smart-home' />}
-          exactMatch={false}
-          activeUrl='/dashboards/crm'
-        >
-          {dictionary['navigation'].dashboards}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/restaurant`} icon={<i className="tabler-building-store"></i>}>
-          {dictionary['navigation'].restaurantManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/user`} icon={<i className='tabler-user' />}>
-          {dictionary['navigation'].userManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/category`} icon={<i className='tabler-category-2' />}>
-          {dictionary['navigation'].categoryManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/menu`} icon={<i className='tabler-menu-deep' />}>
-          {dictionary['navigation'].menuManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/pos`} icon={<i className='tabler-target' />}>
-          {dictionary['navigation'].posModule}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/grocery`} icon={<i className='tabler-shopping-cart' />}>
-          {dictionary['navigation'].groceryManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/banner`} icon={<i className='tabler-photo' />}>
-          {dictionary['navigation'].bannerManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/order`} icon={<i className='tabler-truck' />}>
-          {dictionary['navigation'].ordersManagement}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/report`} icon={<i className='tabler-file-analytics' />}>
-          {dictionary['navigation'].report} {dictionary['navigation'].module}
-        </MenuItem>
-        <MenuItem href={`/${locale}/apps/coupon`} icon={<i className='tabler-discount' />}>
-          {dictionary['navigation'].couponManagement}
-        </MenuItem>
+        {canView(permissions, 'Dashboard') && (
+          <MenuItem
+            href={`/${locale}/dashboards/crm`}
+            icon={<i className='tabler-smart-home' />}
+            exactMatch={false}
+            activeUrl='/dashboards/crm'
+          >
+            {dictionary['navigation'].dashboards}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Restaurant Management') && (
+          <MenuItem href={`/${locale}/apps/restaurant`} icon={<i className="tabler-building-store"></i>}>
+            {dictionary['navigation'].restaurantManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'User Management') && (
+          <MenuItem href={`/${locale}/apps/user`} icon={<i className='tabler-user' />}>
+            {dictionary['navigation'].userManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Category Management') && (
+          <MenuItem href={`/${locale}/apps/category`} icon={<i className='tabler-category-2' />}>
+            {dictionary['navigation'].categoryManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Menu Management') && (
+          <MenuItem href={`/${locale}/apps/menu`} icon={<i className='tabler-menu-deep' />}>
+            {dictionary['navigation'].menuManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'POS Management') && (
+          <MenuItem href={`/${locale}/apps/pos`} icon={<i className='tabler-target' />}>
+            {dictionary['navigation'].posModule}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Inventory Management') && (
+          <MenuItem href={`/${locale}/apps/grocery`} icon={<i className='tabler-shopping-cart' />}>
+            {dictionary['navigation'].groceryManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Restaurant Management') && (
+          <MenuItem href={`/${locale}/apps/banner`} icon={<i className='tabler-photo' />}>
+            {dictionary['navigation'].bannerManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Order Management') && (
+          <MenuItem href={`/${locale}/apps/order`} icon={<i className='tabler-truck' />}>
+            {dictionary['navigation'].ordersManagement}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Report Management') && (
+          <MenuItem href={`/${locale}/apps/report`} icon={<i className='tabler-file-analytics' />}>
+            {dictionary['navigation'].report} {dictionary['navigation'].module}
+          </MenuItem>
+        )}
+        {canView(permissions, 'Coupon Management') && (
+          <MenuItem href={`/${locale}/apps/coupon`} icon={<i className='tabler-discount' />}>
+            {dictionary['navigation'].couponManagement}
+          </MenuItem>
+        )}
         {/* <MenuItem href={`/${locale}/apps/manage-reviews`} icon={<i className='tabler-message-star' />}>
           {dictionary['navigation'].manageReviews}
         </MenuItem> */}
@@ -123,12 +149,25 @@ const VerticalMenu = ({ dictionary, scrollMenu }: Props) => {
         {/* <MenuItem href={`/${locale}/apps/tv-management`} icon={<i className='tabler-device-tv-old' />}>
           {dictionary['navigation'].tvManagement}
         </MenuItem> */}
-        <SubMenu label={dictionary['navigation'].settings} icon={<i className='tabler-settings' />}>
-          <MenuItem href={`/${locale}/apps/payment`}>{dictionary['navigation'].paymentGetway}</MenuItem>
-          <MenuItem href={`/${locale}/apps/delivery-settings`}>{dictionary['navigation'].deliverySettings}</MenuItem>
-          <MenuItem href={`/${locale}/apps/locations`}>{dictionary['navigation'].locationManagement}</MenuItem>
-          <MenuItem href={`/${locale}/apps/roles`}>{dictionary['navigation'].rolesPermissions}</MenuItem>
-        </SubMenu>
+        {(canView(permissions, 'Payment Gateway') ||
+          canView(permissions, 'Setting') ||
+          canView(permissions, 'Location Management') ||
+          canView(permissions, 'Roles & Permission')) && (
+          <SubMenu label={dictionary['navigation'].settings} icon={<i className='tabler-settings' />}>
+            {canView(permissions, 'Payment Gateway') && (
+              <MenuItem href={`/${locale}/apps/payment`}>{dictionary['navigation'].paymentGetway}</MenuItem>
+            )}
+            {canView(permissions, 'Setting') && (
+              <MenuItem href={`/${locale}/apps/delivery-settings`}>{dictionary['navigation'].deliverySettings}</MenuItem>
+            )}
+            {canView(permissions, 'Location Management') && (
+              <MenuItem href={`/${locale}/apps/locations`}>{dictionary['navigation'].locationManagement}</MenuItem>
+            )}
+            {canView(permissions, 'Roles & Permission') && (
+              <MenuItem href={`/${locale}/apps/roles`}>{dictionary['navigation'].rolesPermissions}</MenuItem>
+            )}
+          </SubMenu>
+        )}
       </Menu>
     </ScrollWrapper>
   )

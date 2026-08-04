@@ -10,6 +10,7 @@ import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
 import { styled } from '@mui/material/styles'
 import Typography from '@mui/material/Typography'
@@ -77,6 +78,7 @@ interface FormValidateType {
   status: boolean
   phoneNumber: string
   profileImage: File | null
+  password: string
 }
 
 const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
@@ -84,6 +86,7 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
 
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
   const [imgSrc, setImgSrc] = useState<string>('/images/avatars/1.png')
+  const [isPasswordShown, setIsPasswordShown] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const validationSchema = yup.object({
@@ -93,7 +96,10 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
     roleId: yup.number().required('Role is required'),
     status: yup.boolean().required('Status is required'),
     phoneNumber: yup.string().required('Phone Number is required'),
-    profileImage: yup.mixed().nullable()
+    profileImage: yup.mixed().nullable(),
+    password: userToEdit
+      ? yup.string().notRequired()
+      : yup.string().min(6, 'Password must be at least 6 characters').required('Password is required')
   })
 
   const initialValues = useMemo<FormValidateType>(
@@ -104,7 +110,8 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
       roleId: userToEdit?.roleId || '',
       status: userToEdit?.status ?? true,
       phoneNumber: userToEdit?.phoneNumber || '',
-      profileImage: null
+      profileImage: null,
+      password: ''
     }),
     [userToEdit]
   )
@@ -123,6 +130,10 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
       formData.append('roleId', String(values.roleId))
       formData.append('status', String(values.status))
       formData.append('phoneNumber', values.phoneNumber)
+
+      if (!userToEdit && values.password) {
+        formData.append('password', values.password)
+      }
 
       const restaurantIds: (string | number)[] =
         typeof session?.user?.restaurantId === 'string'
@@ -317,6 +328,36 @@ const AddUserDrawer = ({ open, handleClose, userToEdit, onSuccess }: Props) => {
           <MenuItem value='true'>Active</MenuItem>
           <MenuItem value='false'>Inactive</MenuItem>
         </CustomTextField>
+
+        {!userToEdit && (
+          <CustomTextField
+            fullWidth
+            name='password'
+            type={isPasswordShown ? 'text' : 'password'}
+            label={<RequiredLabel label='Password' isRequired={true} />}
+            placeholder='Enter password'
+            value={formik.values.password}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            error={formik.touched.password && Boolean(formik.errors.password)}
+            helperText={formik.touched.password && formik.errors.password}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <IconButton
+                      edge='end'
+                      onClick={() => setIsPasswordShown(!isPasswordShown)}
+                      onMouseDown={e => e.preventDefault()}
+                    >
+                      <i className={isPasswordShown ? 'tabler-eye-off' : 'tabler-eye'} />
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }
+            }}
+          />
+        )}
 
         <CustomTextField
           fullWidth

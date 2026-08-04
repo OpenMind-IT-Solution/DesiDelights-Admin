@@ -20,6 +20,7 @@ import HorizontalFooter from '@components/layout/horizontal/Footer'
 import Customizer from '@core/components/customizer'
 import ScrollToTop from '@core/components/scroll-to-top'
 import AuthGuard from '@/hocs/AuthGuard'
+import RoleBasedRedirect from '@/hocs/RoleBasedRedirect'
 
 // Config Imports
 import { i18n } from '@configs/i18n'
@@ -42,7 +43,8 @@ const Layout = async (props: ChildrenType & { params: Promise<{ lang: Locale }> 
   return (
     <Providers direction={direction}>
       <AuthGuard locale={params.lang}>
-        <LayoutWrapper
+        <RoleBasedRedirect lang={params.lang}>
+          <LayoutWrapper
           systemMode={systemMode}
           verticalLayout={
             <VerticalLayout
@@ -68,6 +70,7 @@ const Layout = async (props: ChildrenType & { params: Promise<{ lang: Locale }> 
           </Button>
         </ScrollToTop>
         <Customizer dir={direction} />
+        </RoleBasedRedirect>
       </AuthGuard>
     </Providers>
   )

@@ -4,6 +4,9 @@ import { useParams } from 'next/navigation'
 // MUI Imports
 import { useTheme } from '@mui/material/styles'
 
+// Third-party Imports
+import { useSession } from 'next-auth/react'
+
 // Type Imports
 import type { getDictionary } from '@/utils/getDictionary'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
@@ -12,10 +15,11 @@ import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Me
 import HorizontalNav, { Menu, MenuItem, SubMenu } from '@menu/horizontal-menu'
 import VerticalNavContent from './VerticalNavContent'
 
-// import { GenerateHorizontalMenu } from '@components/GenerateMenu'
-
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
+
+// Util Imports
+import { canView } from '@/utils/permissions'
 
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
@@ -57,10 +61,13 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
   const verticalNavOptions = useVerticalNav()
   const theme = useTheme()
   const params = useParams()
+  const { data: session } = useSession()
 
   // Vars
   const { transitionDuration } = verticalNavOptions
   const { lang: locale } = params
+  const permissions = session?.user?.permissions
+  const isRestricted = !!permissions && permissions.length > 0
 
   return (
     <HorizontalNav
@@ -89,6 +96,21 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
           menuSectionStyles: verticalMenuSectionStyles(verticalNavOptions, theme)
         }}
       >
+        {isRestricted ? (
+          <>
+            {canView(permissions, 'Dashboard') && (
+              <MenuItem href={`/${locale}/dashboards/crm`} icon={<i className='tabler-smart-home' />}>
+                {dictionary['navigation'].dashboards}
+              </MenuItem>
+            )}
+            {canView(permissions, 'POS Management') && (
+              <MenuItem href={`/${locale}/apps/pos`} icon={<i className='tabler-target' />}>
+                {dictionary['navigation'].posModule}
+              </MenuItem>
+            )}
+          </>
+        ) : (
+          <>
         <SubMenu label={dictionary['navigation'].dashboards} icon={<i className='tabler-smart-home' />}>
           <MenuItem href={`/${locale}/dashboards/crm`} icon={<i className='tabler-chart-pie-2' />}>
             {dictionary['navigation'].crm}
@@ -414,6 +436,8 @@ const HorizontalMenu = ({ dictionary }: { dictionary: Awaited<ReturnType<typeof 
           </SubMenu>
           <MenuItem disabled>{dictionary['navigation'].disabledMenu}</MenuItem>
         </SubMenu> */}
+          </>
+        )}
       </Menu>
       {/* <Menu
         rootStyles={menuRootStyles(theme)}
