@@ -34,8 +34,10 @@
     "@fullcalendar/timegrid": "6.1.15",
     "@hookform/resolvers": "3.9.1",
     "@mui/lab": "6.0.0-beta.19",
-    "@mui/material": "6.2.1",
+    "@mui/material": "^6.5.0",
     "@mui/material-nextjs": "6.2.1",
+    "@mui/system": "^6.5.0",
+    "@mui/x-date-pickers": "^7.29.4",
     "@prisma/client": "5.22.0",
     "@reduxjs/toolkit": "2.5.0",
     "@tanstack/match-sorter-utils": "8.19.4",
@@ -55,6 +57,7 @@
     "classnames": "2.5.1",
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
+    "dayjs": "^1.11.21",
     "emoji-mart": "5.6.0",
     "formik": "^2.4.6",
     "fs-extra": "11.2.0",
@@ -85,6 +88,7 @@
     "server-only": "0.0.1",
     "sunmi-js-sdk": "^1.0.53",
     "valibot": "0.42.1",
+    "xlsx": "^0.18.5",
     "yup": "^1.7.1"
   },
   "devDependencies": {

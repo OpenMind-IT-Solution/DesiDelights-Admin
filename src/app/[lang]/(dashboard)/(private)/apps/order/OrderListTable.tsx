@@ -54,6 +54,7 @@ import AddOrderDrawer from './AddOrderDrawer'
 import DeleteConfirmationDialog from './DeleteConfirmationDialog'
 import ReceiptDialog from '@/components/dialogs/receipt-dialog/ReceiptDialog'
 import TableFilters from './TableFilters'
+import ExportMonthlyDialog from './ExportMonthlyDialog'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -177,6 +178,7 @@ const OrderListTable = () => {
 
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null)
   const [showDeleted, setShowDeleted] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -239,153 +241,6 @@ const OrderListTable = () => {
       active = false
     }
   }, [session, refreshKey])
-
-  const [exporting, setExporting] = useState(false)
-
-  const handleExportCSV = async () => {
-    if (filteredData.length === 0) {
-      toast.info('No orders to export matching the current filters.')
-
-      return
-    }
-
-    setExporting(true)
-
-    try {
-      const formatDate = (raw?: string): string => {
-        if (!raw) return ''
-        const d = new Date(raw)
-
-        if (isNaN(d.getTime())) return ''
-
-        const day = String(d.getDate()).padStart(2, '0')
-        const month = String(d.getMonth() + 1).padStart(2, '0')
-        const year = d.getFullYear()
-
-        return `${day}/${month}/${year}`
-      }
-
-      const formatTime = (raw?: string): string => {
-        if (!raw) return ''
-        const d = new Date(raw)
-
-        if (isNaN(d.getTime())) return ''
-
-        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-      }
-
-      const fmt = (v: unknown): string => {
-        if (v == null || v === undefined) return ''
-        const s = String(v)
-
-        return `"${s.replace(/"/g, '""')}"`
-      }
-
-      const parseAddress = (addr: string): string => {
-        if (!addr) return ''
-
-        try {
-          const parsed = JSON.parse(addr)
-
-          if (typeof parsed === 'object' && parsed !== null) {
-            const parts: string[] = []
-
-            if (parsed.address) parts.push(parsed.address)
-            if (parsed.city) parts.push(parsed.city)
-            if (parsed.postcode) parts.push(parsed.postcode)
-
-            return parts.join(', ') || addr
-          }
-
-          return addr
-        } catch {
-          return addr
-        }
-      }
-
-      const headers = [
-        'Order ID',
-        'Order Number',
-        'Date',
-        'Time',
-        'Customer Name',
-        'Phone',
-        'Email',
-        'Order Type',
-        'Payment Method',
-        'Payment Status',
-        'Order Status',
-        'Items',
-        'Subtotal',
-        'Tax',
-        'Delivery Charge',
-        'Discount',
-        'Tip',
-        'Total Amount',
-        'Currency',
-        'Coupon Code',
-        'Delivery Address',
-        'Assigned Driver',
-        'Kitchen Status',
-        'Notes',
-        'Created By'
-      ]
-
-      const rows = filteredData.map(order => {
-        const itemsText = (order.orderItems || [])
-          .map((oi: any) => `${oi.menuItemName || 'Item #' + oi.menuItemId} x${oi.quantity} @${Number(oi.price).toFixed(2)}`)
-          .join('; ')
-
-        return [
-          order.id,
-          `#${order.id}`,
-          formatDate(order.createdAt),
-          formatTime(order.createdAt),
-          order.customerName || '',
-          '',
-          '',
-          order.orderType || '',
-          order.paymentMethod || '',
-          order.paymentStatus || '',
-          order.status || '',
-          itemsText,
-          order.subtotal != null ? Number(order.subtotal).toFixed(2) : '',
-          order.taxAmount != null ? Number(order.taxAmount).toFixed(2) : '',
-          order.deliveryCharge != null ? Number(order.deliveryCharge).toFixed(2) : '',
-          order.discountAmount != null ? Number(order.discountAmount).toFixed(2) : '',
-          '',
-          order.totalAmount != null ? Number(order.totalAmount).toFixed(2) : '',
-          'EUR',
-          '',
-          parseAddress(order.deliveryAddress || ''),
-          '',
-          '',
-          order.notes || '',
-          ''
-        ].map(fmt).join(',')
-      })
-
-      const bom = '\uFEFF'
-      const csvContent = bom + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n')
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_')
-      const link = document.createElement('a')
-
-      link.href = url
-      link.download = `Orders_${dateStr}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      toast.success(`${filteredData.length} order(s) exported successfully.`)
-    } catch (err) {
-      console.error('Export failed:', err)
-      toast.error('Failed to export orders.')
-    } finally {
-      setExporting(false)
-    }
-  }
 
   const handleConfirmDelete = async () => {
     if (!orderToDelete) return
@@ -608,14 +463,13 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
               <TableFilters showDeleted={showDeleted} setShowDeleted={setShowDeleted} onClose={() => setFilterAnchorEl(null)} />
             </Menu>
             <Button
-              disabled={exporting || filteredData.length === 0}
               color='secondary'
               variant='tonal'
-              startIcon={exporting ? <i className='tabler-loader animate-spin' /> : <i className='tabler-upload' />}
+              startIcon={<i className='tabler-upload' />}
               className='max-sm:is-full'
-              onClick={handleExportCSV}
+              onClick={() => setExportDialogOpen(true)}
             >
-              {exporting ? 'Exporting…' : 'Export'}
+              Export
             </Button>
             {table.getSelectedRowModel().rows.length > 0 && (
               <Button
@@ -712,6 +566,12 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
           setAddOrderOpen(false)
         }}
         onSuccess={() => setRefreshKey(k => k + 1)}
+      />
+
+      <ExportMonthlyDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        orders={data}
       />
 
       <DeleteConfirmationDialog
