@@ -1,4 +1,6 @@
-// Type Imports
+// MUI X Date Picker Imports
+import MuiDatePickerProvider from '@components/MuiDatePickerProvider'
+
 import type { ChildrenType, Direction } from '@core/types'
 
 // Context Imports
@@ -32,8 +34,10 @@ const Providers = async (props: Props) => {
       <VerticalNavProvider>
         <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
           <ThemeProvider direction={direction} systemMode={systemMode}>
-            <ReduxProvider>{children}</ReduxProvider>
-            <AppReactToastify direction={direction} hideProgressBar />
+            <MuiDatePickerProvider>
+              <ReduxProvider>{children}</ReduxProvider>
+              <AppReactToastify direction={direction} hideProgressBar />
+            </MuiDatePickerProvider>
           </ThemeProvider>
         </SettingsProvider>
       </VerticalNavProvider>
