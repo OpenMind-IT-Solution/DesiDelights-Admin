@@ -321,6 +321,19 @@ const MenuTable = () => {
           </div>
         )
       }),
+      columnHelper.accessor('priority', {
+        header: 'Priority',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Chip
+            label={row.original.priority ?? '—'}
+            size='small'
+            color={row.original.priority === 1 ? 'primary' : 'secondary'}
+            variant={row.original.priority === 1 ? 'tonal' : 'tonal'}
+            className='capitalize'
+          />
+        )
+      }),
       columnHelper.accessor('categories', {
         header: 'Categories',
         cell: ({ row }) => (

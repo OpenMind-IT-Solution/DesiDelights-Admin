@@ -40,6 +40,7 @@ type FormValidateType = {
   status: boolean
   categoryId: number[]
   vatRate: number
+  priority: number
 }
 
 type CategoryOption = {
@@ -84,7 +85,8 @@ const AddMenuItemDrawer = (props: Props) => {
       offer: '0',
       status: true,
       categoryId: [],
-      vatRate: 12
+      vatRate: 12,
+      priority: 999999
     }
   })
 
@@ -146,7 +148,8 @@ const AddMenuItemDrawer = (props: Props) => {
         offer: itemToEdit.offer || '0',
         status: itemToEdit.status ?? true,
         categoryId: itemToEdit.categories?.map(c => c.id) || [],
-        vatRate: itemToEdit.vatRate || 12
+        vatRate: itemToEdit.vatRate || 12,
+        priority: itemToEdit.priority ?? 999999
       })
 
       const existingImages = (itemToEdit.menuImages || []).map(img => {
@@ -269,7 +272,8 @@ const AddMenuItemDrawer = (props: Props) => {
       offer: '0',
       status: true,
       categoryId: [],
-      vatRate: 12
+      vatRate: 12,
+      priority: 999999
     })
   }
 
@@ -422,6 +426,23 @@ const AddMenuItemDrawer = (props: Props) => {
             control={control}
             rules={{ required: true, min: 0 }}
             render={({ field }) => <CustomTextField {...field} fullWidth label='Offer (%)' placeholder='15' />}
+          />
+          <Controller
+            name='priority'
+            control={control}
+            rules={{ required: true, min: 1 }}
+            render={({ field }) => (
+              <CustomTextField
+                {...field}
+                fullWidth
+                type='number'
+                label='Priority'
+                placeholder='1'
+                helperText='1 = highest priority (shows first). If another item has the same priority, it moves down.'
+                onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                {...(errors.priority && { error: true, helperText: 'Priority must be 1 or more.' })}
+              />
+            )}
           />
           
           <Controller

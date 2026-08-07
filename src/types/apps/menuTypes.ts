@@ -8,6 +8,7 @@ export type MenuItems = {
   tag?: string
   offer?: string
   vatRate?: number
+  priority?: number
   categories?: {
     id: number
     name: string
