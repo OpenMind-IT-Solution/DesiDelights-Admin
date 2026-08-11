@@ -768,7 +768,6 @@ const Pos = () => {
         orderType={orderType}
         onOrderTypeChange={setOrderType}
         tableNumber={tableNumber}
-        onTableNumberChange={setTableNumber}
         cashierName={session?.user?.name ?? undefined}
         cashReceived={cashReceived}
         onCashReceivedChange={setCashReceived}
