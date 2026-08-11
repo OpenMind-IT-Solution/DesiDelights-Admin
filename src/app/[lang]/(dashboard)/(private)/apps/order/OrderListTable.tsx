@@ -77,26 +77,33 @@ type OrderStatusType = {
 // const Icon = styled('i')({})
 
 const parseDeliveryAddress = (address: string | null | undefined): string => {
-  if (!address) return '-'
+  if (!address || address === 'null' || address === 'undefined') return '-'
 
   try {
     const parsed = JSON.parse(address)
 
-    if (parsed && typeof parsed === 'object' && (parsed.customerName || parsed.customerPhone || parsed.customerNotes)) {
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const parts: string[] = []
 
       if (parsed.customerName) parts.push(parsed.customerName)
       if (parsed.customerPhone) parts.push(parsed.customerPhone)
       if (parsed.customerNotes) parts.push(`(${parsed.customerNotes})`)
-      
-return parts.join(' | ')
+
+      if (parts.length > 0) return parts.join(' | ')
+
+      // POS metadata (no real street address) — show a short summary instead of raw JSON
+      const posParts: string[] = []
+
+      if (parsed.orderType) posParts.push(String(parsed.orderType))
+      if (parsed.tableNumber) posParts.push(`Table ${parsed.tableNumber}`)
+
+      return posParts.length > 0 ? posParts.join(' · ') : '-'
     }
   } catch {
     // not JSON
   }
 
-  
-return address
+  return address
 }
 
 const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {

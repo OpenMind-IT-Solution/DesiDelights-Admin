@@ -77,7 +77,7 @@ const Pos = () => {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paymentMethod, setPaymentMethod] = useState('card')
   const [orderType, setOrderType] = useState('dine-in')
   const [tableNumber, setTableNumber] = useState('')
   const [cashReceived, setCashReceived] = useState<number | null>(null)
