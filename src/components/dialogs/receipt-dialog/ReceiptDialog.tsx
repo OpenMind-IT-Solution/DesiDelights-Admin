@@ -548,8 +548,10 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
     const receiptHtml = useMemo(() => buildReceiptHtml(renderOptions, 'screen'), [renderOptions])
 
     const captureReceiptImage = async (): Promise<string | null> => {
-      // Prefer the visible preview (most reliable); fall back to the hidden template
-      const el = receiptPreviewRef.current ?? receiptCaptureRef.current
+      // Use the hidden full-height template so tall receipts are never clipped by the
+      // dialog's scrollable viewport (which used to cut off the address and footer);
+      // fall back to the visible preview if the template isn't mounted.
+      const el = receiptCaptureRef.current ?? receiptPreviewRef.current
 
       if (!el) return null
 
@@ -560,7 +562,7 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
         // Let the layout settle (short timer — also works if this tab is ever backgrounded)
         await new Promise(r => setTimeout(r, 50))
 
-        if (!receiptPreviewRef.current) {
+        if (receiptCaptureRef.current) {
           origLeft = el.style.left
           el.style.left = '0'
           await new Promise(r => setTimeout(r, 30))
@@ -573,12 +575,19 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
         const mod = await import('html2canvas')
         const html2canvas: any = (mod as any).default ?? mod
 
+        // Explicit window/canvas dimensions ensure the FULL receipt is rendered,
+        // not just the part visible inside the dialog
         const canvas = await html2canvas(el, {
           scale: 2,
           useCORS: true,
           allowTaint: true,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          scrollY: 0,
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+          width: el.scrollWidth,
+          height: el.scrollHeight
         })
 
         return canvas.toDataURL('image/png')
