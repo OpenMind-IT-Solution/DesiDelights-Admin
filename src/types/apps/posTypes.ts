@@ -5,6 +5,7 @@ export type CartItem = {
   quantity: number
   total: number
   image?: string
+  addons?: { name: string; price: number }[]
 }
 
 export type OrderSummary = {
