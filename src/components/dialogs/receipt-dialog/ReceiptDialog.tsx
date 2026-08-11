@@ -70,7 +70,6 @@ interface ReceiptDialogProps {
   orderType?: string
   onOrderTypeChange?: (value: string) => void
   tableNumber?: string | number
-  onTableNumberChange?: (value: string) => void
   cashierName?: string
   cashReceived?: number | null
   onCashReceivedChange?: (value: number | null) => void
@@ -171,8 +170,6 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     customerPhone,
     customerNotes,
     orderType,
-    tableNumber,
-    cashierName,
     cashReceived,
     transactionId,
     receiptNumber,
@@ -183,7 +180,12 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
   const change = cashReceived != null ? Math.max(0, cashReceived - payable) : null
   const dateObj = createdAt ? new Date(createdAt) : new Date()
 
-  const source = { ...DEFAULT_RESTAURANT, ...(restaurant ?? {}) }
+  // Merge restaurant data over the defaults, but only non-empty values win —
+  // empty strings from an unseeded live DB must not hide the fallback details
+  const source: Record<string, string | undefined> = {
+    ...DEFAULT_RESTAURANT,
+    ...Object.fromEntries(Object.entries(restaurant ?? {}).filter(([, v]) => v != null && String(v).trim() !== ''))
+  }
 
   const restaurantName = esc((source.name ?? '').trim() || 'Desi Delights')
   const tagline = esc((source.tagline ?? '').trim() || 'Quick Bites, Happy Vibes')
@@ -307,13 +309,11 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     ...(paymentMethod === 'card' && transactionId ? [totalRow('Transaction ID', esc(transactionId))] : [])
   ].join('')
 
-  // 5. Date / receipt number / cashier (reference: shown after payment)
+  // 5. Date / receipt number (reference: shown after payment)
   const bottomInfo = [
     center(dateLine),
     ...(orderNumber != null ? [center(`#${String(orderNumber).padStart(6, '0')}`)] : []),
-    ...(cashierName ? [center(`CASHIER ${esc(cashierName).toUpperCase()}`)] : []),
     ...(orderType ? [kv('Order Type:', orderTypeLabel(orderType))] : []),
-    ...(tableNumber != null && tableNumber !== '' ? [kv('Table:', esc(tableNumber))] : []),
     ...(customerName ? [kv('Customer:', esc(customerName))] : []),
     ...(customerPhone ? [kv('Phone:', esc(customerPhone))] : []),
     ...(customerNotes ? [kv('Notes:', esc(customerNotes))] : []),
@@ -480,7 +480,6 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
       orderType,
       onOrderTypeChange,
       tableNumber,
-      onTableNumberChange,
       cashierName,
       cashReceived,
       onCashReceivedChange,
@@ -671,10 +670,6 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
       onOrderTypeChange?.(value)
     }
 
-    const handleTableNumberChange = (value: string) => {
-      onTableNumberChange?.(value)
-    }
-
     const handleCashReceivedChange = (value: string) => {
       onCashReceivedChange?.(value === '' ? null : Number(value))
     }
@@ -741,20 +736,20 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
                     <MenuItem value='takeaway'>Takeaway</MenuItem>
                     <MenuItem value='delivery'>Delivery</MenuItem>
                   </CustomTextField>
-                  <TextField
+                  {/* <TextField
                     label='Table Number'
                     value={tableNumber ?? ''}
                     onChange={e => handleTableNumberChange(e.target.value)}
                     size='small'
                     sx={{ width: 130 }}
-                  />
-                  {cashierName && (
+                  /> */}
+                  {/* {cashierName && (
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Typography variant='body2' color='text.secondary'>
                         Cashier: {cashierName}
                       </Typography>
                     </Box>
-                  )}
+                  )} */}
                 </Box>
                 {paymentMethod === 'cash' && (
                   <Box sx={{ display: 'flex', gap: 4, alignItems: 'center', mb: 3 }}>
