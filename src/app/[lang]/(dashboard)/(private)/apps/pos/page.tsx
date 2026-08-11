@@ -36,18 +36,22 @@ import {
   TrashCanOutline
 } from 'mdi-material-ui'
 
+import { useSession } from 'next-auth/react'
+
 import type { Category } from '@/types/apps/categoryTypes'
 import type { MenuItems } from '@/types/apps/menuTypes'
 import type { CartItem, OrderSummary } from '@/types/apps/posTypes'
+import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 
 // API Imports
 import CustomTextField from '@/@core/components/mui/TextField'
-import { post, put } from '@/services/apiService'
+import { get, post, put } from '@/services/apiService'
 import { categoriesEndpoints } from '@/services/endpoints/category'
 import { menuEndpoints } from '@/services/endpoints/menu'
 import { couponEndpoints } from '@/services/endpoints/coupon'
 import { orderEndpoints } from '@/services/endpoints/order'
 import { posEndpoints } from '@/services/endpoints/pos'
+import { restaurantEndpoints } from '@/services/endpoints/restaurant'
 import { getImageUrl } from '@/utils/getImageUrl'
 import ReceiptDialog from '@/components/dialogs/receipt-dialog/ReceiptDialog'
 import type { ReceiptDialogHandle } from '@/components/dialogs/receipt-dialog/ReceiptDialog'
@@ -55,9 +59,13 @@ import type { ReceiptDialogHandle } from '@/components/dialogs/receipt-dialog/Re
 const DEFAULT_VAT_RATE = 0.12
 
 const Pos = () => {
+  // Session
+  const { data: session } = useSession()
+
   // States
   const [menuItems, setMenuItems] = useState<MenuItems[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [restaurant, setRestaurant] = useState<RestaurantTypes | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -70,6 +78,9 @@ const Pos = () => {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [orderType, setOrderType] = useState('dine-in')
+  const [tableNumber, setTableNumber] = useState('')
+  const [cashReceived, setCashReceived] = useState<number | null>(null)
   const [couponCode, setCouponCode] = useState('')
   const [discountAmount, setDiscountAmount] = useState(0)
   const [couponError, setCouponError] = useState('')
@@ -163,6 +174,37 @@ const Pos = () => {
 
     fetchData()
   }, [fetchCategories, fetchMenuItems, fetchCoupons])
+
+  // Fetch restaurant info for the receipt header/footer
+  useEffect(() => {
+    const raw = session?.user?.restaurantId
+
+    let restaurantId: number | null = null
+
+    if (typeof raw === 'string') {
+      try {
+        restaurantId = JSON.parse(raw)[0] ?? null
+      } catch {
+        restaurantId = null
+      }
+    } else if (Array.isArray(raw)) {
+      restaurantId = raw[0] ?? null
+    } else if (raw != null) {
+      restaurantId = Number(raw) || null
+    }
+
+    if (restaurantId == null) return
+
+    get(restaurantEndpoints.getRestaurantById(restaurantId))
+      .then((result: any) => {
+        if (result?.status === 'success' && result.data) {
+          setRestaurant(result.data)
+        }
+      })
+      .catch(() => {
+        // Restaurant info is non-critical - receipt falls back to brand defaults
+      })
+  }, [session?.user?.restaurantId])
 
   // Filter menu items by category and search
   const filteredMenuItems = menuItems.filter(item => {
@@ -333,6 +375,10 @@ const Pos = () => {
           customerPhone: customerPhone.trim() || undefined,
           customerNotes: customerNotes.trim() || undefined,
           paymentMethod,
+          orderType,
+          tableNumber: tableNumber.trim() || undefined,
+          cashierName: session?.user?.name || undefined,
+          cashReceived: cashReceived ?? undefined,
           couponCode: couponCode.trim() || undefined,
           discountAmount
         }
@@ -368,9 +414,9 @@ const Pos = () => {
   }
 }
 
-  // Save order before dialog captures and prints
-  const handleBeforePrint = async () => {
-    if (cart.length === 0) return
+  // Save order before dialog captures and prints. Returns the new order id when available.
+  const handleBeforePrint = async (): Promise<number | string | null | undefined | void> => {
+    if (cart.length === 0) return undefined
 
     try {
       const payload = {
@@ -386,6 +432,10 @@ const Pos = () => {
         customerPhone: customerPhone.trim() || undefined,
         customerNotes: customerNotes.trim() || undefined,
         paymentMethod,
+        orderType,
+        tableNumber: tableNumber.trim() || undefined,
+        cashierName: session?.user?.name || undefined,
+        cashReceived: cashReceived ?? undefined,
         couponCode: couponCode.trim() || undefined,
         discountAmount
       }
@@ -396,8 +446,11 @@ const Pos = () => {
       setOrderNumber(newOrderId)
       setOrderPlaced(true)
       removeCoupon()
+
+      return newOrderId
     } catch {
       // Silently fail
+      return undefined
     }
   }
 
@@ -410,6 +463,8 @@ const Pos = () => {
     setCustomerName('')
     setCustomerPhone('')
     setCustomerNotes('')
+    setTableNumber('')
+    setCashReceived(null)
   }
 
   return (
@@ -691,7 +746,8 @@ const Pos = () => {
             name: item.name,
             quantity: item.quantity,
             total: item.total,
-            vatRate: menuItem?.vatRate ?? 12
+            vatRate: menuItem?.vatRate ?? 12,
+            addons: item.addons
           }
         })}
         subtotal={orderSummary.subtotal}
@@ -700,19 +756,29 @@ const Pos = () => {
         )}
         vatTotal={orderSummary.vatTotal}
         total={orderSummary.total}
+        grandTotal={Math.max(0, orderSummary.total - discountAmount)}
         discountAmount={discountAmount}
+        receiptNumber={orderNumber ?? undefined}
         showPlaceOrder
         isPlacing={isPlacing}
         onPlaceOrder={placeOrder}
         onBeforePrint={handleBeforePrint}
         paymentMethod={paymentMethod}
         onPaymentMethodChange={setPaymentMethod}
+        orderType={orderType}
+        onOrderTypeChange={setOrderType}
+        tableNumber={tableNumber}
+        onTableNumberChange={setTableNumber}
+        cashierName={session?.user?.name ?? undefined}
+        cashReceived={cashReceived}
+        onCashReceivedChange={setCashReceived}
         customerName={customerName}
         onCustomerNameChange={setCustomerName}
         customerPhone={customerPhone}
         onCustomerPhoneChange={setCustomerPhone}
         customerNotes={customerNotes}
         onCustomerNotesChange={setCustomerNotes}
+        restaurant={restaurant ?? undefined}
       />
 
       {/* Floating Action Button for New Order */}

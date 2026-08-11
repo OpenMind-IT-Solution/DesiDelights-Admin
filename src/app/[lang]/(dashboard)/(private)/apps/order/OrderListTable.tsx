@@ -602,9 +602,13 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
         subtotal={Number((receiptOrder as any)?.subtotal || 0)}
         vatTotal={Number((receiptOrder as any)?.taxAmount || 0)}
         total={Number(receiptOrder?.totalAmount || 0)}
+        grandTotal={Number(receiptOrder?.totalAmount || 0)}
         discountAmount={Number((receiptOrder as any)?.discountAmount || 0)}
         readOnly
         paymentMethod={(receiptOrder as any)?.paymentMethod || 'cash'}
+        orderType={(receiptOrder as any)?.orderType || 'pos'}
+        terminalId={(receiptOrder as any)?.terminalId ?? undefined}
+        receiptNumber={receiptOrder?.id ? String(receiptOrder.id).padStart(6, '0') : undefined}
         customerName={receiptOrder?.customerName || ''}
         createdAt={(receiptOrder as any)?.createdAt || null}
       />
