@@ -118,6 +118,21 @@ const THEMES: Record<ReceiptTheme, { width: string; fontSize: number; small: num
   print: { width: '72mm', fontSize: 11, small: 9, qtyW: 24, priceW: 62, labelW: 92, sep: 5, star: 40 }
 }
 
+// Fallbacks so the receipt always shows the store details + Belgian fiscal footer,
+// even when the live database hasn't been seeded with these values.
+const DEFAULT_RESTAURANT = {
+  address: 'Rue de Genève 470D, 1030 Schaerbeek, Belgium',
+  phoneNumber: '+32 456 86 34 96',
+  posId: 'AQU00045903482',
+  rel: 'QT240115BE',
+  terminal: '1 - 70:4A:0E:E1:5B:14',
+  pluHash: '8934247F',
+  ticketTeller: '90411/90838 NS',
+  ticketSignature: '5B16097DB3EED508244627831C7A909AAE4F2E99',
+  controlModuleId: 'BMC05056482',
+  vatCardId: '0889732894-001'
+}
+
 const esc = (value: unknown) =>
   String(value ?? '').replace(/[&<>"']/g, char => {
     const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
@@ -168,24 +183,26 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
   const change = cashReceived != null ? Math.max(0, cashReceived - payable) : null
   const dateObj = createdAt ? new Date(createdAt) : new Date()
 
-  const restaurantName = esc((restaurant.name ?? '').trim() || 'Desi Delights')
-  const tagline = esc((restaurant.tagline ?? '').trim() || 'Quick Bites, Happy Vibes')
-  const phone = (restaurant.phoneNumber ?? '').trim()
-  const website = (restaurant.website ?? '').trim()
-  const vatNumber = (restaurant.vatNumber ?? '').trim()
-  const posId = (restaurant.posId ?? '').trim()
-  const rel = (restaurant.rel ?? '').trim()
-  const terminal = (restaurant.terminal ?? '').trim()
-  const pluHash = (restaurant.pluHash ?? '').trim()
-  const ticketTeller = (restaurant.ticketTeller ?? '').trim()
-  const ticketSignature = (restaurant.ticketSignature ?? '').trim()
-  const controlModuleId = (restaurant.controlModuleId ?? '').trim()
-  const vatCardId = (restaurant.vatCardId ?? '').trim()
+  const source = { ...DEFAULT_RESTAURANT, ...(restaurant ?? {}) }
+
+  const restaurantName = esc((source.name ?? '').trim() || 'Desi Delights')
+  const tagline = esc((source.tagline ?? '').trim() || 'Quick Bites, Happy Vibes')
+  const phone = (source.phoneNumber ?? '').trim()
+  const website = (source.website ?? '').trim()
+  const vatNumber = (source.vatNumber ?? '').trim()
+  const posId = (source.posId ?? '').trim()
+  const rel = (source.rel ?? '').trim()
+  const terminal = (source.terminal ?? '').trim()
+  const pluHash = (source.pluHash ?? '').trim()
+  const ticketTeller = (source.ticketTeller ?? '').trim()
+  const ticketSignature = (source.ticketSignature ?? '').trim()
+  const controlModuleId = (source.controlModuleId ?? '').trim()
+  const vatCardId = (source.vatCardId ?? '').trim()
 
   // Split the address into street + city/postal lines like the reference receipt
-  const rawAddress = (restaurant.address ?? '').trim()
+  const rawAddress = (source.address ?? '').trim()
   let street = rawAddress
-  let city = (restaurant.city ?? '').trim()
+  let city = (source.city ?? '').trim()
   const lastComma = rawAddress.lastIndexOf(',')
 
   if (lastComma > 0) {
