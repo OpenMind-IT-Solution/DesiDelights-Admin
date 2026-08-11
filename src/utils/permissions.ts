@@ -7,9 +7,9 @@ export type Permission = {
   delete: boolean
 }
 
-export const moduleRouteMap: Record<string, string> = {
+export const moduleRouteMap: Record<string, string | string[]> = {
   dashboard: '/dashboards/crm',
-  'restaurant management': '/apps/restaurant',
+  'restaurant management': ['/apps/restaurant', '/apps/banner'],
   'user management': '/apps/user',
   'category management': '/apps/category',
   'menu management': '/apps/menu',
@@ -34,11 +34,11 @@ export function canView(permissions: Permission[] | undefined, moduleName: strin
 }
 
 export function getAccessibleRoutes(permissions: Permission[] | undefined): string[] {
-  if (!permissions || permissions.length === 0) return Object.values(moduleRouteMap)
+  if (!permissions || permissions.length === 0) return Object.values(moduleRouteMap).flat()
 
   return Object.entries(moduleRouteMap)
     .filter(([moduleName]) => canView(permissions, moduleName))
-    .map(([, route]) => route)
+    .flatMap(([, route]) => route)
 }
 
 export function isRouteAllowed(pathname: string, permissions: Permission[] | undefined): boolean {
