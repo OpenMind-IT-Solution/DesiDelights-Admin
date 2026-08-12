@@ -83,6 +83,8 @@ const Pos = () => {
   const [cashReceived, setCashReceived] = useState<number | null>(null)
   const [couponCode, setCouponCode] = useState('')
   const [discountAmount, setDiscountAmount] = useState(0)
+  const [discountType, setDiscountType] = useState('')
+  const [discountValue, setDiscountValue] = useState(0)
   const [couponError, setCouponError] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [availableCoupons, setAvailableCoupons] = useState<any[]>([])
@@ -320,14 +322,20 @@ const Pos = () => {
       if (result.status === 'success') {
         setCouponCode(code)
         setDiscountAmount(result.data.discountAmount)
+        setDiscountType(result.data.discountType ?? '')
+        setDiscountValue(result.data.discountValue ?? 0)
       } else {
         setCouponCode('')
         setDiscountAmount(0)
+        setDiscountType('')
+        setDiscountValue(0)
         setCouponError(result.message || 'Invalid coupon')
       }
     } catch (err: any) {
       setCouponCode('')
       setDiscountAmount(0)
+      setDiscountType('')
+      setDiscountValue(0)
       setCouponError(err?.message || 'Failed to validate coupon')
     } finally {
       setCouponLoading(false)
@@ -338,6 +346,8 @@ const Pos = () => {
     setCouponCode('')
 
     setDiscountAmount(0)
+    setDiscountType('')
+    setDiscountValue(0)
     setCouponError('')
   }
 
@@ -445,7 +455,6 @@ const Pos = () => {
 
       setOrderNumber(newOrderId)
       setOrderPlaced(true)
-      removeCoupon()
 
       return newOrderId
     } catch {
@@ -465,6 +474,7 @@ const Pos = () => {
     setCustomerNotes('')
     setTableNumber('')
     setCashReceived(null)
+    removeCoupon()
   }
 
   return (
@@ -758,6 +768,8 @@ const Pos = () => {
         total={orderSummary.total}
         grandTotal={Math.max(0, orderSummary.total - discountAmount)}
         discountAmount={discountAmount}
+        discountType={discountType}
+        discountValue={discountValue}
         receiptNumber={orderNumber ?? undefined}
         showPlaceOrder
         isPlacing={isPlacing}
