@@ -328,6 +328,9 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     ${totals}
     ${payment}
     ${bottomInfo}
+    ${starSep()}
+    ${center('BEDANKT EN TOT ZIENS!')}
+    ${starSep()}
   </div>`
 }
 
