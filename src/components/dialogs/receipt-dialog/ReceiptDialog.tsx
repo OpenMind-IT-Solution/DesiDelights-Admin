@@ -60,6 +60,8 @@ interface ReceiptDialogProps {
   total: number
   grandTotal?: number
   discountAmount?: number
+  discountType?: string
+  discountValue?: number
   readOnly?: boolean
   showPlaceOrder?: boolean
   isPlacing?: boolean
@@ -99,6 +101,8 @@ interface ReceiptRenderOptions {
   total: number
   grandTotal?: number
   discountAmount?: number
+  discountType?: string
+  discountValue?: number
   paymentMethod?: string
   customerName?: string
   customerPhone?: string
@@ -139,8 +143,8 @@ const esc = (value: unknown) =>
     return map[char] ?? char
   })
 
-// Two-decimal number format (decimal point), no currency symbol
-const money = (value: number) => value.toFixed(2)
+// Two-decimal euro format (decimal point), always with the euro sign
+const money = (value: number) => `€${value.toFixed(2)}`
 
 const cap = (value: string) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value)
 
@@ -165,6 +169,8 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     total,
     grandTotal,
     discountAmount,
+    discountType,
+    discountValue,
     paymentMethod,
     customerName,
     customerPhone,
@@ -192,14 +198,6 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
   const phone = (source.phoneNumber ?? '').trim()
   const website = (source.website ?? '').trim()
   const vatNumber = (source.vatNumber ?? '').trim()
-  const posId = (source.posId ?? '').trim()
-  const rel = (source.rel ?? '').trim()
-  const terminal = (source.terminal ?? '').trim()
-  const pluHash = (source.pluHash ?? '').trim()
-  const ticketTeller = (source.ticketTeller ?? '').trim()
-  const ticketSignature = (source.ticketSignature ?? '').trim()
-  const controlModuleId = (source.controlModuleId ?? '').trim()
-  const vatCardId = (source.vatCardId ?? '').trim()
 
   // Split the address into street + city/postal lines like the reference receipt
   const rawAddress = (source.address ?? '').trim()
@@ -226,14 +224,10 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
   }).formatToParts(dateObj)
 
   const bGet = (type: string) => brussels.find(part => part.type === type)?.value ?? ''
-  const pad2 = (value: string) => value.padStart(2, '0')
-  const controlDateTime = `${bGet('day')}/${pad2(bGet('month'))}/${bGet('year')} ${bGet('hour')}:${bGet('minute')}:${bGet('second')}`
   const dateLine = `${bGet('weekday')} ${bGet('day')}-${bGet('month').replace(/^0/, '')}-${bGet('year')} ${bGet('hour')}:${bGet('minute')}:${bGet('second')}`
 
   const center = (content: string, size?: number) =>
     `<div style="text-align:center;${size ? `font-size:${size}px;` : ''}">${content}</div>`
-
-  const line = (content: string) => `<div style="word-wrap:break-word;overflow-wrap:anywhere;">${content}</div>`
 
   const starSep = () => `<div style="text-align:center;">${'*'.repeat(T.star)}</div>`
 
@@ -294,11 +288,14 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
         ? subRow('Btw', money(vatTotal ?? 0))
         : ''
 
+  const discountLabel =
+    discountType === 'percentage' && discountValue != null ? `Korting ${discountValue}%` : 'Korting'
+
   const totals = [
     totalRow(`${totalQty} Total`, money(payable), true),
     ...(subtotal > 0 ? [subRow('Belastbaar B-Middel', money(subtotal))] : []),
     vatRateRows,
-    ...((discountAmount ?? 0) > 0 ? [subRow('Korting', `-${money(discountAmount ?? 0)}`)] : [])
+    ...((discountAmount ?? 0) > 0 ? [subRow(discountLabel, `-${money(discountAmount ?? 0)}`)] : [])
   ].join('')
 
   // 4. Payment
@@ -321,31 +318,9 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     ...(terminalId != null ? [kv('Terminal:', esc(terminalId))] : [])
   ].join('')
 
-  // 6. BTW-KASTICKET fiscal footer (Belgian legal block, per-restaurant config)
-  const hasFiscalData = !!(posId || rel || terminal || pluHash || ticketTeller || ticketSignature || controlModuleId || vatCardId)
+  const sidePadding = theme === 'screen' ? '0 12px' : '0 4mm'
 
-  const fiscalBlock = hasFiscalData
-    ? `
-    ${starSep()}
-    <div style="text-align:center;font-weight:bold;">BTW-KASTICKET</div>
-    ${[
-      posId ? line(`POS: ${esc(posId)}`) : '',
-      rel ? line(`Rel: ${esc(rel)}`) : '',
-      terminal ? line(`Terminal: ${esc(terminal)}`) : '',
-      pluHash ? line(`PLU-Hash: ${esc(pluHash)}`) : '',
-      line('Controlegegevens:'),
-      line(controlDateTime),
-      ticketTeller ? line(`Ticket teller: ${esc(ticketTeller)}`) : '',
-      ticketSignature ? line('Ticket handtekening:') + line(esc(ticketSignature)) : '',
-      controlModuleId ? line(`Controlemodule-id: ${esc(controlModuleId)}`) : '',
-      vatCardId ? line(`VAT signing card-id: ${esc(vatCardId)}`) : ''
-    ].join('')}`
-    : ''
-
-  // 7. Footer
-  const footer = [starSep(), center('BEDANKT EN TOT ZIENS!'), starSep()].join('')
-
-  return `<div style="width:${T.width};margin:0 auto;background:#fff;color:#000;font-family:'Courier New',Courier,monospace;font-size:${T.fontSize}px;line-height:1.4;word-wrap:break-word;overflow-wrap:anywhere;">
+  return `<div style="width:${T.width};box-sizing:border-box;padding:${sidePadding};margin:0 auto;background:#fff;color:#000;font-family:'Courier New',Courier,monospace;font-size:${T.fontSize}px;line-height:1.4;word-wrap:break-word;overflow-wrap:anywhere;">
     ${header}
     ${starSep()}
     ${itemRows}
@@ -353,8 +328,9 @@ const buildReceiptHtml = (opts: ReceiptRenderOptions, theme: ReceiptTheme): stri
     ${totals}
     ${payment}
     ${bottomInfo}
-    ${fiscalBlock}
-    ${footer}
+    ${starSep()}
+    ${center('BEDANKT EN TOT ZIENS!')}
+    ${starSep()}
   </div>`
 }
 
@@ -470,6 +446,8 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
       total,
       grandTotal,
       discountAmount,
+      discountType,
+      discountValue,
       readOnly = false,
       showPlaceOrder = false,
       isPlacing = false,
@@ -524,6 +502,8 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
         total,
         grandTotal,
         discountAmount,
+        discountType,
+        discountValue,
         paymentMethod,
         customerName,
         customerPhone,
@@ -547,6 +527,8 @@ const ReceiptDialog = forwardRef<ReceiptDialogHandle, ReceiptDialogProps>(
         total,
         grandTotal,
         discountAmount,
+        discountType,
+        discountValue,
         paymentMethod,
         customerName,
         customerPhone,

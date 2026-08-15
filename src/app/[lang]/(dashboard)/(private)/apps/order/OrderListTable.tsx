@@ -41,11 +41,13 @@ import { toast } from 'react-toastify'
 import { useSession } from 'next-auth/react'
 
 import type { OrderType } from '@/types/apps/orderTypes'
+import type { RestaurantTypes } from '@/types/apps/restaurantTypes'
 import type { ThemeColor } from '@core/types'
 
 // Component Imports
-import { post, put } from '@/services/apiService'
+import { get, post, put } from '@/services/apiService'
 import { orderEndpoints } from '@/services/endpoints/order'
+import { restaurantEndpoints } from '@/services/endpoints/restaurant'
 import OrderItemsDrawer from '@components/dialogs/OrderItemsDrawer'
 import TablePaginationComponent from '@components/TablePaginationComponent'
 import CustomTextField from '@core/components/mui/TextField'
@@ -178,6 +180,7 @@ const OrderListTable = () => {
   const [orderToDelete, setOrderToDelete] = useState<OrderTypeWithAction | null>(null)
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false)
   const [receiptOrder, setReceiptOrder] = useState<OrderType | null>(null)
+  const [restaurant, setRestaurant] = useState<RestaurantTypes | null>(null)
   const [, setLoading] = useState(true)
   const [, setError] = useState<string | null>(null)
   const [, setTotalRows] = useState(0)
@@ -248,6 +251,37 @@ const OrderListTable = () => {
       active = false
     }
   }, [session, refreshKey])
+
+  // Fetch restaurant info for the receipt header/footer
+  useEffect(() => {
+    const raw = session?.user?.restaurantId
+
+    let restaurantId: number | null = null
+
+    if (typeof raw === 'string') {
+      try {
+        restaurantId = JSON.parse(raw)[0] ?? null
+      } catch {
+        restaurantId = null
+      }
+    } else if (Array.isArray(raw)) {
+      restaurantId = raw[0] ?? null
+    } else if (raw != null) {
+      restaurantId = Number(raw) || null
+    }
+
+    if (restaurantId == null) return
+
+    get(restaurantEndpoints.getRestaurantById(restaurantId))
+      .then((result: any) => {
+        if (result?.status === 'success' && result.data) {
+          setRestaurant(result.data)
+        }
+      })
+      .catch(() => {
+        // Restaurant info is non-critical - receipt falls back to brand defaults
+      })
+  }, [session?.user?.restaurantId])
 
   const handleConfirmDelete = async () => {
     if (!orderToDelete) return
@@ -618,6 +652,7 @@ return <Typography>{Array.isArray(orderItems) ? `${orderItems.length} items` : '
         receiptNumber={receiptOrder?.id ? String(receiptOrder.id).padStart(6, '0') : undefined}
         customerName={receiptOrder?.customerName || ''}
         createdAt={(receiptOrder as any)?.createdAt || null}
+        restaurant={restaurant ?? undefined}
       />
     </>
   )
